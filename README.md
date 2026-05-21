@@ -26,3 +26,7 @@ Advisory for leadership teams on commerce strategy, marketplaces, payments, reta
 ## This repo
 
 A public landing point. Links, references, and anything Rick wants to share openly will live here over time.
+
+### Guides
+
+- [Claude Code Workflow Optimizer](claude-code-optimizer.md) — patterns for cutting token spend 50–75% on Claude Code without losing output quality. Worktree fleets, plan-mode discipline, context-window management, model routing.
