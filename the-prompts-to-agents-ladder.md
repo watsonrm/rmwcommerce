@@ -23,10 +23,10 @@ Most readers are somewhere between Rung 1 and Rung 2. The highest-value move for
 
 | # | Situation | Right move | Why |
 | :-- | :--- | :--- | :--- |
-| **1** | You paste the same prompt setup more than twice | Package it as a skill (Rung 2) | Reuse without the context tax. Biggest gain, lowest effort. |
-| **2** | You have a skill but it needs multiple tool calls in sequence, with decisions between them | Graduate to an agent (Rung 3) | Skills are single-invocation. Once the model needs to reason about intermediate results, you need a loop. |
-| **3** | You have an agent but you keep adding tools and it's getting fragile | Refine the skill spec and tool allowlist before adding more tools | Complexity at Rung 3 compounds. Narrower scope is almost always the fix, not more tooling. |
-| **4** | You have a working single agent and the work has clear natural fan-out | Consider multi-agent (Rung 4) | See the companion guide for the full treatment. Don't start here. |
+| **1** | You paste the same prompt setup more than twice | Package it as a [skill (Rung 2)](#rung-2--skill) | Reuse without the [context tax](claude-code-optimizer.md#pillar-1-context-and-configuration-discipline-highest-roi). Biggest gain, lowest effort. |
+| **2** | You have a skill but it needs multiple tool calls in sequence, with decisions between them | Graduate to an [agent (Rung 3)](#rung-3--agent) | Skills are single-invocation. Once the model needs to reason about intermediate results, you need a [loop](#rung-3--agent). |
+| **3** | You have an agent but you keep adding tools and it's getting fragile | Refine the [skill spec](#rung-2--skill) and tool allowlist before adding more tools | Complexity at Rung 3 compounds. Narrower scope is almost always the fix, not more tooling. |
+| **4** | You have a working single agent and the work has clear natural fan-out | Consider [multi-agent (Rung 4)](#rung-4--multi-agent-system) | See [the companion guide](multi-agent-fan-out-and-verification.md) for the full treatment. Don't start here. |
 
 ---
 
