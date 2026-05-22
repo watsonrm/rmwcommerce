@@ -95,6 +95,8 @@ You can allow specific safe commands to run without prompting every time, while 
 
 Expand this list only when you understand what a command does. The full permission rule syntax is documented at [code.claude.com/docs/en/permissions](https://code.claude.com/docs/en/permissions).
 
+For the long-term setup that keeps you from being interrupted on every action after your first few weeks, see [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md).
+
 ---
 
 ## Section 2: Ask Claude to set up safety basics
@@ -242,6 +244,10 @@ Past hour 10: move to the optimizer.
 [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md) — the prerequisite to this guide. The mindset shift, the question templates, and the failure modes. If you came here first, go back and read that.
 
 [Claude Code Workflow Optimizer](claude-code-optimizer.md) — once you're working in Claude Code regularly, this is where you cut token spend and sharpen your workflow. Pillar 1 (CLAUDE.md hygiene) is the most immediately applicable.
+
+[Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md) — the long-term permission tuning guide. Once you've had a few weeks of sessions, this is how you stop being prompted on every safe operation.
+
+[Why Is Claude Code So Noisy?](claude-code-noise.md) — the terminal output side of the interruption problem, with ranked tactics for filtering what matters from what's just volume.
 
 [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) — when you start wondering whether to package your work as something more reusable. Most people climb this ladder too fast; this guide helps you know when you're ready.
 

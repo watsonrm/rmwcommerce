@@ -114,7 +114,7 @@ Anthropic's framing distinguishes agents from workflows on the axis of control: 
 
 **The autonomy dimension.** Andrej Karpathy introduced the concept of the autonomy slider at YC AI Startup School in June 2025: the same agent architecture can operate at very different levels of autonomy depending on how much approval it needs from a human. ([source](https://www.youtube.com/watch?v=LCEmiRjPEtQ)) Low on the slider: the agent proposes each action and a human approves before execution. High on the slider: the human reviews only the final output. Neither is wrong — the right position depends on how reversible the actions are and how much trust the agent has earned.
 
-This is the key design variable for Rung 3 that Rung 2 doesn't have: you can tune how autonomous your agent is, and you should start it lower and move it up as it proves itself.
+This is the key design variable for Rung 3 that Rung 2 doesn't have: you can tune how autonomous your agent is, and you should start it lower and move it up as it proves itself. As autonomy increases, permission tuning becomes more load-bearing — see [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md) for the strategy.
 
 **Where to stay:** One agent doing one well-defined job is enough for most workflows that genuinely need agentic behavior. The tools are clear, verification is solvable inside the agent's own loop, and a single context window can hold the relevant state.
 

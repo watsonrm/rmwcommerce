@@ -59,6 +59,8 @@ Anthropic's official docs are explicit about the constraint driving every other 
 
 Anthropic's official memory docs are explicit: *"target under 200 lines per CLAUDE.md file. Longer files consume more context and reduce adherence."* ([source](https://code.claude.com/docs/en/memory)) The troubleshooting section adds: *"Files over 200 lines consume more context and may reduce adherence."*
 
+For a deeper treatment of how context bloat manifests as noise in your terminal output — and the full set of noise sources and filtering tactics — see [Why Is Claude Code So Noisy?](claude-code-noise.md).
+
 Structuring your `CLAUDE.md` and packaging recurring workflows as skills is also the move from Rung 1 to Rung 2 on [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) — the point where ad-hoc prompts become reusable, versioned artifacts.
 
 **Execution:**
@@ -77,7 +79,7 @@ Break the loop by giving it something to verify against:
 - Capture the bug as a screenshot, then ask for the fix.
 - State the expected log output, then ask for the change.
 
-This is the single biggest quality lever in the tool.
+This is the single biggest quality lever in the tool. Permission prompts are part of the verification loop — they're the human checkpoint before an action executes. For tuning them without losing that verification value, see [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md).
 
 ---
 
@@ -113,7 +115,7 @@ The API parameter is `output_config: { effort: "medium" }` — it is a named str
 
 ### 3. Delegate noisy work to subagents
 
-Subagents are configured under `.claude/agents/` and managed via the `/agents` slash command ([source](https://code.claude.com/docs/en/best-practices)). They run in their own context, so verbose work — recursive scans, large log parses, Playwright test runs — never pollutes your main session. The parent only sees the structured summary. The best practices docs describe a Writer/Reviewer pattern where a fresh subagent context improves code review quality because the reviewer hasn't been biased by the code it just wrote. Using Claude Code subagents this way is Rung 2.5 on the autonomy scale — packaged like a skill, autonomous enough to run unsupervised for a scoped task; [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) covers when this pattern graduates into a full Rung 3 agent with its own decision loop.
+Subagents are configured under `.claude/agents/` and managed via the `/agents` slash command ([source](https://code.claude.com/docs/en/best-practices)). They run in their own context, so verbose work — recursive scans, large log parses, Playwright test runs — never pollutes your main session. For the full treatment of subagents as a noise-reduction tactic — including the four noise sources and the complete filtering framework — see [Why Is Claude Code So Noisy?](claude-code-noise.md). The parent only sees the structured summary. The best practices docs describe a Writer/Reviewer pattern where a fresh subagent context improves code review quality because the reviewer hasn't been biased by the code it just wrote. Using Claude Code subagents this way is Rung 2.5 on the autonomy scale — packaged like a skill, autonomous enough to run unsupervised for a scoped task; [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) covers when this pattern graduates into a full Rung 3 agent with its own decision loop.
 
 ---
 

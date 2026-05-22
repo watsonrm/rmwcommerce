@@ -150,7 +150,7 @@ These are the decisions you can make once and not revisit.
 
 **Commit often.** After every working state. Ask Claude to do it. The message just needs to describe what works: "Commit this — the CSV parser is reading files correctly." That's a commit message. Twenty seconds of friction prevents hours of recovery.
 
-**Keep permissions conservative.** The default permission mode in Claude Code prompts you before any file modification or bash command. That's the right setting. Don't change it to auto-approve everything until you understand exactly what you're approving.
+**Keep permissions conservative.** The default permission mode in Claude Code prompts you before any file modification or bash command. That's the right setting. Don't change it to auto-approve everything until you understand exactly what you're approving. If permission prompts feel like they're interrupting you constantly, that's its own problem with a fix — see [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md).
 
 **Let Claude manage the technical defaults.** Don't learn `.gitignore` templates, virtualenv setup, or `package.json` configuration. Ask Claude to handle them. Your job is to review what Claude proposes, not to know how to write it yourself.
 
@@ -159,6 +159,10 @@ These are the decisions you can make once and not revisit.
 ## Section 7: Where to go next
 
 **[Claude Code for Non-Developers: Your First Session](claude-code-non-developers-first-session.md)** — the practical companion to this guide. Installation, permissions, getting the safety basics set up, picking a first project, and understanding the approval process as it plays out in a real session.
+
+**[Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md)** — the layered permission model across all Claude environments, with starter defaults for Claude Code. Read this once you've had a few weeks of sessions and want to stop being interrupted on every action.
+
+**[Why Is Claude Code So Noisy?](claude-code-noise.md)** — the terminal looks like a wall of text by design. This covers why, what to filter, and what not to.
 
 **[The Claude Code Workflow Optimizer](claude-code-optimizer.md)** — for reducing token waste and rework once you're using Claude Code regularly. Prioritized by real-world ROI. Start with context discipline and CLAUDE.md hygiene.
 
@@ -175,6 +179,7 @@ These are the decisions you can make once and not revisit.
 - Andrej Karpathy, "Software Is Changing (Again)," YC AI Startup School, 2025. ([YC Library](https://www.ycombinator.com/library/MW-andrej-karpathy-software-is-changing-again)) — Software 1.0/2.0/3.0 framing; LLMs as natural-language-programmed computers.
 - Andrej Karpathy, original "vibe coding" post, X (formerly Twitter), February 2025. ([x.com/karpathy/status/1886192184808149383](https://x.com/karpathy/status/1886192184808149383)) — coinage and definition of the term.
 - Anthropic Claude Code security and permissions documentation. ([code.claude.com/docs/en/security](https://code.claude.com/docs/en/security) | [code.claude.com/docs/en/permissions](https://code.claude.com/docs/en/permissions)) — default permission stance, permission tiers, tool-specific rules.
+- [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md) — the companion guide for tuning permissions across all Claude environments.
 - Anthropic Claude Code memory documentation. ([code.claude.com/docs/en/memory](https://code.claude.com/docs/en/memory)) — CLAUDE.md sizing guidance.
 - Boris Cherny (head of Claude Code), quoted in Fortune, January 2026. ([fortune.com](https://fortune.com/2026/01/24/anthropic-boris-cherny-claude-code-non-coders-software-engineers/)) — on non-programmer adoption and Cowork development.
 
