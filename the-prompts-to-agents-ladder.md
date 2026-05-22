@@ -8,6 +8,8 @@
 
 ## TL;DR — what's in it for you
 
+Already working at Rung 1–2 inside Claude Code? Practitioner tactics — context discipline, model routing, verification-first — are in [The Claude Code Workflow Optimizer](claude-code-optimizer.md). Already committed to Rung 4? The architecture playbook is in [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md).
+
 If you can identify the right rung on this ladder before you build, you will ship faster and waste fewer tokens than most teams building with LLMs today. Specifically:
 
 - Avoid rebuilding a prompt as a full agent and then wondering why it's slower, harder to debug, and no more correct
@@ -68,7 +70,7 @@ A prompt is a single instruction in a chat session. Stateless or near-stateless.
 
 A skill is a packaged, reusable instruction set. It loads on demand. It does one thing well per invocation.
 
-**What it adds over a prompt:** Reuse, optional tool allowlists, optional scripts the skill can call, and versioning you can reason about. In Claude Code, a skill is a folder with a `SKILL.md` file — instructions, scripts, and reference docs that Claude loads when the skill is relevant. ([source](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)) Trigger phrases or slash commands route to it. Anthropic introduced this as a named pattern in October 2025 with their Agent Skills release.
+**What it adds over a prompt:** Reuse, optional tool allowlists, optional scripts the skill can call, and versioning you can reason about. In Claude Code, a skill is a folder with a `SKILL.md` file — instructions, scripts, and reference docs that Claude loads when the skill is relevant. ([source](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)) Trigger phrases or slash commands route to it. Anthropic introduced this as a named pattern in October 2025 with their Agent Skills release. For Claude Code specifically, the practitioner tactics that make Rung 1–2 work well — context discipline, model routing, verification-first — are documented in [The Claude Code Workflow Optimizer](claude-code-optimizer.md).
 
 OpenAI's parallel pattern is Custom GPTs: a tailored configuration with custom instructions, external knowledge, and allowed actions — same concept, different implementation. Ethan Mollick, Wharton professor and one of the most widely read practitioners on applied AI use, described Custom GPTs as a more repeatable and shareable form of prompt packaging. ([source](https://www.oneusefulthing.org/p/almost-an-agent-what-gpts-can-do)) He was also precise about what they are not: *"GPTs aren't autonomous agents yet. I had to give feedback to the AI a few times."* Rung 2 is where a human is still present for each output. That is not a bug — it is often the right design.
 
@@ -164,7 +166,7 @@ The companion guide covers this in detail. The short version: if you don't have 
 
 ## Where to go next
 
-If you've worked through this ladder and concluded that a multi-agent system is genuinely the right tool — your work has fan-out, or your agents need specialization, or your context is overflowing — the next step is [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md). That guide covers typed return contracts, intermediate-state logging, thin-orchestrator architecture, and a concrete phasing strategy for getting there without breaking what already works.
+If you've worked through this ladder and concluded that a multi-agent system is genuinely the right tool — your work has fan-out, or your agents need specialization, or your context is overflowing — the architecture playbook lives in [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md). That guide covers typed return contracts, intermediate-state logging, thin-orchestrator architecture, and a concrete phasing strategy for getting there without breaking what already works.
 
 If you're still deciding whether you need Rung 3 at all, the right move is to build a Rung 2 skill first. It's faster, it's verifiable, and it tells you exactly what the agent would need to do that the skill can't — which is the clearest possible specification for the agent you'd eventually build.
 

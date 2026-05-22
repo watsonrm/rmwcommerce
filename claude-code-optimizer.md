@@ -59,6 +59,8 @@ Anthropic's official docs are explicit about the constraint driving every other 
 
 Anthropic's official memory docs are explicit: *"target under 200 lines per CLAUDE.md file. Longer files consume more context and reduce adherence."* ([source](https://code.claude.com/docs/en/memory)) The troubleshooting section adds: *"Files over 200 lines consume more context and may reduce adherence."*
 
+Structuring your `CLAUDE.md` and packaging recurring workflows as skills is also the move from Rung 1 to Rung 2 on [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) — the point where ad-hoc prompts become reusable, versioned artifacts.
+
 **Execution:**
 
 - Reserve `CLAUDE.md` for: environment commands you run constantly, syntax conventions, non-negotiable architectural rules, and pointers to where more detail lives.
@@ -111,7 +113,7 @@ The API parameter is `output_config: { effort: "medium" }` — it is a named str
 
 ### 3. Delegate noisy work to subagents
 
-Subagents are configured under `.claude/agents/` and managed via the `/agents` slash command ([source](https://code.claude.com/docs/en/best-practices)). They run in their own context, so verbose work — recursive scans, large log parses, Playwright test runs — never pollutes your main session. The parent only sees the structured summary. The best practices docs describe a Writer/Reviewer pattern where a fresh subagent context improves code review quality because the reviewer hasn't been biased by the code it just wrote.
+Subagents are configured under `.claude/agents/` and managed via the `/agents` slash command ([source](https://code.claude.com/docs/en/best-practices)). They run in their own context, so verbose work — recursive scans, large log parses, Playwright test runs — never pollutes your main session. The parent only sees the structured summary. The best practices docs describe a Writer/Reviewer pattern where a fresh subagent context improves code review quality because the reviewer hasn't been biased by the code it just wrote. Using Claude Code subagents this way is Rung 2.5 on the autonomy scale — packaged like a skill, autonomous enough to run unsupervised for a scoped task; [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) covers when this pattern graduates into a full Rung 3 agent with its own decision loop.
 
 ---
 
@@ -152,6 +154,8 @@ When Claude is doing engineering work, conversational filler is operational wast
 2. **Demand structured output.** Specify the shape — JSON, a code block only, a key-value list — in the prompt itself.
 3. **Scope by coordinate.** Vague: *"look around the auth files and find the error."* Precise: *"Fix the session-expiration edge case in `src/auth/session.ts` lines 42–68."*
 4. **Use `@file` to reference, not `read this file`.** `@src/api.ts` is more token-efficient than describing the file or asking Claude to read it from scratch.
+
+If you're starting to wonder when Claude Code's single-session pattern stops being enough — when you want work to happen without you in the loop — read [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md). If you've decided to build a multi-agent system at the API level, [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) is the architecture playbook.
 
 ---
 

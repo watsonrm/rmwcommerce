@@ -172,6 +172,8 @@ These schemas produce small, precise returns. An orchestrator prepping eight mee
 
 ### The noise fix, in concrete terms
 
+Orchestrator context overflow is the multi-agent extension of the same problem that context discipline addresses at the single-user level — see [The Claude Code Workflow Optimizer](claude-code-optimizer.md)'s Pillar 1 for the single-session version of this constraint. At the multi-agent level, the mechanism shifts from `/compact` to typed returns and artifact offloading, but the underlying dynamic is the same: bloated context degrades output quality.
+
 Anthropic's system took this further: subagents write their full output to the filesystem and return only a lightweight reference. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) The orchestrator sees `{path, 1-line summary}`. It only reads the full output if it needs to. This is the "artifact system" — specialized agents create outputs that persist independently, then pass lightweight references back to the coordinator. The result is substantially reduced token overhead and lower information loss in multi-stage processing.
 
 For a web research agent, the return might be `{path: "/tmp/agent-runs/run123/web-research/inv-001/output.json", headline: "Filed Chapter 11, Feb 2026"}`. The orchestrator can make routing decisions from the headline alone. It pulls the full report only if something downstream actually needs it.
@@ -224,7 +226,7 @@ Write specialists do not auto-retry. They return a failure union variant and let
 
 Anthropic's system runs research that can take dozens of tool calls across many subagents. GitHub's framing treats agents like distributed systems, not chat flows. The shared assumption is that things will fail — network errors, API rate limits, partial data, model outputs that don't match the expected schema. Design for it up front rather than adding recovery logic after the first production incident.
 
-Karpathy's autonomy-slider framing sharpens this: the more autonomous the system, the more systematic the failure design needs to be. ([source](https://www.youtube.com/watch?v=LCEmiRjPEtQ)) A system that works most of the time in a demo is not a system that works reliably in production. As you increase agent autonomy (more parallel subagents, longer task chains, fewer human checkpoints), the verification overhead grows in proportion. Logging, typed contracts, and idempotent writes are the mechanisms that let you increase autonomy without proportionally increasing risk.
+Karpathy's autonomy-slider framing sharpens this: the more autonomous the system, the more systematic the failure design needs to be. ([source](https://www.youtube.com/watch?v=LCEmiRjPEtQ)) A system that works most of the time in a demo is not a system that works reliably in production. As you increase agent autonomy (more parallel subagents, longer task chains, fewer human checkpoints), the verification overhead grows in proportion. The verification-first principle that anchors [The Claude Code Workflow Optimizer](claude-code-optimizer.md) at the single-user level — write the test before the code, define success before execution — scales directly to multi-agent: every fan-out step adds verification debt, and that debt compounds faster than it does in a single session. Logging, typed contracts, and idempotent writes are the mechanisms that let you increase autonomy without proportionally increasing risk.
 
 Two rules, both non-negotiable.
 
@@ -347,6 +349,12 @@ A few practical questions that come up when applying these patterns in Claude Co
 **How Claude Code serializes agent returns.** The Agent tool returns a string, not a typed struct. The convention is: the agent emits a JSON block as the last content of its response, and the orchestrator parses it. The typed schemas above describe the shape of that JSON. The orchestrator should validate the return against the expected schema and re-dispatch with the violation as feedback if it doesn't match — once, then escalate rather than retry indefinitely.
 
 **Starting point vs. multi-agent.** Both Anthropic and OpenAI recommend starting with a single agent and adding fan-out only when a single agent's prompt becomes hard to maintain or tool overlap becomes a real problem. If you're asking yourself whether you need multi-agent, you probably don't yet. Build the typed contracts and logging infrastructure first; that work pays off regardless of whether you end up with two agents or twenty.
+
+---
+
+## Where to go next
+
+Climbing back down: if your multi-agent system feels over-engineered, [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) helps decide which rung is actually right for the work you're doing. Going deeper on single-user practice: [The Claude Code Workflow Optimizer](claude-code-optimizer.md).
 
 ---
 
