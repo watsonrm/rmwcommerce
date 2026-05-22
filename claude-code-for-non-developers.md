@@ -33,11 +33,18 @@ Most readers should focus on the first two and stop there. The categories of tro
 
 ## How to use this guide
 
-Read this once before you start. Come back to specific sections as situations arise. Don't try to absorb it all up front — that's the wrong approach.
+This guide is the reasoning. The skill is the live coach.
 
-If you're already using Claude Code and things have gone sideways, jump to [Section 5](#section-5-the-failure-modes) first.
+**Install the companion skill** at [`skills/claude-code-for-non-developers/`](skills/claude-code-for-non-developers/) so Claude can coach you in real time when you say things like "I'm not a developer", "should I approve this?", "is this safe to push?", or "what does this command do?":
 
-The companion to this guide — [Claude Code for Non-Developers: Your First Session](claude-code-non-developers-first-session.md) — covers the practical mechanics of getting started.
+```bash
+# from a clone of this repo
+cp -r skills/claude-code-for-non-developers ~/.claude/skills/
+```
+
+Once installed, Claude will load the skill on demand whenever those phrases come up — walking you through the question templates, the approval checklist, and the common stumbling blocks. You don't need to paste anything; just ask the question in plain English and the skill triggers.
+
+Read the article itself in this order: once up front for the mindset shift, then come back to specific sections as situations arise. If things have already gone sideways, jump straight to [Section 5](#section-5-the-failure-modes). The companion guide — [Claude Code for Non-Developers: Your First Session](claude-code-non-developers-first-session.md) — covers the practical mechanics of getting started, with its own skill at [`skills/claude-code-first-session/`](skills/claude-code-first-session/).
 
 ---
 
@@ -179,12 +186,6 @@ These are the decisions you can make once and not revisit.
 **[The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md)** — for knowing when to graduate from a prompt to a packaged skill to a full agent. Most people climb this ladder too fast. Read this before you build anything complex.
 
 **[Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md)** — for structuring agent systems that scale without silently breaking. Typed return contracts, intermediate-state logging, thin-orchestrator architecture. Read this only when a single agent is genuinely hitting its limits.
-
----
-
-## Want the runnable form?
-
-The operational core of this guide is packaged as a Claude Code skill: [`skills/claude-code-for-non-developers/`](skills/claude-code-for-non-developers/). Drop that folder into `~/.claude/skills/` and Claude will load it on demand when the trigger phrases in the SKILL.md frontmatter match what you're asking.
 
 ---
 

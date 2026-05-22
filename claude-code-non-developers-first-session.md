@@ -28,9 +28,20 @@
 
 ## How to use this guide
 
-Work through it in order the first time. Section 1 is install and permissions — do that before anything else. Sections 2–5 are the setup sequence. Sections 6–9 are the first real session and what comes after.
+This guide walks you through your first session. The skill is the live walkthrough.
 
-If you haven't read [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md) yet, start there. This guide assumes you've absorbed the mindset shift, the question templates, and the failure modes in that one.
+**Install the companion skill** at [`skills/claude-code-first-session/`](skills/claude-code-first-session/) before you start, so Claude can guide you through the session live when you say "I just installed Claude Code", "first time using this", or "where do I start?":
+
+```bash
+# from a clone of this repo
+cp -r skills/claude-code-first-session ~/.claude/skills/
+```
+
+Once installed, you don't need to paste anything — just say one of those trigger phrases and Claude will load the skill, walk you through install, permission setup, picking a contained first project, drafting `CLAUDE.md`, the approval loop, and the first commit.
+
+Read this article in order the first time for the reasoning. Section 1 is install and permissions — do that before anything else. Sections 2–5 are the setup sequence. Sections 6–9 are the first real session and what comes after.
+
+If you haven't read [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md) yet, start there. This guide assumes you've absorbed the mindset shift, the question templates, and the failure modes in that one. That guide has its own skill at [`skills/claude-code-for-non-developers/`](skills/claude-code-for-non-developers/) for ongoing coaching after this first session.
 
 ---
 
@@ -262,12 +273,6 @@ Past hour 10: move to the optimizer.
 [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) — when you start wondering whether to package your work as something more reusable. Most people climb this ladder too fast; this guide helps you know when you're ready.
 
 [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) — only if you've committed to building a multi-agent system. Read the ladder guide first.
-
----
-
-## Want the runnable form?
-
-The operational core of this guide is packaged as a Claude Code skill: [`skills/claude-code-first-session/`](skills/claude-code-first-session/). Drop that folder into `~/.claude/skills/` and Claude will load it on demand when the trigger phrases in the SKILL.md frontmatter match what you're asking.
 
 ---
 

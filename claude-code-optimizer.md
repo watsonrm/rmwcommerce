@@ -33,11 +33,21 @@ Pick model tier deliberately too (covered in [Pillar 2](#pillar-2-model-routing)
 
 ## How to use this
 
-Open a fresh Claude Code session in your project. Paste this document into the chat along with your `CLAUDE.md` (if you have one) and a short description of how you currently use the tool. Then run:
+The operational form of this guide is the Claude Code skill at [`skills/claude-code-optimizer/`](skills/claude-code-optimizer/). Install it once:
 
-> Analyze my Claude Code workflows against this guide. Identify my top three sources of token waste, evaluate how I'm routing between models, and give me concrete changes to my `CLAUDE.md` and CLI usage that would reduce rework and cut token spend. Be specific.
+```bash
+# from a clone of this repo
+cp -r skills/claude-code-optimizer ~/.claude/skills/
+```
 
-Claude will produce a customized audit and punch list.
+Then describe your setup to Claude — project type, daily tasks, what feels slow or expensive — and say one of these (the skill's trigger phrases):
+
+> Audit my Claude Code workflow.
+> Optimize my Claude Code.
+> Why is Claude Code burning so many tokens?
+> Tune my setup.
+
+Claude will load the skill on demand, walk through the diagnostic pillars (context, `CLAUDE.md`, model routing, verification, parallelism), find the first real smell, and prescribe one concrete fix to make next. The article below is the reasoning behind each pillar — read it for the *why*; the skill is the *how*.
 
 ---
 
@@ -168,7 +178,7 @@ If you're starting to wonder when Claude Code's single-session pattern stops bei
 
 ## Self-audit template
 
-Copy this, fill it in, and feed it back to Claude with the prompt at the top of this doc.
+Fill this in and paste it to Claude. With the [`claude-code-optimizer`](skills/claude-code-optimizer/) skill installed, Claude will load the diagnostic procedure and run it against your answers — naming the first real smell and the single fix to make next.
 
 ### Environment
 1. **Primary stack:** [e.g., TypeScript / Next.js / Go]
@@ -190,12 +200,6 @@ Copy this, fill it in, and feed it back to Claude with the prompt at the top of 
   > [Your answer]
 
 ---
-
----
-
-## Want the runnable form?
-
-The operational core of this guide is packaged as a Claude Code skill: [`skills/claude-code-optimizer/`](skills/claude-code-optimizer/). Drop that folder into `~/.claude/skills/` and Claude will load it on demand when the trigger phrases in the SKILL.md frontmatter match what you're asking.
 
 ---
 

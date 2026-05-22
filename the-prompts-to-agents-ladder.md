@@ -32,9 +32,22 @@ Most readers are somewhere between Rung 1 and Rung 2. The highest-value move for
 
 ## How to use this
 
-Open a fresh Claude Code session. Paste this guide along with a description of your current workflow — what you're building, how you're running it, and what's breaking or feeling over-built. Then run:
+The operational form of this guide is the Claude Code skill at [`skills/prompts-to-agents-ladder/`](skills/prompts-to-agents-ladder/). Install it once:
 
-> Apply the prompts-to-agents ladder to my workflow. Identify which rung I'm on, whether I've over-climbed, and tell me the one change that would give me the most leverage right now. Be specific.
+```bash
+# from a clone of this repo
+cp -r skills/prompts-to-agents-ladder ~/.claude/skills/
+```
+
+Then describe your current workflow to Claude — what you're building, how you're invoking it, what's breaking or feeling over-built — and say one of these (the skill's trigger phrases):
+
+> Apply the prompts-to-agents ladder to my workflow.
+> Which rung am I on?
+> Should this be a skill or an agent?
+> Am I over-engineering this agent?
+> Do I need a multi-agent system?
+
+Claude will load the skill on demand, identify your current rung, check for over-climbing, and recommend the single highest-leverage move. The article below is the reasoning behind the ladder — read it for the *why*; the skill is the *how*.
 
 ---
 
@@ -179,14 +192,6 @@ The companion guide covers this in detail. The short version: if you don't have 
 If you've worked through this ladder and concluded that a multi-agent system is genuinely the right tool — your work has fan-out, or your agents need specialization, or your context is overflowing — the architecture playbook lives in [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md). That guide covers typed return contracts, intermediate-state logging, thin-orchestrator architecture, and a concrete phasing strategy for getting there without breaking what already works.
 
 If you're still deciding whether you need Rung 3 at all, the right move is to build a Rung 2 skill first. It's faster, it's verifiable, and it tells you exactly what the agent would need to do that the skill can't — which is the clearest possible specification for the agent you'd eventually build.
-
----
-
----
-
-## Want the runnable form?
-
-The operational core of this guide is packaged as a Claude Code skill: [`skills/prompts-to-agents-ladder/`](skills/prompts-to-agents-ladder/). Drop that folder into `~/.claude/skills/` and Claude will load it on demand when the trigger phrases in the SKILL.md frontmatter match what you're asking.
 
 ---
 

@@ -36,11 +36,22 @@ Most readers should implement the first two before anything else. They prevent t
 
 ## How to use this
 
-Open a fresh Claude Code session. Paste this guide along with one or two of your existing agent spec files (`.claude/agents/` definitions or skill playbooks). Then run:
+The operational form of this guide is the Claude Code skill at [`skills/multi-agent-fan-out/`](skills/multi-agent-fan-out/). Install it once:
 
-> Review my agent specs against this guide. For each agent: (1) identify whether it returns a typed schema or freeform prose, (2) flag any that could silently fail without logging intermediate state, and (3) tell me which typed contract from the examples here most closely matches what this agent should be returning. Produce a prioritized list of contracts to add, starting with the highest-reuse agents.
+```bash
+# from a clone of this repo
+cp -r skills/multi-agent-fan-out ~/.claude/skills/
+```
 
-The output is a punch list of schema gaps, ordered by the agents your orchestrators call most often.
+Then describe your current setup to Claude — what you're building, what's already an agent, what feels like it should split — and say one of these (the skill's trigger phrases):
+
+> I want to build a multi-agent system.
+> How should I architect these agents?
+> Verify my agent design.
+> Should I fan out this skill?
+> Should I split this skill?
+
+Claude will load the skill on demand, run the precondition check (most users asking are not actually at Rung 4), walk through the design procedure if they are, and flag anti-patterns in the existing setup — typed-return gaps, missing verification gates, non-idempotent writes. The article below is the architectural reasoning behind those patterns — read it for the *why*; the skill is the *how*.
 
 ---
 
@@ -367,12 +378,6 @@ A few practical questions that come up when applying these patterns in Claude Co
 ## Where to go next
 
 Climbing back down: if your multi-agent system feels over-engineered, [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) helps decide which rung is actually right for the work you're doing. Going deeper on single-user practice: [The Claude Code Workflow Optimizer](claude-code-optimizer.md).
-
----
-
-## Want the runnable form?
-
-The operational core of this guide is packaged as a Claude Code skill: [`skills/multi-agent-fan-out/`](skills/multi-agent-fan-out/). Drop that folder into `~/.claude/skills/` and Claude will load it on demand when the trigger phrases in the SKILL.md frontmatter match what you're asking.
 
 ---
 
