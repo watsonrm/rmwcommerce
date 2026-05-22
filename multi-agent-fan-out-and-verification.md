@@ -1,8 +1,8 @@
 # Multi-Agent Fan-Out and Verification
 
-**How to structure Claude agent systems that scale without silently breaking — architecture from Anthropic, protocol from GitHub.**
+**How to structure Claude agent systems that scale without silently breaking — architecture, theory, and the strongest counterargument.**
 
-> © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. This guide synthesizes patterns from Anthropic's engineering blog and GitHub's engineering blog — quoted material is the property of its respective owners and used under fair use with attribution. See [Sources & Attribution](#sources--attribution). Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
+> © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. This guide synthesizes patterns from Anthropic's engineering blog, GitHub's engineering blog, and published research by Lilian Weng, Shunyu Yao et al., and Walden Yan — quoted material is the property of its respective owners and used under fair use with attribution. See [Sources & Attribution](#sources--attribution). Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
 ---
 
@@ -17,14 +17,14 @@ If you're building or refactoring a multi-agent Claude system, applying these pa
 
 ### Where to spend your time, in priority order
 
-Most readers should implement the first two before anything else. They prevent the failure modes that make multi-agent systems harder to trust than single-agent ones.
+Most readers should implement the first two before anything else. They prevent the failure modes that make multi-agent systems harder to trust than single-agent ones — and they're the same defenses that address Cognition's core critique of the architecture (see "The case against fan-out" below).
 
 | # | Practice | Why it matters | Effort |
 | :-- | :--- | :--- | :--- |
-| **1** | **Typed return contracts** — every agent returns a defined schema, not freeform prose | Failures surface at the boundary instead of poisoning downstream state. This is the single highest-leverage change for any existing system. | 1–2 hrs per agent |
+| **1** | **Typed return contracts** — every agent returns a defined schema, not freeform prose | Failures surface at the boundary instead of poisoning downstream state. Cognition's research shows this is also the primary defense against subagent decision-composition failures. This is the single highest-leverage change for any existing system. | 1–2 hrs per agent |
 | **2** | **Intermediate-state logging** — every run writes input, output, and log to a known path | Without this, partial failures are unrecoverable. Silent failures look like successes. This is the idempotency and debuggability foundation. | 2–3 hrs once, then copy the pattern |
-| **3** | **Thin orchestrator / fat subagents** — orchestrator plans and aggregates; subagents execute | Reduces noise in the orchestrator context. Scoped subagents are easier to test and replace. | Refactor by skill |
-| **4** | **Fan-out by complexity** — match parallelism to the task, not to a fixed number | Explicit fan-out caps prevent runaway token spend on simple queries and ensure hard queries get enough coverage. | 1 hr (policy + prompt) |
+| **3** | **Thin orchestrator / fat subagents** — orchestrator plans and aggregates; subagents execute | Reduces noise in the orchestrator context. Scoped subagents are easier to test and replace. Matches Anthropic's orchestrator-workers composition pattern. | Refactor by skill |
+| **4** | **Fan-out by complexity** — match parallelism to the task, not to a fixed number | Explicit fan-out caps prevent runaway token spend on simple queries and ensure hard queries get enough coverage. Use fan-out only for parallelizable reads, not for decisions that need to compose. | 1 hr (policy + prompt) |
 | **5** | **Action schemas for write agents** — discriminated union of legal outcomes | Prevents write agents from inventing a fourth option. Tight contracts on destructive operations. | 30 min per write agent |
 | **6** | **Full Anthropic-style 10+ subagent fan-out** — complex research with many parallel specialists | Real gains for deep research workflows, but most consulting/operations systems don't need this level. Start with items 1–3. | Days |
 
@@ -42,13 +42,49 @@ The output is a punch list of schema gaps, ordered by the agents your orchestrat
 
 ## Where this comes from
 
-Two engineering blog posts, published independently, describe patterns that compose.
+Four engineering sources and two research papers, converging on the same structural conclusions.
 
-Anthropic published a detailed account of how they built their internal multi-agent research system. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) The central insight is architectural: keep the orchestrator thin, give subagents complete scoped briefs, have subagents write heavy outputs to disk and return lightweight references. This is the shape of the system.
+Anthropic published two pieces that form the theoretical and applied foundation. The first — "Building Effective Agents" by Erik Schluntz and Barry Zhang (Dec 2024) — defines the workflow-vs-agent distinction and catalogs five core composition patterns: prompt chaining, routing, parallelization, orchestrator-workers, and evaluator-optimizer. ([source](https://www.anthropic.com/engineering/building-effective-agents)) The orchestrator-workers pattern is the direct theoretical ancestor of the fan-out architecture in this guide: a central LLM dynamically breaks down unpredictable tasks and delegates to worker LLMs, with subtask decomposition determined at runtime rather than pre-defined. The second Anthropic piece covers their internal multi-agent research system — a production implementation of these patterns. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) The central insight is architectural: keep the orchestrator thin, give subagents complete scoped briefs, have subagents write heavy outputs to disk and return lightweight references.
 
-GitHub Engineering published a separate analysis of why multi-agent workflows fail in practice and how to prevent it. ([source](https://github.blog/ai-and-ml/generative-ai/multi-agent-workflows-often-fail-heres-how-to-engineer-ones-that-dont/)) Their diagnosis: agents fail not because the model is bad but because the contracts between agents are loose. Natural language instructions produce inconsistent returns; freeform outputs propagate errors downstream. The fix is typed schemas enforced at every boundary.
+GitHub Engineering published a separate analysis of why multi-agent workflows fail in practice. ([source](https://github.blog/ai-and-ml/generative-ai/multi-agent-workflows-often-fail-heres-how-to-engineer-ones-that-dont/)) Their diagnosis: agents fail not because the model is bad but because the contracts between agents are loose. Natural language instructions produce inconsistent returns; freeform outputs propagate errors downstream. The fix is typed schemas enforced at every boundary.
 
-Applied together to a real ~20-skill consulting and media workflow (the system behind this repo's tooling), both patterns held. The failure modes that surfaced were: brand-styling regressions in document-generation agents that fixed themselves in one place and re-broke in another; silent failures in scheduled cron-style agents that left no trace of what happened; raw API JSON from external services flooding the orchestrator context and degrading output quality mid-session. Every one of those is addressed by the patterns below.
+OpenAI's counterpart guide (April 2025) covers much of the same ground with a different emphasis. ([source](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf)) Where Anthropic leans on composition patterns, OpenAI leans on guardrails as a layered defense: "Think of guardrails as a layered defense mechanism. While a single one is unlikely to provide sufficient protection, using multiple, specialized guardrails together creates more resilient agents." Both sources recommend starting with a single agent and adding multi-agent complexity only when prompts become difficult to scale or tool overlap becomes a real problem.
+
+Cognition's "Don't Build Multi-Agents" (Walden Yan, June 2025) offers the strongest counter-position. ([source](https://cognition.ai/blog/dont-build-multi-agents)) It's worth reading before committing to the architecture. That counterargument gets its own section below.
+
+Lilian Weng's "LLM Powered Autonomous Agents" (June 2023) provides the foundational taxonomy — planning, memory, tool use — that every later agent discussion inherits. ([source](https://lilianweng.github.io/posts/2023-06-23-agent/)) Yao et al.'s ReAct paper (NeurIPS 2022) describes the reason-act-observe loop that underlies what a single agent does inside that architecture. ([source](https://arxiv.org/abs/2210.03629))
+
+Applied together to a real ~20-skill consulting and media workflow (the system behind this repo's tooling), both architecture patterns held. The failure modes that surfaced were: brand-styling regressions in document-generation agents that fixed themselves in one place and re-broke in another; silent failures in scheduled cron-style agents that left no trace of what happened; raw API JSON from external services flooding the orchestrator context and degrading output quality mid-session. Every one of those is addressed by the patterns below.
+
+---
+
+## The building blocks: what agents actually do
+
+Before getting into architecture, it helps to have a shared vocabulary for what an individual agent is doing at runtime.
+
+Weng's taxonomy (2023) breaks an LLM-powered agent into three components: planning, memory, and tool use. ([source](https://lilianweng.github.io/posts/2023-06-23-agent/)) Planning covers how the agent decomposes a complex task into manageable subgoals and how it reflects on its own progress. Memory covers what it can see in context (short-term) versus what it retrieves from external stores (long-term). Tool use covers how it calls external APIs or runs code to act on the world.
+
+The ReAct paper (Yao et al., 2022) shows how these components work together in the moment: the agent interleaves reasoning traces with concrete actions in a loop. ([source](https://arxiv.org/abs/2210.03629)) The reasoning trace updates the agent's internal model of the situation; the action updates the external environment or retrieves new information; the result feeds the next reasoning step. This reason-act-observe loop is what each individual subagent is doing while the orchestrator waits for its typed return.
+
+The multi-agent architectures in the rest of this guide are coordination layers on top of this loop — ways of running multiple instances of it in parallel and aggregating the results.
+
+---
+
+## The case against fan-out
+
+Read this before building. Cognition (the team behind Devin) published a direct argument against multi-agent architectures in June 2025. ([source](https://cognition.ai/blog/dont-build-multi-agents)) It's worth engaging with seriously, not dismissing.
+
+Walden Yan's core claim: multi-agent systems are fragile because decision-making ends up too dispersed and context can't be shared thoroughly enough between agents. When agents work in parallel on subdivided tasks, each subagent makes implicit decisions the orchestrator can't see. Those decisions can conflict. A final agent tasked with combining the outputs inherits inconsistencies it has no way to resolve. As Yan writes: "Actions carry implicit decisions, and conflicting decisions carry bad results."
+
+Yan's proposed default is a single-threaded linear agent that maintains continuous context through its full task. For longer tasks, he suggests an LLM trained to compress conversation history into key decisions rather than spawning parallel subagents.
+
+This critique is correct for a specific class of problems: workloads where subagents need to make decisions that compose into a unified output. If you're asking four subagents to each write a section of a document in a consistent style, you're asking them to make implicit formatting, tone, and scoping decisions that the orchestrator can't adjudicate after the fact. The architecture works against you.
+
+Fan-out works well under different conditions: parallelizable read operations with clear typed returns, where each subagent fetches or synthesizes a discrete piece of data and hands it back to the orchestrator, which makes all the decisions. Meeting prep is a good example: eight parallel CRM lookups, each returning a typed `CRMLookupResult`, finish faster than eight sequential ones and the orchestrator can reason over all eight simultaneously. The subagents aren't making decisions; they're retrieving data.
+
+The resolution: use fan-out for reads with typed returns, not for decisions that need to compose. Typed contracts (Pillar 1 below) are the mechanism that keeps this boundary sharp. If a subagent's return includes anything that could be interpreted differently by downstream steps, you're already in decision-composition territory and fan-out is working against you.
+
+Karpathy's "autonomy slider" framing adds another dimension here: the more autonomous you make an agent, the more verification you owe it. ([source](https://www.youtube.com/watch?v=LCEmiRjPEtQ)) Increasing fan-out is increasing autonomy — you're asking more agents to make more decisions without human review. The answer isn't to avoid autonomy; it's to match the verification investment to the autonomy level. More fan-out agents → more rigorous typed contracts → more explicit logging → more specific recovery logic.
 
 ---
 
@@ -59,6 +95,8 @@ This is the highest-ROI change for most existing systems, and the one most often
 The problem is that natural language is inherently ambiguous. When a subagent returns a paragraph summarizing what it found, the orchestrator has to parse prose under uncertainty. Field names drift. Optional data gets included or excluded depending on what the agent thought was relevant that run. One malformed return poisons every step that follows.
 
 GitHub's framing is direct: *"Natural language is messy. Typed schemas make it reliable."* ([source](https://github.blog/ai-and-ml/generative-ai/multi-agent-workflows-often-fail-heres-how-to-engineer-ones-that-dont/)) Treat agent collaboration the way you'd treat an API contract between two engineering teams: define the schema up front, validate at the boundary, fail fast when the contract is violated rather than passing bad state downstream.
+
+Typed contracts are also the primary defense against the decision-composition failure mode Cognition describes. When every subagent return is a validated schema, the orchestrator can see exactly what it received and make decisions based on structured data rather than inferred prose. The implicit decision problem doesn't disappear, but it becomes detectable at the boundary.
 
 In Claude Code's Agent tool, the practical convention is: the agent emits a JSON block as the last content of its return, and the orchestrator parses it. The typed schemas live in a shared contracts file that both the subagent spec and the orchestrator reference.
 
@@ -180,6 +218,8 @@ Write specialists do not auto-retry. They return a failure union variant and let
 
 The Anthropic system runs research that can take dozens of tool calls across many subagents. GitHub's framing treats agents like distributed systems, not chat flows. The shared assumption is that things will fail — network errors, API rate limits, partial data, model outputs that don't match the expected schema. Design for it up front rather than adding recovery logic after the first production incident.
 
+Karpathy's autonomy-slider framing sharpens this: the more autonomous the system, the more systematic the failure design needs to be. ([source](https://www.youtube.com/watch?v=LCEmiRjPEtQ)) "Demo is works.any(), product is works.all()" — a system that works most of the time in a demo is not a system that works reliably in production. As you increase agent autonomy (more parallel subagents, longer task chains, fewer human checkpoints), the verification overhead grows in proportion. Logging, typed contracts, and idempotent writes are the mechanisms that let you increase autonomy without proportionally increasing risk.
+
 Two rules, both non-negotiable.
 
 **Every write is idempotent.** A document-writing agent searches for an existing document before creating. A calendar-event agent updates in place. A synthesis agent checks a tracker before re-processing a source. Re-running an agent on the same input never duplicates state. This matters both for reliability (you can safely retry failed runs) and for debugging (you can replay any run without side effects).
@@ -198,13 +238,17 @@ The `run_id` comes from the orchestrator and is the same for all agents in a sin
 
 This pattern catches the failure mode that shows up most often in practice: a scheduled or automated agent ran, produced no visible output, and left no evidence of what happened. Without intermediate-state logging, the only diagnostic is to re-run and hope the failure repeats. With it, you read the log.
 
+OpenAI's guide adds a complementary guardrails perspective: treat safety and reliability checks as a layered stack rather than a single gate. ([source](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf)) LLM-based classifiers, rules-based filters, and human escalation paths form independent layers — no single layer is sufficient on its own. Applied to multi-agent systems, this means the orchestrator doesn't rely solely on the subagent's typed return to know if something went wrong; it also has its own output validation and escalation logic.
+
 ---
 
 ## Pillar 4: Orchestrator shape
 
 Once the contract and logging foundations are in place, the orchestrator architecture follows naturally.
 
-The Anthropic principle is: thin orchestrator, fat subagents. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) The lead agent plans, dispatches, and aggregates references. It does not execute. Each subagent gets a complete, scoped brief — objective, output format, tools allowed, token budget. The orchestrator never does the work it could delegate.
+Anthropic names this the **orchestrator-workers pattern**: a central LLM dynamically breaks down unpredictable tasks and delegates to worker LLMs, with the subtask decomposition determined at runtime. ([source](https://www.anthropic.com/engineering/building-effective-agents)) This is distinct from simple parallelization — the orchestrator isn't just splitting a known task across workers; it's deciding what the tasks are. The principle that follows is: thin orchestrator, fat subagents. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) The lead agent plans, dispatches, and aggregates references. It does not execute. Each subagent gets a complete, scoped brief — objective, output format, tools allowed, token budget. The orchestrator never does the work it could delegate.
+
+OpenAI describes two variants on this at scale. ([source](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf)) In the **manager pattern**, a central agent controls workflow execution and maintains user context, delegating to specialist agents through tool calls. In the **decentralized pattern**, agents operate as peers, transferring control to one another based on specialization without a central coordinator. The manager pattern maps more directly to the orchestrator-workers architecture and is the better default for most systems; decentralized is appropriate when no single agent needs to maintain oversight across the full workflow.
 
 This has a direct effect on context quality. An orchestrator that receives typed reference rows from eight subagents stays coherent through a full session. An orchestrator that receives prose summaries, raw API JSON, and partial outputs starts degrading somewhere around the third agent return.
 
@@ -214,7 +258,7 @@ Anthropic built explicit scaling thresholds into their system: simple fact-findi
 
 The practical version for most systems is simpler: identify the workflows where you're doing sequential work that could run in parallel. A meeting-prep workflow that looks up eight attendees sequentially is doing eight network round-trips one at a time. Eight parallel subagents, each returning a typed CRM lookup result, finish in roughly the time of one.
 
-The fan-out pattern only makes sense after Pillars 1 and 2 are in place. Parallelism with loose contracts amplifies noise; parallelism with typed schemas amplifies precision.
+The fan-out pattern only makes sense after Pillars 1 and 2 are in place. Parallelism with loose contracts amplifies noise; parallelism with typed schemas amplifies precision. And per the Cognition critique: fan-out only for reads with typed returns, not for decisions that compose.
 
 ### Subagent specialization
 
@@ -296,17 +340,25 @@ A few practical questions that come up when applying these patterns in Claude Co
 
 **How Claude Code serializes agent returns.** The Agent tool returns a string, not a typed struct. The convention is: the agent emits a JSON block as the last content of its response, and the orchestrator parses it. The typed schemas above describe the shape of that JSON. The orchestrator should validate the return against the expected schema and re-dispatch with the violation as feedback if it doesn't match — once, then escalate rather than retry indefinitely.
 
+**Starting point vs. multi-agent.** Both Anthropic and OpenAI recommend starting with a single agent and adding fan-out only when a single agent's prompt becomes hard to maintain or tool overlap becomes a real problem. If you're asking yourself whether you need multi-agent, you probably don't yet. Build the typed contracts and logging infrastructure first; that work pays off regardless of whether you end up with two agents or twenty.
+
 ---
 
 ## Sources & Attribution
 
-Both source articles are live as of 2026-05-22 and were verified before publication.
+All source URLs verified live as of 2026-05-22.
 
 **Primary sources:**
 
+- Erik Schluntz & Barry Zhang / Anthropic Engineering — *Building Effective Agents* (Dec 2024): https://www.anthropic.com/engineering/building-effective-agents
 - Anthropic Engineering — *How we built our multi-agent research system*: https://www.anthropic.com/engineering/multi-agent-research-system
 - GitHub Engineering — *Multi-agent workflows often fail. Here's how to engineer ones that don't.*: https://github.blog/ai-and-ml/generative-ai/multi-agent-workflows-often-fail-heres-how-to-engineer-ones-that-dont/
+- OpenAI — *A Practical Guide to Building Agents* (Apr 2025): https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf
+- Lilian Weng — *LLM Powered Autonomous Agents* (Jun 2023): https://lilianweng.github.io/posts/2023-06-23-agent/
+- Andrej Karpathy — *Software Is Changing (Again)*, YC AI Startup School (Jun 2025): https://www.youtube.com/watch?v=LCEmiRjPEtQ
+- Walden Yan / Cognition — *Don't Build Multi-Agents* (Jun 2025): https://cognition.ai/blog/dont-build-multi-agents
+- Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, Yuan Cao — *ReAct: Synergizing Reasoning and Acting in Language Models*, arXiv 2210.03629 (Oct 2022): https://arxiv.org/abs/2210.03629
 
-**Attribution:** The Anthropic article covers the architectural layer (orchestrator shape, fan-out thresholds, filesystem-as-state, subagent specialization). The GitHub article covers the protocol layer (typed schemas, discriminated-union action schemas, design-for-failure with logged intermediate state). The synthesis, ranking, implementation notes, phasing strategy, and TypeScript-style schemas above are Rick Watson's original work, validated against a production multi-agent consulting and media workflow.
+**Attribution:** The Anthropic "Building Effective Agents" article covers the theoretical composition patterns (orchestrator-workers as the named pattern underlying the fan-out architecture). The Anthropic multi-agent research system article covers the applied implementation (filesystem-as-state, subagent specialization, fan-out thresholds). The GitHub article covers the protocol layer (typed schemas, discriminated-union action schemas, logged intermediate state). The OpenAI guide adds the guardrails-as-layers framing and the manager-vs-decentralized pattern taxonomy. Weng's foundational taxonomy (planning, memory, tool use) provides the vocabulary for what individual agents do. Karpathy's autonomy-slider concept provides the risk calibration frame for "design for failure." Cognition's critique is the strongest counterargument; this guide engages with it directly rather than dismissing it. The ReAct paper underlies the reason-act-observe loop description for individual agent operation. The synthesis, ranking, implementation notes, phasing strategy, TypeScript-style schemas, and the resolution of the Cognition critique are Rick Watson's original work, validated against a production multi-agent consulting and media workflow.
 
 **Compilation, ranking, and commentary © 2026 Rick Watson, RMW Commerce Consulting.** Linked sources are the property of their respective owners. Found an error or a sharper pattern to add? Open an issue or PR.
