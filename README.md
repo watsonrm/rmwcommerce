@@ -29,6 +29,7 @@ A public landing point. Links, references, and anything Rick wants to share open
 
 ### Guides
 
+- [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md) — start here if you're not a developer. What to learn, what to ignore, and how to climb the curve without writing code. Written by a non-developer who runs a 20+ skill agent system daily.
 - [Claude Code Workflow Optimizer](claude-code-optimizer.md) — patterns for reducing token waste and rework in Claude Code, ranked by ROI. Context-window discipline, CLAUDE.md hygiene, verification-first workflow, model routing, and worktree fleets — all grounded in Anthropic's official documentation.
 - [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) — when to stay with a prompt, when to package a skill, when to build an agent, and when a multi-agent system is actually warranted. The on-ramp before the multi-agent guide.
 - [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) — how to structure Claude agent systems that scale without silently breaking. Typed return contracts, intermediate-state logging, thin-orchestrator architecture, and a concrete phasing strategy.
