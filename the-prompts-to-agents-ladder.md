@@ -38,6 +38,11 @@ Open a fresh Claude Code session. Paste this guide along with a description of y
 
 ---
 
+> *"Ran it against one of my own — receipt-matching across two inboxes — and it correctly talked me out of building an agent for it. So it works."*
+> — Matt Ezyk
+
+---
+
 ## Background: why the ladder matters
 
 There is a four-rung ladder from single prompt to multi-agent system. Each rung adds capability — and each adds cost: complexity, latency, and verification debt.
@@ -172,6 +177,14 @@ If you're still deciding whether you need Rung 3 at all, the right move is to bu
 
 ---
 
+---
+
+## Want the runnable form?
+
+The operational core of this guide is packaged as a Claude Code skill: [`skills/prompts-to-agents-ladder/`](skills/prompts-to-agents-ladder/). Drop that folder into `~/.claude/skills/` and Claude will load it on demand when the trigger phrases in the SKILL.md frontmatter match what you're asking.
+
+---
+
 ## Sources & Attribution
 
 All primary sources were verified live before publication (2026-05-22).
@@ -203,3 +216,5 @@ All primary sources were verified live before publication (2026-05-22).
 **Corrections from prior circulating versions:** An earlier version of this article cited a specific Riley Goodside X/Twitter post (status/1614125922332061698) — that URL now returns a 403 error from X's bot-blocking infrastructure. The citation has been replaced with the Gradient podcast interview, which contains his documented thinking on the craft of prompt engineering. The substance of the point is unchanged.
 
 **Original commentary © 2026 Rick Watson, RMW Commerce Consulting.** Linked sources are the property of their respective owners. Found an error or a sharper framing? Open an issue or PR.
+
+**Packaging credit:** Matt Ezyk first prototyped the SKILL.md form of this guide and pushed Rick to apply the same packaging to the rest of the rmwcommerce articles.

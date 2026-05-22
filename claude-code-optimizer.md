@@ -186,6 +186,14 @@ Copy this, fill it in, and feed it back to Claude with the prompt at the top of 
 
 ---
 
+---
+
+## Want the runnable form?
+
+The operational core of this guide is packaged as a Claude Code skill: [`skills/claude-code-optimizer/`](skills/claude-code-optimizer/). Drop that folder into `~/.claude/skills/` and Claude will load it on demand when the trigger phrases in the SKILL.md frontmatter match what you're asking.
+
+---
+
 ## Sources & attribution
 
 This guide is a curated compilation. The underlying techniques originate from Anthropic's official Claude Code documentation. Every technical claim above has been verified against a primary source.

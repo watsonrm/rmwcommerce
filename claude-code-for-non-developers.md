@@ -172,6 +172,12 @@ These are the decisions you can make once and not revisit.
 
 ---
 
+## Want the runnable form?
+
+The operational core of this guide is packaged as a Claude Code skill: [`skills/claude-code-for-non-developers/`](skills/claude-code-for-non-developers/). Drop that folder into `~/.claude/skills/` and Claude will load it on demand when the trigger phrases in the SKILL.md frontmatter match what you're asking.
+
+---
+
 ## Sources & Attribution
 
 **Primary sources — specific claims backed directly:**

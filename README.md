@@ -36,3 +36,13 @@ A public landing point. Links, references, and anything Rick wants to share open
 - [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) — how to structure Claude agent systems that scale without silently breaking. Typed return contracts, intermediate-state logging, thin-orchestrator architecture, and a concrete phasing strategy.
 - [Why Is Claude Code So Noisy? What to Do About It](claude-code-noise.md) — your terminal looks like a wall of text by design. Explains the four sources of noise and ranks the tactics for filtering what matters from what's just volume.
 - [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md) — the interruption problem isn't your imagination. Covers the permission model across claude.ai, Claude Desktop, and Claude Code, with starter defaults and a drift-consolidation strategy.
+
+### Skills
+
+These are the runnable, on-demand forms of the guides above. Drop any folder into `~/.claude/skills/` and Claude Code will load it when the trigger phrases match.
+
+- [skills/prompts-to-agents-ladder/](skills/prompts-to-agents-ladder/) — apply the 4-rung ladder to a workflow and recommend the right rung
+- [skills/claude-code-optimizer/](skills/claude-code-optimizer/) — audit a Claude Code workflow and prescribe one high-leverage fix
+- [skills/multi-agent-fan-out/](skills/multi-agent-fan-out/) — design or audit a multi-agent system before building
+- [skills/claude-code-for-non-developers/](skills/claude-code-for-non-developers/) — coach a non-developer through ongoing Claude Code work
+- [skills/claude-code-first-session/](skills/claude-code-first-session/) — walk a first-time non-developer through their initial session

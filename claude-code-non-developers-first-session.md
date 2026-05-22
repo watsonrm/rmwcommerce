@@ -255,6 +255,12 @@ Past hour 10: move to the optimizer.
 
 ---
 
+## Want the runnable form?
+
+The operational core of this guide is packaged as a Claude Code skill: [`skills/claude-code-first-session/`](skills/claude-code-first-session/). Drop that folder into `~/.claude/skills/` and Claude will load it on demand when the trigger phrases in the SKILL.md frontmatter match what you're asking.
+
+---
+
 ## Sources & Attribution
 
 **Tier 1 — primary, data-bearing sources:**

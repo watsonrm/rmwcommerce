@@ -360,6 +360,12 @@ Climbing back down: if your multi-agent system feels over-engineered, [The Promp
 
 ---
 
+## Want the runnable form?
+
+The operational core of this guide is packaged as a Claude Code skill: [`skills/multi-agent-fan-out/`](skills/multi-agent-fan-out/). Drop that folder into `~/.claude/skills/` and Claude will load it on demand when the trigger phrases in the SKILL.md frontmatter match what you're asking.
+
+---
+
 ## Sources & Attribution
 
 All source URLs verified live as of 2026-05-22.
