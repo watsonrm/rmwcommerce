@@ -70,6 +70,16 @@ Anthropic's documentation describes what requires approval by default:
 
 The default mode prompts for permission on first use of each tool. That's your starting point. Don't change it until you understand what you're doing.
 
+> [!CAUTION]
+> ### When to ignore this advice
+>
+> "Conservative allowlist" is the right default for **shared** Claude Code setups (team repos, contractors, CI). For a **personal** setup where you're the only operator and you trust the agents you've written, broadening the allowlist is the productive call — every permission prompt is a thought-interrupt. The boundary is whether *someone else* could ever drive this Claude. If yes, tighten. If no, ship the allowlist. My own `settings.local.json` is expansive because I'm the only operator; I'd tighten the same setup the moment a contractor or teammate got access.
+
+> [!IMPORTANT]
+> ### Credentials live in Keychain, not in files
+>
+> Every API key, OAuth token, and shared secret goes in macOS Keychain (`security add-generic-password`) and is read at runtime. Never paste a credential into a config file, a markdown doc, or a prompt — those files get read by every agent, end up in logs, and can be committed by mistake. If a tool needs a credential, write a 3-line shell wrapper that pulls from Keychain. (Same principle on Linux: `pass` or `secret-tool` instead of Keychain. On Windows: Credential Manager via `cmdkey`.)
+
 Three things to configure before your first real session:
 
 Don't enable `bypassPermissions` mode. This skips all permission prompts. Anthropic's own documentation warns: "Only use this mode in isolated environments like containers or VMs where Claude Code cannot cause damage." ([source](https://code.claude.com/docs/en/permissions)) For a first session on your main machine, this mode has no place.

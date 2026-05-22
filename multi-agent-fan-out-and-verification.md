@@ -90,6 +90,11 @@ Fan-out works well under the conditions Anthropic tested: parallelizable read op
 
 The resolution: use fan-out for reads with typed returns, not for decisions that need to compose. Typed contracts (Pillar 1 below) are the mechanism that keeps this boundary sharp. If a subagent's return includes anything that could be interpreted differently by downstream steps, you're already in decision-composition territory and fan-out is working against you.
 
+> [!CAUTION]
+> ### When to ignore this advice
+>
+> Fan-out for **drafting** is fine even though drafts are decisions — as long as a human reviews every output before it ships. The rule targets agents that auto-commit downstream (file a Jira ticket, send a Slack, post to prod). If the orchestrator's last step is "show me, I'll edit," fan-out composition agents are how I actually build podcast scripts and panel guides. The skills that do this in my own setup: `interview-prep` dispatches a `segment-architect` + `host-intro-writer` per podcast, `panel-moderation` dispatches per-panelist research agents — all general-purpose subagents with inline briefs. I review every output before any of it ships.
+
 Karpathy's "autonomy slider" framing adds another dimension here: the more autonomous you make an agent, the more verification you owe it. ([source](https://www.youtube.com/watch?v=LCEmiRjPEtQ)) Increasing fan-out is increasing autonomy — you're asking more agents to make more decisions without human review. The answer isn't to avoid autonomy; it's to match the verification investment to the autonomy level. More fan-out agents → more rigorous typed contracts → more explicit logging → more specific recovery logic.
 
 ---
@@ -328,6 +333,11 @@ After Phase 2, your highest-frequency workflow (often meeting prep or daily brie
 ### Rollback safety
 
 Keep your current skill files as `-legacy` variants for one week after the new orchestrator goes live. If the new orchestrator misbehaves, the fallback is a one-line change. After a week without regression, delete the legacy files.
+
+> [!NOTE]
+> ### Enforcement note: the sunset needs a reminder
+>
+> Untracked `-legacy` files become permanent. When you create one, set a calendar event ("delete `<file>-legacy.md`") on the sunset date — don't trust yourself to remember. Or wire a CI step that fails if any `*-legacy.*` file is older than 7 days. I caught four legacy skill files at day-6 in my own audit and had to add a calendar reminder because none of them would have been deleted otherwise. The rule needs mechanical enforcement; willpower doesn't scale.
 
 ### Metrics worth tracking
 

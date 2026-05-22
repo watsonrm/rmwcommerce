@@ -152,6 +152,16 @@ These are the decisions you can make once and not revisit.
 
 **Keep permissions conservative.** The default permission mode in Claude Code prompts you before any file modification or bash command. That's the right setting. Don't change it to auto-approve everything until you understand exactly what you're approving. If permission prompts feel like they're interrupting you constantly, that's its own problem with a fix — see [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md).
 
+> [!IMPORTANT]
+> ### The two-gate rule for outbound communications
+>
+> Internal work (reading files, drafting docs, running queries) can be one-shot: ask, get result. Outbound work (Slack sends, emails, public commits, anything visible to other people) needs two gates:
+>
+> 1. **Channel and audience must be explicitly named** in the ask ("send to #newsroom" — not "send the update")
+> 2. **Draft-confirmation before send** — Claude shows you the message, waits for "send it"
+>
+> "Fix all the things" never authorizes an outbound action, no matter how obvious it looks. The cost of one wrong Slack is hours of cleanup; the cost of one extra confirm-prompt is two seconds. I learned this rule across three separate incidents — each one a different agent, each one assuming "approval" covered the next action down the line. It didn't. If you only remember one safety rule from this guide, remember this one.
+
 **Let Claude manage the technical defaults.** Don't learn `.gitignore` templates, virtualenv setup, or `package.json` configuration. Ask Claude to handle them. Your job is to review what Claude proposes, not to know how to write it yourself.
 
 ---

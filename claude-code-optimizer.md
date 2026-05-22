@@ -59,6 +59,11 @@ Anthropic's official docs are explicit about the constraint driving every other 
 
 Anthropic's official memory docs are explicit: *"target under 200 lines per CLAUDE.md file. Longer files consume more context and reduce adherence."* ([source](https://code.claude.com/docs/en/memory)) The troubleshooting section adds: *"Files over 200 lines consume more context and may reduce adherence."*
 
+> [!NOTE]
+> ### Sidebar: CLAUDE.md vs. auto-memory
+>
+> Claude Code now ships a separate auto-memory system at `~/.claude/projects/<slug>/memory/MEMORY.md`. That file is loaded into every conversation just like `CLAUDE.md`, but it's user-scoped (not repo-scoped) and grows by accretion as Claude saves feedback and preferences from prior sessions. Treat MEMORY.md with the same ≤200-line discipline as CLAUDE.md — run a consolidation pass when it bloats. Mine has ~50 entries; each entry is one line linking to a file in the same memory directory. The masters consolidate; the granular drafts get deleted.
+
 For a deeper treatment of how context bloat manifests as noise in your terminal output — and the full set of noise sources and filtering tactics — see [Why Is Claude Code So Noisy?](claude-code-noise.md).
 
 Structuring your `CLAUDE.md` and packaging recurring workflows as skills is also the move from Rung 1 to Rung 2 on [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) — the point where ad-hoc prompts become reusable, versioned artifacts.

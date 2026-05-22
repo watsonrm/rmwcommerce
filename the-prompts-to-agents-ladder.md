@@ -163,6 +163,11 @@ Building an entire Claude Skill for a task you do twice a year, with custom scri
 
 The test: how many times have you done this task the same way? If the answer is fewer than five, stay at Rung 1. If the context varies materially each time, stay at Rung 1.
 
+> [!CAUTION]
+> ### When to ignore this advice
+>
+> If the task is **high-stakes one-off** (a keynote, a board meeting, a single-take podcast taping), pre-build the skill even on first use. The "twice a year" / "fewer than five" threshold optimizes for token cost; high-stakes one-offs optimize for not forgetting the recipe at 3am the night before. My `speaking-script` and `panel-moderation` skills both started as one-offs for specific events — they earned their place by being there when I needed them, not by being run three times first.
+
 ### Failure 3: Multi-agent where a single agent would do
 
 The companion guide covers this in detail. The short version: if you don't have genuine fan-out, genuine specialization, or a context window problem, the orchestrator layer is overhead without payoff. See [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) for the cases where Rung 4 is actually warranted.
