@@ -13,6 +13,8 @@
 - The discoverability and protocol terms (llms.txt, MCP, WebMCP, A2A, openapi.yaml) get the most space here because they're the most contested. See the companion article [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md) for the full treatment.
 - Skim by category. Jump via anchors. Cross-links go to the guide where each concept is used most.
 
+> **Reading the hype/reality field:** Several entries in this glossary include explicit "this is overhyped" notes. That's deliberate. AI engineering is a field with a high noise-to-signal ratio in 2026. Where the consensus framing of a concept is wrong, this glossary marks it.
+
 ### How to read each entry
 
 Every entry uses this five-field template:
@@ -138,8 +140,9 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 
 - **What it is:** The agent examines its own output to find ways to improve it — a self-critique loop before returning a final result. One of Andrew Ng's four agentic design patterns.
 - **What's in it for you:** Quality improvement without human review on each iteration. Particularly useful for writing, code generation, and structured data extraction where the model can evaluate its own output against defined criteria.
-- **What's hype:** Infinite reflection loops. Reflection should be bounded (one or two passes, not open-ended) or it inflates latency and cost without proportional quality gain.
-- **What to do:** Add one bounded reflection pass to any agent producing outputs where quality matters. Define what "better" means in the prompt so the model has a real criterion to evaluate against.
+- **What's hype:** Research-grade pattern; rarely needed in the median production agent. Reflection is useful at Rung 3+ where the task genuinely benefits from iterative self-improvement — but most production agents don't need it and adding it inflates latency and cost without proportional quality gain for simple workflows. Infinite reflection loops in particular: reflection should be bounded (one or two passes) or the cost doesn't justify itself.
+- **What to do:** Add one bounded reflection pass to any agent producing outputs where quality matters and the task complexity warrants it. Define what "better" means in the prompt so the model has a real criterion to evaluate against. Skip for straightforward tasks.
+- **Audience:** Rung 3+ builders only. If you're still at Rung 2 (skills), this pattern is not yet relevant.
 - **Source:** [Ng / DeepLearning.AI — Agentic Design Patterns (Mar 2024)](https://www.deeplearning.ai/the-batch/how-agents-can-improve-llm-performance/); [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md#rung-3--agent)
 
 ---
@@ -168,8 +171,9 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 
 - **What it is:** Multiple agents divide work and, in some architectures, debate solutions. Each agent brings a specialized prompt, tool set, or domain context. Corresponds to Rung 4 on the ladder.
 - **What's in it for you:** Parallel throughput on breadth-first tasks. Specialization that makes each agent independently testable.
-- **What's hype:** Using multi-agent collaboration for decision-composition tasks where subagents need to merge outputs into a coherent whole. Cognition's "Don't Build Multi-Agents" identifies this failure mode precisely. ([source](https://cognition.ai/blog/dont-build-multi-agents))
-- **What to do:** Use for reads with typed returns, not for decisions that compose. Typed return contracts are the boundary mechanism.
+- **What's hype:** Useful for specific workloads (parallelizable research, breadth-first reads with typed returns); overhyped as a general design pattern. The failure mode is using multi-agent collaboration for decision-composition tasks where subagents need to merge outputs into a coherent whole — that's where it breaks down. Cognition's "Don't Build Multi-Agents" identifies this failure mode precisely. ([source](https://cognition.ai/blog/dont-build-multi-agents)) See [`multi-agent-fan-out-and-verification.md`](multi-agent-fan-out-and-verification.md) for when it actually applies.
+- **What to do:** Use for reads with typed returns, not for decisions that compose. Typed return contracts are the boundary mechanism. Build Rungs 1–3 first before reaching for this.
+- **Audience:** Rung 4 builders only. If you're still building your first agent, this pattern is premature.
 - **Source:** [Ng / DeepLearning.AI — Agentic Design Patterns (Mar 2024)](https://www.deeplearning.ai/the-batch/how-agents-can-improve-llm-performance/); [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md)
 
 ---
@@ -341,9 +345,9 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 ### Plan mode
 
 - **What it is:** A Claude Code session mode (toggled via `Shift+Tab`) that separates planning from execution. In plan mode, Claude proposes a plan but does not write files or run commands. You review the plan before authorizing execution.
-- **What's in it for you:** Prevents cascading misunderstandings in multi-file changes. Particularly useful for ambiguous requests where the implementation choices matter.
-- **What's hype:** Using plan mode for every task. It adds overhead for small, scoped requests. Worth the cost for complex multi-file work; overhead for `git status` equivalents.
-- **What to do:** Use for any task where you care about how it's done, not just what gets done. Skip for clearly bounded, low-stakes operations.
+- **What's in it for you:** Prevents cascading misunderstandings in multi-file changes. High value for ambiguous multi-file changes where the implementation choices matter.
+- **What's hype:** Some teams over-deploy plan mode for tasks that don't warrant the ceremony. It adds real overhead for small, scoped requests — running plan mode for `git status` equivalents is the wrong use. Worth the cost for complex multi-file work; skip for clearly bounded, low-stakes operations.
+- **What to do:** Use for any task where you care about how it's done, not just what gets done, and where the task spans multiple files or has non-trivial side effects. Skip for one-off edits with a clear, bounded scope.
 - **Source:** [Anthropic — Claude Code Best Practices](https://code.claude.com/docs/en/best-practices); [Claude Code Workflow Optimizer — Pillar 2](claude-code-optimizer.md#pillar-2-model-routing)
 
 ---
@@ -519,10 +523,11 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 ### robots.txt (agent-relevant interpretation)
 
 - **What it is:** A decades-old standard text file at a site's root (`/robots.txt`) that tells crawlers what they can and can't access via User-agent rules. AI crawlers and shopping agents now read it; specifying known agent user-agents (GPTBot, ClaudeBot, Google-Extended) is the current practice.
-- **What's in it for you:** Agent discovery and rate control without blocking legitimate AI traffic. Blanket-blocking is the wrong move — you lose discovery; agents route to competitors.
+- **What's in it for you:** Agent discovery and rate control without blocking legitimate AI traffic. Blanket-blocking is the wrong move — you lose discovery; agents route to competitors. Cloudflare data shows AI bots accessed 39% of the top one million internet properties in 2024, and only 2.98% of those sites had any management in place. ([source](https://blog.cloudflare.com/declaring-your-aindependence-block-ai-bots-scrapers-and-crawlers-with-a-single-click/))
 - **What's hype:** "The winning robots.txt strategy." There isn't one. It's plumbing — set it correctly and forget it.
-- **What to do:** List known agent user-agents explicitly. Rate-limit at WAF level, don't block. See [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md#robotstxt--the-agent-relevant-view) for current user-agent strings.
-- **Source:** [robotstxt.org](https://www.robotstxt.org/); [Stripe — How to prepare for agentic commerce](https://stripe.com/guides/how-to-prepare-for-agentic-commerce-technical-field-guide)
+- **What to do:** List known agent user-agents explicitly. Pair with WAF-level rate limiting (Challenge or 429 response) rather than outright blocking. See [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md#robotstxt--the-agent-relevant-view) for current user-agent strings.
+- **Audience:** Anyone with a public-facing site should configure this. Merchants: Danny Smith's Stripe field guide names this as one of four core discoverability files. Agent system builders: make sure your crawlers respect it — agents that don't are increasingly blocked at WAF level.
+- **Source:** [robotstxt.org](https://www.robotstxt.org/); [Stripe — How to prepare for agentic commerce](https://stripe.com/guides/how-to-prepare-for-agentic-commerce-technical-field-guide); [Cloudflare — Declare your AIndependence](https://blog.cloudflare.com/declaring-your-aindependence-block-ai-bots-scrapers-and-crawlers-with-a-single-click/)
 
 ---
 
@@ -530,59 +535,65 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 
 - **What it is:** A proposed standard (Jeremy Howard / Answer.AI, September 2024) for a markdown file at a site's root (`/llms.txt`) that gives LLM consumers a curated index of a site's content — analogous to robots.txt for crawlers but for LLM inference-time use. Full content lives in `llms-full.txt`.
 - **What's in it for you:** Low-cost signal for LLM-powered discovery tools. If your site has long-form guides or documentation, this file gives AI crawlers a curated path rather than trying to parse your full HTML.
-- **What's hype:** "llms.txt is the new SEO." It's a proposal, not a ratified standard. No major LLM provider publicly commits to consuming it as canonical. Adoption is growing but uneven as of 2026.
+- **What's hype:** "llms.txt is the new SEO" is overclaim. It's an Answer.AI proposal, not a ratified standard. No major LLM provider has publicly committed to consuming it as canonical. Simon Willison — one of the most credible practitioners writing on LLMs — has implemented llms.txt-style tooling in his own developer documentation projects and called the concept "fantastic," but his engagement is with the developer-tooling use case, not general web discovery. The leverage here is moderate and uncertain, not transformative.
 - **What to do:** Deploy if you have curated content. Low cost, modest upside, no downside. Don't over-engineer.
-- **Source:** [llmstxt.org](https://llmstxt.org/); [Answer.AI — llms.txt proposal (Sep 2024)](https://www.answer.ai/posts/2024-09-03-llmstxt.html); [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md#llmstxt)
+- **Audience:** Non-developer site owners: skip for now, revisit in six months. Content/docs-heavy sites: adopt. Merchants / commerce operators: adopt as part of the Stripe four-file setup. Agent system builders: this is consumer-side discovery, not relevant to building agents.
+- **Source:** [llmstxt.org](https://llmstxt.org/); [Answer.AI — llms.txt proposal (Sep 2024)](https://www.answer.ai/posts/2024-09-03-llmstxt.html); [Simon Willison — Using LLMs as the first line of support in Open Source](https://simonwillison.net/2025/Apr/14/llms-as-the-first-line-of-support/); [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md#llmstxt)
 
 ---
 
 ### /.well-known/ai-plugin.json (deprecated)
 
 - **What it is:** OpenAI's manifest format for ChatGPT Plugins, launched March 2023 — a JSON file at `/.well-known/ai-plugin.json` that described plugin capabilities for the ChatGPT Plugins ecosystem.
-- **What's in it for you:** Very little in 2026. ChatGPT Plugins were effectively deprecated April 2024 in favor of Custom GPTs, removing the primary consumer of this format.
-- **What's hype:** Any claim that you need this file in 2026 is hype. Some agent ecosystems still read it as a discovery hint but it is no longer a load-bearing format.
-- **What to do:** Ignore unless maintaining a legacy ChatGPT Plugin integration. If you have an existing plugin, migrate to a Custom GPT or MCP server.
-- **Source:** [Stripe — How to prepare for agentic commerce](https://stripe.com/guides/how-to-prepare-for-agentic-commerce-technical-field-guide) (names it as one of four files agents currently read, describing current agent behavior — not endorsing longevity); [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md#wellknownai-pluginjson)
+- **What's in it for you:** Nothing in 2026. ChatGPT Plugins were deprecated in phases: new conversations ended March 19, 2024; all plugin chats shut down April 9, 2024. ([source](https://developers.openai.com/api/docs/deprecations))
+- **What's hype:** Zombie format. The Stripe four-files list is canonical historically but this one is the dead member. Danny Smith's field guide names it as one of "four files agents read" — that describes legacy agent behavior accurately, but `ai-plugin.json` is the dead member of the four. The other three are live; this one is not. Any claim that you need to create or maintain this file in 2026 is wrong.
+- **What to do:** Ignore unless maintaining a legacy ChatGPT Plugin. If so: migrate to a Custom GPT or MCP server. Do not create new `ai-plugin.json` files.
+- **Audience:** Anyone: skip.
+- **Source:** [OpenAI — Deprecations](https://developers.openai.com/api/docs/deprecations); [Stripe — How to prepare for agentic commerce](https://stripe.com/guides/how-to-prepare-for-agentic-commerce-technical-field-guide) (names it as one of four files agents currently read — describing legacy agent behavior, not endorsing longevity); [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md#wellknownai-pluginjson)
 
 ---
 
 ### openapi.yaml / openapi.json
 
 - **What it is:** A machine-readable description of an API in the OpenAPI Specification format — YAML or JSON. Maintained by the OpenAPI Initiative (a Linux Foundation project). The de facto standard for describing REST APIs. Every major agentic ecosystem reads it: Custom GPT Actions, MCP server tool definitions, function-calling schemas are all derivable from or translatable to OpenAPI.
-- **What's in it for you:** If you have a public API and want AI agents to be able to call it, you need a current, accurate OpenAPI spec at a stable URL. This is the load-bearing format.
+- **What's in it for you:** If you have a public API and want AI agents to be able to call it, you need a current, accurate OpenAPI spec at a stable URL. This is the load-bearing format. Danny Smith's Stripe field guide recommends treating summary fields "like prompts" — write them for agents, not just for developers.
 - **What's hype:** n/a — solidly useful. The only legitimate critique is verbosity.
 - **What to do:** Maintain a current spec. If you don't have one, modern frameworks emit it natively (FastAPI, NestJS, Spring, etc.). See [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md#openapiyaml--openapijson).
-- **Source:** [OpenAPI Initiative — What is OpenAPI](https://www.openapis.org/what-is-openapi); [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md#openapiyaml--openapijson)
+- **Audience:** Anyone with a public API: required. Merchants / commerce operators: required for any agent purchasing workflow. Non-developer site owners without a public API: not applicable.
+- **Source:** [OpenAPI Initiative — What is OpenAPI](https://www.openapis.org/what-is-openapi); [Stripe — How to prepare for agentic commerce](https://stripe.com/guides/how-to-prepare-for-agentic-commerce-technical-field-guide); [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md#openapiyaml--openapijson)
 
 ---
 
 ### MCP (Model Context Protocol)
 
-- **What it is:** Anthropic's open protocol (announced November 2024, donated to the Agentic AI Foundation / Linux Foundation in December 2025) for connecting LLMs to tools, data, and prompts. The growing standard for the tool/data connection problem across the Anthropic ecosystem and beyond.
-- **What's in it for you:** If you maintain a service AI agents should query or act on, expose an MCP server. Over 10,000 active servers and 97 million monthly SDK downloads as of knowledge cutoff.
-- **What's hype:** "MCP is the universal standard." As of mid-2026, it's primarily Anthropic-ecosystem-centric for production use, though OpenAI has begun supporting it. OpenAI ecosystem still primarily uses function calling directly.
+- **What it is:** Anthropic's open protocol (announced November 2024, donated to the Agentic AI Foundation / Linux Foundation in December 2025) for connecting LLMs to tools, data, and prompts. The growing standard for the tool/data connection problem across the Anthropic ecosystem and beyond. By its one-year anniversary: 10,000+ servers, 97 million monthly SDK downloads, first-class support in Claude Code, Claude Desktop, ChatGPT, Cursor, Gemini, and VS Code. ([source](https://blog.modelcontextprotocol.io/posts/2025-11-25-first-mcp-anniversary/))
+- **What's in it for you:** If you maintain a service AI agents should query or act on, expose an MCP server. The protocol won the tool/data slot in the Anthropic ecosystem and is broadening.
+- **What's hype:** "MCP is the universal standard." As of mid-2026, it's primarily Anthropic-ecosystem-centric for production use, though OpenAI adopted it in March 2025. OpenAI ecosystem still frequently uses function calling directly. "Everyone's doing MCP" describes momentum, not universality.
 - **What to do:** Deploy MCP servers for data and tools your AI users actually need. Start read-only. Use official SDKs (Python, TypeScript). See [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md#mcp-model-context-protocol) for depth.
-- **Source:** [Anthropic — Model Context Protocol announcement](https://www.anthropic.com/news/model-context-protocol); [modelcontextprotocol.io](https://modelcontextprotocol.io/introduction)
+- **Audience:** SaaS / product engineers: build MCP servers for your services. Merchants / commerce operators: relevant if agents should query your catalog or inventory directly — higher complexity, plan developer time. Non-developers: not directly actionable; your developer should evaluate. Agent system builders: essential — understand the protocol deeply, this is your integration surface.
+- **Source:** [Anthropic — Model Context Protocol announcement](https://www.anthropic.com/news/model-context-protocol); [MCP Blog — One Year of MCP](https://blog.modelcontextprotocol.io/posts/2025-11-25-first-mcp-anniversary/); [Anthropic Engineering — Code execution with MCP](https://www.anthropic.com/engineering/code-execution-with-mcp); [modelcontextprotocol.io](https://modelcontextprotocol.io/introduction)
 
 ---
 
 ### WebMCP
 
-- **What it is:** An emerging spec (multiple active proposals) for running MCP-style tool calls in browser JavaScript contexts, so that in-page AI assistants can discover and invoke tools exposed by the webpage itself. The W3C Web Machine Learning Community Group is incubating a formal spec at `webmachinelearning.github.io/webmcp/`. A separate MCP-B implementation extends MCP specifically for browser tab contexts.
+- **What it is:** An emerging spec (multiple active proposals) for running MCP-style tool calls in browser JavaScript contexts, so that in-page AI assistants can discover and invoke tools exposed by the webpage itself. The W3C Web Machine Learning Community Group is incubating a formal spec at `webmachinelearning.github.io/webmcp/`. A separate MCP-B implementation extends MCP specifically for browser tab contexts. The two proposals are not interoperable.
 - **What's in it for you:** If you build webapps where you want users' in-page AI assistants to act on the page, WebMCP is the convergence path being developed. Today's alternative is custom JS bridges or vendor-specific extensions.
-- **What's hype:** "WebMCP will replace MCP." No — they're complementary surfaces. WebMCP is the browser-side surface for what MCP is doing server-side. They solve different deployment contexts.
-- **What to do:** Track the spec. Don't deploy production code against it yet unless explicitly experimenting. For production, MCP is the current standard.
+- **What's hype:** Two competing proposals share the name. That's a red flag for adoption. The W3C and MCP-B variants are not interoperable as of this writing. For production code, MCP (server-side) is the standard; WebMCP (browser-side) is wait-and-see. "WebMCP will replace MCP" is a wrong framing — they're complementary surfaces for different deployment contexts.
+- **What to do:** Track the W3C spec. Don't write production code against it until it reaches Candidate Recommendation status. For production, MCP is the current standard.
+- **Audience:** Non-developer site owners: ignore entirely. SaaS / product engineers: track the W3C spec, no production action yet. Merchants / commerce operators: irrelevant for current planning. Agent system builders: watch this space if you're building browser-embedded agents.
 - **Source:** [W3C WebMCP spec](https://webmachinelearning.github.io/webmcp/); [MCP-B (browser extension)](https://github.com/MiguelsPizza/WebMCP); [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md#webmcp)
 
 ---
 
 ### A2A (Agent-to-Agent, Google)
 
-- **What it is:** Google's open protocol for inter-agent communication, announced April 2025 at Google Cloud Next, donated to the Linux Foundation June 2025. Designed for letting one agent delegate tasks to another across vendor boundaries, with auth, state, and result handoff. Uses HTTP, Server-Sent Events, and JSON-RPC 2.0.
-- **What's in it for you:** Relevant only if you're building multi-agent systems that need to cross trust or vendor boundaries. Inside a single vendor's ecosystem (Anthropic + your own subagents), you don't need A2A.
-- **What's hype:** Positioning A2A as "the standard for agent interop." There is no ratified standard yet; A2A is one well-supported proposal. The Agent Communication Protocol (ACP) and others compete. A2A has 150+ organizational supporters but production adoption is early.
-- **What to do:** Read about it. Don't deploy unless you have a concrete cross-vendor agent-delegation problem. See [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) for current patterns for intra-vendor multi-agent systems.
-- **Source:** [Google Developers Blog — A2A announcement (Apr 2025)](https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/); [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md#a2a-agent-to-agent-protocol)
+- **What it is:** Google's open protocol for inter-agent communication, announced April 2025 at Google Cloud Next, donated to the Linux Foundation June 2025. Designed for letting one agent delegate tasks to another across vendor boundaries, with auth, state, and result handoff. Uses HTTP, Server-Sent Events, and JSON-RPC 2.0. Version 0.3 shipped August 2025.
+- **What's in it for you:** Relevant only if you're building multi-agent systems that need to cross trust or vendor boundaries. Inside a single vendor's ecosystem (Anthropic + your own subagents), you don't need A2A. For most readers, the patterns in [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) cover everything you need.
+- **What's hype:** Marketed by Google as "the standard for agent interop" — there is no standard yet. A2A is one proposal among several (ACP, MCP-A2A interop layers, vendor-specific schemes). Most real multi-agent systems in production today run single-vendor stacks where cross-vendor delegation isn't a problem. "150+ supporters" reflects enterprise interest and Google's ecosystem influence; it does not indicate production adoption at scale. Read the announcement; don't deploy unless you have a concrete cross-vendor agent-delegation requirement, which most readers do not.
+- **What to do:** Read about it. Don't deploy unless you have a concrete cross-vendor agent-delegation problem you're actively solving. See [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) for intra-vendor multi-agent patterns.
+- **Audience:** Non-developer site owners: ignore. SaaS / product engineers: read the spec, no deployment action unless you have a cross-vendor delegation requirement. Merchants / commerce operators: not relevant for current planning. Agent system builders: worth understanding — this is the most likely protocol to matter for cross-org delegation long-term. Track v1.0, don't ship against v0.x.
+- **Source:** [Google Developers Blog — A2A announcement (Apr 2025)](https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/); [Google Cloud Blog — A2A v0.3](https://cloud.google.com/blog/products/ai-machine-learning/agent2agent-protocol-is-getting-an-upgrade); [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md#a2a-agent-to-agent-protocol)
 
 ---
 
@@ -592,6 +603,7 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 - **What's in it for you:** The underlying capability that everything else (MCP, ChatGPT Actions, custom agents) sits on top of. Every modern LLM API has it.
 - **What's hype:** Positioning function calling as a strategy. It's a capability, not a strategy. The strategy decisions are about what tools to expose, how to define them, and what protocol to use for discovery and invocation.
 - **What to do:** Use SDK function-calling primitives directly when building single-agent systems. Use MCP when you want a standardized discovery and invocation surface across multiple consumers.
+- **Audience:** Relevant only to agent system builders and SaaS engineers building API integrations. Non-developers: not actionable.
 - **Source:** [OpenAI — Function Calling announcement (Jun 2023)](https://openai.com/index/function-calling-and-other-api-updates/); [Anthropic — Tool Use overview](https://platform.claude.com/docs/en/docs/build-with-claude/tool-use/overview)
 
 ---
@@ -668,7 +680,7 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 
 - **What it is:** Andrej Karpathy's term (February 2025) for fully committing to what the model produces — operating on feel, forgetting the code even exists, not debugging or reading code directly. "You fully give in to the vibes, embrace exponentials, and forget that the code even exists."
 - **What's in it for you:** Permission to not understand every line of code you approve. Also a useful warning: vibe coding works best when you can see what you're vibing with (Claude Code's transparent output) rather than when abstraction hides mistakes.
-- **What's hype:** The implication that vibe coding is an advanced or reckless practice. It describes what most practitioners actually do after they've built pattern recognition. The risk is real — not debugging code means not catching mistakes — but the transparency of Claude Code's output is the mitigation.
+- **What's hype:** Viral term, more vibes than engineering substance. Cultural shorthand that describes a real behavior pattern, but "vibe coding" as a design philosophy is not engineering guidance — it's a description of how people work at the edges of their understanding. The risk is real: not reading code means not catching mistakes. The mitigation is transparency (Claude Code surfaces what it's doing), not the vibe itself.
 - **What to do:** Vibe code with Claude Code (where you can see the output) rather than with abstraction tools (where mistakes hide). Build the pattern recognition that lets you know when something looks obviously wrong without parsing every line.
 - **Source:** [Karpathy — X/Twitter (Feb 2025)](https://x.com/karpathy/status/1886192184808149383); [Claude Code for Non-Developers — Section 2](claude-code-for-non-developers.md#section-2-why-claude-code-specifically-the-matrix-section)
 
@@ -760,7 +772,14 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 - Shunyu Yao et al. — *ReAct: Synergizing Reasoning and Acting in Language Models* (ICLR 2023): https://arxiv.org/abs/2210.03629
 - Andrew Ng / DeepLearning.AI — *Agentic Design Patterns* (HumanEval benchmark data: GPT-3.5 agentic 95.1% vs. zero-shot 48.1%): https://www.deeplearning.ai/the-batch/how-agents-can-improve-llm-performance/
 - OpenAI — *Function Calling and other API updates* (June 2023): https://openai.com/index/function-calling-and-other-api-updates/
-- Stripe — *How to prepare for agentic commerce: A technical field guide*: https://stripe.com/guides/how-to-prepare-for-agentic-commerce-technical-field-guide
+- OpenAI — *Deprecations* (ChatGPT Plugins deprecation timeline): https://developers.openai.com/api/docs/deprecations
+- Stripe — *How to prepare for agentic commerce: A technical field guide* (Danny Smith, Global Solutions Architect Lead, Agentic Commerce, published March 10, 2026): https://stripe.com/guides/how-to-prepare-for-agentic-commerce-technical-field-guide
+- Model Context Protocol Blog — *One Year of MCP* (Nov 2025): https://blog.modelcontextprotocol.io/posts/2025-11-25-first-mcp-anniversary/
+- Model Context Protocol Blog — *MCP joins the Agentic AI Foundation* (Dec 2025): https://blog.modelcontextprotocol.io/posts/2025-12-09-mcp-joins-agentic-ai-foundation/
+- Anthropic Engineering — *Code execution with MCP*: https://www.anthropic.com/engineering/code-execution-with-mcp
+- Google Cloud Blog — *Agent2Agent protocol is getting an upgrade* (A2A v0.3, Aug 2025): https://cloud.google.com/blog/products/ai-machine-learning/agent2agent-protocol-is-getting-an-upgrade
+- Cloudflare — *Declare your AIndependence: block AI bots, scrapers and crawlers with a single click* (Jul 2024): https://blog.cloudflare.com/declaring-your-aindependence-block-ai-bots-scrapers-and-crawlers-with-a-single-click/
+- Simon Willison — *Using LLMs as the first line of support in Open Source* (Apr 2025): https://simonwillison.net/2025/Apr/14/llms-as-the-first-line-of-support/
 
 **Tier 2 — Trusted primary documentation:**
 
