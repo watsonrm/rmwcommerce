@@ -30,3 +30,4 @@ A public landing point. Links, references, and anything Rick wants to share open
 ### Guides
 
 - [Claude Code Workflow Optimizer](claude-code-optimizer.md) — patterns for cutting token spend 50–75% on Claude Code without losing output quality. Worktree fleets, plan-mode discipline, context-window management, model routing.
+- [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) — how to structure Claude agent systems that scale without silently breaking. Typed return contracts, intermediate-state logging, thin-orchestrator architecture, and a concrete phasing strategy.
