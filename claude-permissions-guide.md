@@ -81,7 +81,7 @@ Anthropic's permissions docs describe the evaluation order:
 
 > *"Rules are evaluated in order: deny → ask → allow. The first matching rule wins, so deny rules always take precedence."* ([source](https://code.claude.com/docs/en/permissions))
 
-**Allow** rules let a tool call proceed without prompting. **Ask** rules always prompt for that tool use. **Deny** rules block the tool call outright — a bare tool name like `Bash` removes the tool from Claude's context entirely, while a scoped rule like `Bash(rm *)` leaves the tool available but blocks matching commands.
+The [allow / ask / deny semantics](glossary.md#allow--ask--deny-semantics) work as follows: **Allow** rules let a tool call proceed without prompting. **Ask** rules always prompt for that tool use. **Deny** rules block the tool call outright — a bare tool name like `Bash` removes the tool from Claude's context entirely, while a scoped rule like `Bash(rm *)` leaves the tool available but blocks matching commands.
 
 ### Tool categories
 
@@ -129,7 +129,7 @@ A pattern like `Bash(curl http://github.com/ *)` won't cover variations in argum
 
 ### MCP wildcards
 
-MCP tool names follow the format `mcp__<servername>__<toolname>`. Permission rules use the same format:
+[MCP wildcard patterns](glossary.md#mcp-wildcard-pattern): MCP tool names follow the format `mcp__<servername>__<toolname>`. Permission rules use the same format:
 
 - `mcp__puppeteer` — matches any tool from the puppeteer server
 - `mcp__puppeteer__*` — also matches all tools from the puppeteer server (equivalent)
@@ -137,7 +137,7 @@ MCP tool names follow the format `mcp__<servername>__<toolname>`. Permission rul
 
 ([source](https://code.claude.com/docs/en/permissions))
 
-Use whole-server wildcards for trusted read-only MCP servers; use per-tool rules for servers that mix read and write operations where you want to approve only the reads.
+Use whole-server wildcards for trusted read-only MCP servers; use per-tool rules for servers that mix read and write operations where you want to approve only the reads. For a broader look at where MCP fits among agent protocols, see [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md#mcp-model-context-protocol).
 
 ### The layered file model and what wins in conflicts
 
@@ -290,7 +290,7 @@ Your MCP tool names may differ from these depending on how your MCP servers are 
 
 ## Section 4: The drift problem and how to consolidate
 
-This is the actual source of permission hell for long-term users.
+This is the actual source of permission hell for long-term users — see [drift consolidation](glossary.md#drift-consolidation) in the glossary for the short version.
 
 When you start using Claude Code, you approve commands one at a time. Each time you select "Yes, don't ask again," Claude Code writes a specific rule to `.claude/settings.local.json`. Over months, that file fills up. You end up with entries like:
 

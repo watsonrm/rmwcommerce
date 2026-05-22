@@ -57,7 +57,7 @@ This pillar is where the bulk of the gains live. Do this before anything else.
 
 ### 1. Treat the context window like RAM
 
-Anthropic's official docs are explicit about the constraint driving every other best practice: *"Most best practices are based on one constraint: Claude's context window fills up fast, and performance degrades as it fills."* ([source](https://code.claude.com/docs/en/best-practices)) The docs continue: *"LLM performance degrades as context fills. When the context window is getting full, Claude may start 'forgetting' earlier instructions or making more mistakes."*
+Anthropic's official docs are explicit about the constraint driving every other best practice: *"Most best practices are based on one constraint: Claude's [context window](glossary.md#context-window) fills up fast, and performance degrades as it fills."* ([source](https://code.claude.com/docs/en/best-practices)) The docs continue: *"LLM performance degrades as context fills. When the context window is getting full, Claude may start 'forgetting' earlier instructions or making more mistakes."*
 
 **Execution:**
 
@@ -67,7 +67,7 @@ Anthropic's official docs are explicit about the constraint driving every other 
 
 ### 2. Cap `CLAUDE.md` at 200 lines
 
-Anthropic's official memory docs are explicit: *"target under 200 lines per CLAUDE.md file. Longer files consume more context and reduce adherence."* ([source](https://code.claude.com/docs/en/memory)) The troubleshooting section adds: *"Files over 200 lines consume more context and may reduce adherence."*
+Anthropic's official memory docs are explicit: *"target under 200 lines per [CLAUDE.md](glossary.md#claudemd) file. Longer files consume more context and reduce adherence."* ([source](https://code.claude.com/docs/en/memory)) The troubleshooting section adds: *"Files over 200 lines consume more context and may reduce adherence."*
 
 > [!NOTE]
 > ### Sidebar: CLAUDE.md vs. auto-memory
@@ -140,7 +140,7 @@ Reach for this pillar only when the first two are dialed in.
 
 ### 1. Git worktree fleets
 
-Anthropic officially endorses this pattern: *"Anthropic recommends using worktrees to run separate CLI sessions in isolated git checkouts."* ([source](https://code.claude.com/docs/en/best-practices))
+Anthropic officially endorses this [worktree / worktree fleet](glossary.md#worktree--worktree-fleet) pattern: *"Anthropic recommends using worktrees to run separate CLI sessions in isolated git checkouts."* ([source](https://code.claude.com/docs/en/best-practices))
 
 **When it pays off:** You're shipping multiple features in parallel, running experiments on independent branches, or maintaining several long-running investigations at once.
 
@@ -157,7 +157,7 @@ Anthropic officially endorses this pattern: *"Anthropic recommends using worktre
 These two patterns are under-emphasized in most Claude Code tips content and worth knowing:
 
 - **Skills** — for recurring workflows (API testing, database migrations, security review), define a Skill rather than re-explaining the process every session. Skills load on demand without bloating `CLAUDE.md`. ([source](https://code.claude.com/docs/en/best-practices))
-- **MCP servers** — for any external service you talk to repeatedly (GitHub, Slack, databases, internal APIs), an MCP server eliminates the token cost of explaining HTTP and parsing responses. Claude calls the service natively.
+- **[MCP servers](glossary.md#mcp-model-context-protocol)** — for any external service you talk to repeatedly (GitHub, Slack, databases, internal APIs), an MCP server eliminates the token cost of explaining HTTP and parsing responses. Claude calls the service natively. See [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md) for the broader protocol landscape.
 
 Both are documented in the official Claude Code docs.
 

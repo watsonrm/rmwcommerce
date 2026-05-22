@@ -77,7 +77,7 @@ Applied together to a real ~20-skill consulting and media workflow (the system b
 
 Before getting into architecture, it helps to have a shared vocabulary for what an individual agent is doing at runtime.
 
-Weng's taxonomy (2023) breaks an LLM-powered agent into three components: planning, memory, and tool use. ([source](https://lilianweng.github.io/posts/2023-06-23-agent/)) Planning covers how the agent decomposes a complex task into manageable subgoals and how it reflects on its own progress. Memory covers what it can see in context (short-term) versus what it retrieves from external stores (long-term). Tool use covers how it calls external APIs or runs code to act on the world.
+Weng's taxonomy (2023) breaks an LLM-powered agent into three components: [planning](glossary.md#planning-ng-pattern-3), memory, and [tool use](glossary.md#tool-use-ng-pattern-2). ([source](https://lilianweng.github.io/posts/2023-06-23-agent/)) Planning covers how the agent decomposes a complex task into manageable subgoals and how it reflects on its own progress. Memory covers what it can see in context (short-term) versus what it retrieves from external stores (long-term). Tool use covers how it calls external APIs or runs code to act on the world.
 
 The ReAct paper (Yao et al., 2022) shows how these components work together in the moment: the agent interleaves reasoning traces with concrete actions in a loop. ([source](https://arxiv.org/abs/2210.03629)) The reasoning trace updates the agent's internal model of the situation; the action updates the external environment or retrieves new information; the result feeds the next reasoning step. This reason-act-observe loop is what each individual subagent is doing while the orchestrator waits for its typed return.
 
@@ -200,7 +200,7 @@ For a web research agent, the return might be `{path: "/tmp/agent-runs/run123/we
 
 Read specialists return data. Write specialists make decisions. These need stricter contracts.
 
-The pattern is a discriminated union: enumerate every legal outcome the agent is allowed to return. If the situation doesn't fit one of them, the agent should return a failure — not invent a new variant.
+The pattern is a [discriminated-union action schema](glossary.md#discriminated-union-action-schema): enumerate every legal outcome the agent is allowed to return. If the situation doesn't fit one of them, the agent should return a failure — not invent a new variant.
 
 GitHub's formulation: *"Vague intent breaks agents. Action schemas make it clear."* ([source](https://github.blog/ai-and-ml/generative-ai/multi-agent-workflows-often-fail-heres-how-to-engineer-ones-that-dont/)) Their example uses a four-way union for a triage agent. The agent picks one. No fifth option.
 
@@ -244,13 +244,13 @@ Anthropic's system runs research that can take dozens of tool calls across many 
 
 Karpathy's autonomy-slider framing sharpens this: the more autonomous the system, the more systematic the failure design needs to be. ([source](https://www.youtube.com/watch?v=LCEmiRjPEtQ)) A system that works most of the time in a demo is not a system that works reliably in production. As you increase agent autonomy (more parallel subagents, longer task chains, fewer human checkpoints), the verification overhead grows in proportion. The verification-first principle that anchors [The Claude Code Workflow Optimizer](claude-code-optimizer.md) at the single-user level — write the test before the code, define success before execution — scales directly to multi-agent: every fan-out step adds verification debt, and that debt compounds faster than it does in a single session. Logging, typed contracts, and idempotent writes are the mechanisms that let you increase autonomy without proportionally increasing risk.
 
-Multi-agent permissions compound — every subagent inherits its own approval surface, and an orchestrator dispatching ten subagents is generating ten independent permission footprints. See [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md) for the strategy of managing that surface without losing the safety checkpoints that make autonomous operation trustworthy.
+Multi-agent permissions compound — every subagent inherits its own approval surface, and an orchestrator dispatching ten subagents is generating ten independent permission footprints. See [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md) for the strategy of managing that surface without losing the safety checkpoints that make autonomous operation trustworthy. For external services your agents call via [MCP servers](glossary.md#mcp-model-context-protocol), see [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md) for how MCP fits into the broader protocol landscape.
 
 Two rules, both non-negotiable.
 
-**Every write is idempotent.** A document-writing agent searches for an existing document before creating. A calendar-event agent updates in place. A synthesis agent checks a tracker before re-processing a source. Re-running an agent on the same input never duplicates state. This matters both for reliability (you can safely retry failed runs) and for debugging (you can replay any run without side effects).
+**Every write is [idempotent](glossary.md#idempotent-write).** A document-writing agent searches for an existing document before creating. A calendar-event agent updates in place. A synthesis agent checks a tracker before re-processing a source. Re-running an agent on the same input never duplicates state. This matters both for reliability (you can safely retry failed runs) and for debugging (you can replay any run without side effects).
 
-**Every run logs intermediate state.** Every agent invocation writes to a known path:
+**Every run logs [intermediate state](glossary.md#intermediate-state-log).** Every agent invocation writes to a known path:
 
 ```
 /tmp/agent-runs/<run_id>/<agent_name>/<invocation_id>/
@@ -272,7 +272,7 @@ OpenAI's guide adds a complementary guardrails perspective: treat safety and rel
 
 Once the contract and logging foundations are in place, the orchestrator architecture follows naturally.
 
-Anthropic names this the **orchestrator-workers pattern**: a central LLM dynamically breaks down unpredictable tasks and delegates to worker LLMs, with the subtask decomposition determined at runtime. ([source](https://www.anthropic.com/engineering/building-effective-agents)) This is distinct from simple parallelization — the orchestrator isn't just splitting a known task across workers; it's deciding what the tasks are. The principle that follows is: thin orchestrator, fat subagents. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) The lead agent plans, dispatches, and aggregates references. It does not execute. Each subagent gets a complete, scoped brief — objective, output format, tools allowed, token budget. The orchestrator never does the work it could delegate.
+Anthropic names this the **[orchestrator-workers pattern](glossary.md#orchestrator-workers-pattern-anthropic)**: a central LLM dynamically breaks down unpredictable tasks and delegates to worker LLMs, with the subtask decomposition determined at runtime. ([source](https://www.anthropic.com/engineering/building-effective-agents)) This is distinct from simple parallelization — the orchestrator isn't just splitting a known task across workers; it's deciding what the tasks are. The principle that follows is: thin orchestrator, fat subagents. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) The lead agent plans, dispatches, and aggregates references. It does not execute. Each subagent gets a complete, scoped brief — objective, output format, tools allowed, token budget. The orchestrator never does the work it could delegate.
 
 OpenAI describes two variants on this at scale. ([source](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf)) In the **manager pattern**, a central agent controls workflow execution and maintains user context, delegating to specialist agents through tool calls. In the **decentralized pattern**, agents operate as peers, transferring control to one another based on specialization without a central coordinator. The manager pattern maps more directly to the orchestrator-workers architecture and is the better default for most systems; decentralized is appropriate when no single agent needs to maintain oversight across the full workflow.
 

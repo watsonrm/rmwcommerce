@@ -114,7 +114,7 @@ You can allow specific safe commands to run without prompting every time, while 
 }
 ```
 
-Expand this list only when you understand what a command does. The full permission rule syntax is documented at [code.claude.com/docs/en/permissions](https://code.claude.com/docs/en/permissions).
+Expand this list only when you understand what a command does. The full [settings hierarchy](glossary.md#settings-hierarchy-global--global-local--project--project-local) and [allow / ask / deny semantics](glossary.md#allow--ask--deny-semantics) are documented at [code.claude.com/docs/en/permissions](https://code.claude.com/docs/en/permissions).
 
 For the long-term setup that keeps you from being interrupted on every action after your first few weeks, see [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md).
 
@@ -176,7 +176,7 @@ What not to build first: anything that touches money, anything multi-user, anyth
 
 ## Section 5: Have Claude draft your CLAUDE.md
 
-`CLAUDE.md` is the configuration file Claude Code loads at the start of every session. It tells Claude about your project — its purpose, structure, commands, and conventions. Without it, Claude starts each session cold.
+[`CLAUDE.md`](glossary.md#claudemd) is the configuration file Claude Code loads at the start of every session. It tells Claude about your project — its purpose, structure, commands, and conventions. Without it, Claude starts each session cold.
 
 Ask Claude to create it: run `/init` inside Claude Code, and Claude will analyze your project files and draft a starting `CLAUDE.md`. ([source](https://code.claude.com/docs/en/memory))
 

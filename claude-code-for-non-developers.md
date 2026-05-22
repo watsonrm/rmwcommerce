@@ -25,7 +25,7 @@ Ranked by leverage, not by how much technical knowledge each row requires.
 | **2** | **The approval process** — read what Claude proposes before clicking yes | This is the irreplaceable human role. Auto-approving everything is how you get into trouble. Every session. | Every session |
 | **3** | **The categories of trouble** — never publish secrets, destructive commands need attention, scope creep kills projects | Pattern recognition for when to pause and look closer. You don't need the implementations, just the warning signs. | Builds over weeks |
 | **4** | **Simplified workflow defaults** — commit to main, don't branch; commit often | Branches are an extra layer of complexity you don't need when you're starting out. Keep it simple. | 5 minutes to learn |
-| **5** | **Architecture vocabulary at the skim level** — what `CLAUDE.md` does, what a project root is, what a config file versus a source file is | Just enough to communicate with Claude about where things should go. | Builds with use |
+| **5** | **Architecture vocabulary at the skim level** — what [`CLAUDE.md`](glossary.md#claudemd) does, what a project root is, what a config file versus a source file is | Just enough to communicate with Claude about where things should go. | Builds with use |
 
 Most readers should focus on the first two and stop there. The categories of trouble in row 3 matter too, but rows 4 and 5 can wait until you've actually run into the problems they solve.
 
@@ -56,7 +56,7 @@ When you prompt Claude in a browser — or in any single-session tool — you're
 
 Claude Code with skills and subagents is different. You're not talking to one assistant — you're directing a team. A skill is a packaged set of instructions that Claude loads on demand and executes against your files and systems. A subagent is a specialized role you spin up for a specific task. You might have one agent drafting while another researches while a third verifies the output. The interface is still you typing, but what happens behind that interface is closer to delegation than conversation.
 
-Andrej Karpathy called this shift "Software 3.0" in his YC AI Startup School keynote: LLMs are a new kind of computer, and you program them in English. ([source](https://www.ycombinator.com/library/MW-andrej-karpathy-software-is-changing-again)) The older framing — "just talking to a chatbot" — undersells what the tool can actually do once you stop treating it as a single conversation partner.
+Andrej Karpathy called this shift "[Software 3.0](glossary.md#software-30-karpathy)" in his YC AI Startup School keynote: LLMs are a new kind of computer, and you program them in English. ([source](https://www.ycombinator.com/library/MW-andrej-karpathy-software-is-changing-again)) The older framing — "just talking to a chatbot" — undersells what the tool can actually do once you stop treating it as a single conversation partner.
 
 For a practical map of when to stay with a simple prompt versus when to graduate to skills and then to agents, see [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md).
 
@@ -74,7 +74,7 @@ But the abstraction tools — the ones that hide the code behind an interface �
 
 The counterintuitive point: once you cross a threshold of comfort with what you're seeing (you don't need to understand it, you just need to recognize when something looks obviously wrong), transparent tools are better for non-developers than abstraction tools. Abstraction trades clarity for ease of use. At small scale that's a good trade. At the scale where Claude Code becomes useful — multi-file projects, persistent skills, agent systems — it's the wrong trade.
 
-Karpathy coined the term "vibe coding" in February 2025 for exactly this dynamic: fully committing to what the model produces, forgetting the code even exists, operating on feel. ([source](https://x.com/karpathy/status/1886192184808149383)) The phrase went viral because it named something real. But vibe coding works best when you can see what you're vibing with. The Matrix metaphor describes this precisely: you learn to read the flow without parsing every character. The code is moving, you're not reading it line by line, but you know when something looks wrong.
+Karpathy coined the term "[vibe coding](glossary.md#vibe-coding-karpathy)" in February 2025 for exactly this dynamic: fully committing to what the model produces, forgetting the code even exists, operating on feel. ([source](https://x.com/karpathy/status/1886192184808149383)) The phrase went viral because it named something real. But vibe coding works best when you can see what you're vibing with. The Matrix metaphor describes this precisely: you learn to read the flow without parsing every character. The code is moving, you're not reading it line by line, but you know when something looks wrong.
 
 That's the skill this guide is trying to help you build.
 

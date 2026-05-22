@@ -11,7 +11,7 @@
 - Claude Code is noisy because it's transparent. The Matrix metaphor cuts both ways — seeing the code natively means seeing all of it.
 - Noise reduction is about filtering, not blinding. The output that feels like noise is often what lets you catch problems.
 - The highest-leverage fix costs thirty seconds: run `/compact` around the 50% context mark, `/clear` between tasks. Everything else is incremental.
-- There are four distinct sources of noise. Knowing which one is hurting you tells you which tactic to reach for.
+- There are [four distinct sources of noise](glossary.md#the-four-sources-of-noise). Knowing which one is hurting you tells you which tactic to reach for.
 
 ### Where to spend your time, in priority order
 
@@ -84,7 +84,7 @@ This noise is hardest to tune directly. The most practical fix is keeping tasks 
 
 ### Source 4: Context bloat
 
-The most insidious source because it causes noise from every other direction. As a session runs, the context window fills with: your `CLAUDE.md` and any imported files, MCP server descriptions, conversation history, file contents Claude has read, command outputs, previous attempts that didn't work.
+The most insidious source because it causes noise from every other direction. As a session runs, the [context window](glossary.md#context-window) fills with: your [`CLAUDE.md`](glossary.md#claudemd) and any imported files, MCP server descriptions, conversation history, file contents Claude has read, command outputs, previous attempts that didn't work.
 
 When context is full, Claude responds differently. Anthropic's docs describe what happens: *"When the context window is getting full, Claude may start 'forgetting' earlier instructions or making more mistakes."* ([source](https://code.claude.com/docs/en/best-practices)) Practically, this often manifests as Claude becoming more verbose, re-explaining things, generating more caveats, or losing track of constraints it was following earlier.
 
@@ -100,7 +100,7 @@ This is the highest-leverage change, and it costs thirty seconds per task switch
 
 Anthropic's best practices docs are explicit: *"LLM performance degrades as context fills. When the context window is getting full, Claude may start 'forgetting' earlier instructions or making more mistakes."* ([source](https://code.claude.com/docs/en/best-practices)) The same docs describe the two tools for managing this:
 
-**`/compact`**: summarizes the conversation history, preserving what matters while freeing space. Run it around the 50% context mark — mid-session summaries are more accurate than ones that fire at the limit. You can focus the compaction: `/compact focus on the API changes` tells Claude what to preserve during summarization. This command overlaps significantly with [Pillar 1 of the Claude Code Workflow Optimizer](claude-code-optimizer.md#pillar-1-context-and-configuration-discipline-highest-roi) — that guide covers the full context-discipline picture, and this article adds the noise framing.
+**[`/compact`](glossary.md#compact)**: summarizes the conversation history, preserving what matters while freeing space. Run it around the 50% context mark — mid-session summaries are more accurate than ones that fire at the limit. You can focus the compaction: `/compact focus on the API changes` tells Claude what to preserve during summarization. This command overlaps significantly with [Pillar 1 of the Claude Code Workflow Optimizer](claude-code-optimizer.md#pillar-1-context-and-configuration-discipline-highest-roi) — that guide covers the full context-discipline picture, and this article adds the noise framing.
 
 **`/clear`**: full reset. Run it between unrelated tasks. Yesterday's debugging session has no business in today's feature build. Carrying it forward isn't helpfulness — it's weight.
 

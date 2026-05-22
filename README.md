@@ -36,6 +36,8 @@ A public landing point. Links, references, and anything Rick wants to share open
 - [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) — how to structure Claude agent systems that scale without silently breaking. Typed return contracts, intermediate-state logging, thin-orchestrator architecture, and a concrete phasing strategy.
 - [Why Is Claude Code So Noisy? What to Do About It](claude-code-noise.md) — your terminal looks like a wall of text by design. Explains the four sources of noise and ranks the tactics for filtering what matters from what's just volume.
 - [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md) — the interruption problem isn't your imagination. Covers the permission model across claude.ai, Claude Desktop, and Claude Code, with starter defaults and a drift-consolidation strategy.
+- [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md) — the alphabet soup of agent-facing formats (robots.txt, llms.txt, ai-plugin.json, openapi.yaml, MCP, WebMCP, A2A) ranked by deployability. What's load-bearing, what's hype, and what's already deprecated.
+- [RMW Commerce Glossary](glossary.md) — every named concept across all guides defined once, with hype vs. reality marked per entry. Organized by category; deep-linkable by anchor.
 
 ### Skills
 
