@@ -24,7 +24,7 @@ The discoverability and protocol landscape looks fragmented but is actually cons
 | **4** | `llms.txt` | Pragmatic adopt (curated-content sites) | Low cost, modest upside. Deploy if you have curated content. Don't over-engineer. |
 | **5** | WebMCP | Track, don't deploy | Browser-side surface for in-page AI tools. Spec fragmenting. Not production-ready. |
 | **6** | A2A | Read it, don't deploy | Cross-vendor agent interop. Interesting spec. No production use case for most readers. |
-| **7** | `/.well-known/ai-plugin.json` | Skip | Already dead. ChatGPT Plugins deprecated April 2024. Zombie format. |
+| **7** | `/.well-known/ai-plugin.json` | Skip | No load-bearing consumer since ChatGPT Plugins wound down April 2024. ([source](https://community.openai.com/t/plugin-store-and-new-chats-with-plugins-closed-march-19-2024/689877)) |
 
 Most readers should handle rows 1–3 and check back on row 4 in six months. If you're a merchant or commerce operator, the four-file setup from Stripe's field guide (rows 1, 3, 4, and 7 — but skip 7) covers your discoverability baseline.
 
@@ -46,7 +46,7 @@ For the agent architecture patterns that consume these protocols on the receivin
 
 The agent ecosystem matured fast and in different directions at once. Between mid-2023 and mid-2026:
 
-- OpenAI launched and then effectively killed ChatGPT Plugins, leaving `ai-plugin.json` without a primary consumer. The deprecation happened in phases: new conversations via plugins ended March 19, 2024; all existing plugin chats shut down April 9, 2024. ([source](https://developers.openai.com/api/docs/deprecations))
+- OpenAI wound down the ChatGPT Plugins beta, leaving `ai-plugin.json` without a primary consumer. The wind-down happened in phases: new plugin conversations ended March 19, 2024; all existing plugin chats shut down April 9, 2024. OpenAI's stated reason: "GPTs offer a better way to reach ChatGPT users." ([source](https://community.openai.com/t/plugin-store-and-new-chats-with-plugins-closed-march-19-2024/689877))
 - Anthropic launched MCP in November 2024 and donated it to the Agentic AI Foundation (under the Linux Foundation) in December 2025. It grew from a single-vendor protocol to 10,000+ servers and 97 million monthly SDK downloads in roughly one year. ([source](https://blog.modelcontextprotocol.io/posts/2025-11-25-first-mcp-anniversary/))
 - Google launched A2A in April 2025 and donated it to the Linux Foundation two months later in June 2025 — a timeline that suggests they wanted neutral governance fast.
 - Jeremy Howard proposed `llms.txt` in September 2024. Adoption is real (Anthropic, Cloudflare, Vercel all deploy it) but no major LLM provider has made a binding public commitment to consume it as canonical. ([source](https://llmstxt.org/))
@@ -152,7 +152,7 @@ It's one of the four discovery files Danny Smith's field guide names as part of 
 
 ### What's hype
 
-"llms.txt is the new SEO" is the overclaim. The honest framing: this is an Answer.AI proposal, not an industry standard. No major LLM provider has publicly committed to consuming it as canonical input at inference time. Adoption by LLM providers is uneven. The format's impact on actual agent recommendations is not yet measurable in any publicly available data.
+Some commentary positions `llms.txt` as "the new SEO." That framing predicts adoption that has not yet materialized. The spec is an Answer.AI proposal ([source](https://www.answer.ai/posts/2024-09-03-llmstxt.html)) — not ratified by a standards body. Adoption signals are uneven; this article found no public commitment from Anthropic, OpenAI, Google, or other major LLM providers to consume `llms.txt` as canonical input as of May 2026. The format's impact on actual agent recommendations is not yet measurable in any publicly available data.
 
 Simon Willison — one of the most credible practitioners writing about LLMs — has implemented llms.txt-style tooling in his own projects and called the concept "fantastic," but his implementation is for developer tooling (concatenated docs for context), not for general web discovery. The two use cases are different in important ways. ([source](https://simonwillison.net/2025/Apr/14/llms-as-the-first-line-of-support/))
 
@@ -178,11 +178,11 @@ Don't over-engineer. The file is a signal, not a guarantee.
 
 OpenAI launched ChatGPT Plugins in March 2023. The plugin system used a JSON manifest at `/.well-known/ai-plugin.json` to describe plugin capabilities for the ChatGPT Plugins ecosystem — a precursor to today's Custom GPTs and function calling integration patterns.
 
-### What happened — and why this is a zombie format
+### What happened
 
-This is a zombie format. ChatGPT Plugins were deprecated in phases: new conversations via plugins ended March 19, 2024; all existing plugin chats shut down April 9, 2024, with OpenAI shifting users to Custom GPTs and GPT Actions. ([source](https://developers.openai.com/api/docs/deprecations)) The manifest format lost its primary consumer at that point.
+OpenAI wound down the ChatGPT Plugins beta in phases: new plugin conversations ended March 19, 2024; all existing plugin chats shut down April 9, 2024, with OpenAI shifting users to Custom GPTs and GPT Actions. ([source](https://community.openai.com/t/plugin-store-and-new-chats-with-plugins-closed-march-19-2024/689877)) OpenAI's stated reason at the time: "GPTs offer a better way to reach ChatGPT users." The manifest format lost its primary consumer at that point.
 
-The Stripe field guide lists `ai-plugin.json` as one of "four files agents read" — that list is canonical for merchant discovery playbooks and describes current agent behavior accurately (legacy agents still check known locations). But `ai-plugin.json` is the dead member of the four. The other three are live; this one isn't.
+The Stripe field guide lists `ai-plugin.json` as one of "four files agents read" — that list is canonical for merchant discovery playbooks and describes current agent behavior accurately (legacy agents still check known locations). Of the four, `ai-plugin.json` is the one with no active primary consumer. The other three are live.
 
 ### What's in it for you in 2026
 
@@ -250,7 +250,7 @@ The naming overlap creates confusion. They're not the same specification, but bo
 
 ### Why it matters — and why to wait
 
-When a spec has two competing proposals sharing the same name, that's a red flag for adoption. The W3C and MCP-B variants are not interoperable as of this writing. For production code, MCP (server-side) is the standard; WebMCP (browser-side) is wait-and-see.
+Two distinct specifications use the name WebMCP: the W3C draft ([source](https://webmachinelearning.github.io/webmcp/)) and the MCP-B project ([source](https://github.com/MiguelsPizza/WebMCP)). They are not interoperable. The fragmentation makes adoption decisions premature. For production code, MCP (server-side) is the current standard; WebMCP (browser-side) is wait-and-see until the W3C spec reaches Candidate Recommendation.
 
 The longer-term direction of agentic browsing does point toward in-page AI assistants that can interact with what you're viewing. WebMCP is the infrastructure path being developed for that use case. But "being developed" is the operative phrase.
 
@@ -288,7 +288,7 @@ For most current agent builds, the patterns in [Multi-Agent Fan-Out and Verifica
 
 ### The honest position on A2A
 
-A2A is one proposal among several (ACP, MCP-A2A interop layers, vendor-specific schemes). Google's positioning of A2A as "the standard for agent interop" is hype — there is no standard yet. Most real multi-agent systems in production today run single-vendor stacks where cross-vendor delegation isn't a problem.
+Google introduced A2A in April 2025 as a proposed protocol for agent-to-agent communication. It coexists with other proposals: IBM's Agent Communication Protocol (ACP, [source](https://agentcommunicationprotocol.dev/introduction/welcome)), MCP-A2A interop layers, and vendor-specific schemes. No protocol has been ratified by a standards body or adopted across major LLM vendors as of mid-2026. Most production multi-agent systems run single-vendor stacks where cross-vendor delegation is not a problem.
 
 "150+ supporters" reflects enterprise interest and Google's ecosystem influence; it does not indicate production adoption at scale. The Linux Foundation donation in June 2025 — two months after announcement — suggests Google moved quickly toward neutral governance. That's a good sign for long-term credibility, but the spec is still under active development (v0.3 in August 2025 is explicitly not v1.0).
 
@@ -351,7 +351,7 @@ The priority table at the top is one view. Here's the sharper version, with a ve
 - **A2A** — cross-vendor agent delegation is a real future problem. The spec is still maturing. Most readers don't have the use case yet.
 
 **Already dead:**
-- **`/.well-known/ai-plugin.json`** — zombie since ChatGPT Plugins deprecation April 2024. No meaningful consumer. Skip.
+- **`/.well-known/ai-plugin.json`** — no meaningful consumer since ChatGPT Plugins wound down April 2024. ([source](https://community.openai.com/t/plugin-store-and-new-chats-with-plugins-closed-march-19-2024/689877)) Skip.
 
 The practical decision tree: for APIs, deploy the OpenAPI spec. For agent tool/data access, deploy an MCP server. For content discovery, configure robots.txt and optionally add llms.txt. For everything else, wait.
 
@@ -382,7 +382,7 @@ All source URLs verified live before publication.
 - Google Developers Blog — *Announcing the Agent2Agent Protocol (A2A)* (Apr 2025). Cited for: A2A announcement date, technical details (HTTP/SSE/JSON-RPC), initial partner list. Verified HTTP 200: https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/
 - Jeremy Howard / Answer.AI — *A proposal to standardize on /llms.txt* (Sep 2024). Cited for: llms.txt origin and motivation. Verified HTTP 200: https://www.answer.ai/posts/2024-09-03-llmstxt.html
 - llmstxt.org — official specification and adoption data. Verified HTTP 200: https://llmstxt.org/
-- OpenAI — *Deprecations* (API documentation). Cited for: ChatGPT Plugins deprecation timeline (March 19 / April 9, 2024). Verified HTTP 200: https://developers.openai.com/api/docs/deprecations
+- OpenAI Developer Community — *Plugin store and new chats with plugins — closed March 19, 2024*. Cited for: ChatGPT Plugins wind-down timeline (March 19 / April 9, 2024) and OpenAI's stated rationale. Verified HTTP 200: https://community.openai.com/t/plugin-store-and-new-chats-with-plugins-closed-march-19-2024/689877. Note: the current OpenAI API Deprecations page (https://developers.openai.com/api/docs/deprecations) covers model deprecations; ChatGPT Plugins are documented via the community announcement and help article, not that page.
 - OpenAI — *Function Calling and other API updates* (Jun 2023). Note: openai.com returns 403 to curl with standard user-agent (Cloudflare bot protection); URL is citable and known-good from public record. URL: https://openai.com/index/function-calling-and-other-api-updates/
 - OpenAI — function calling documentation: https://developers.openai.com/api/docs/guides/function-calling
 - Anthropic — tool use documentation: https://platform.claude.com/docs/en/docs/build-with-claude/tool-use/overview
@@ -390,6 +390,7 @@ All source URLs verified live before publication.
 **Tier 2 — Trusted primary documentation and practitioner sources:**
 
 - W3C Web Machine Learning Community Group — *WebMCP specification*. Verified HTTP 200: https://webmachinelearning.github.io/webmcp/
+- IBM / Agent Communication Protocol — *ACP specification* (competing inter-agent protocol under Linux Foundation governance). Cited as context for competing proposals in the A2A section. Verified HTTP 200: https://agentcommunicationprotocol.dev/introduction/welcome
 - MCP-B — browser-native MCP implementation. Verified HTTP 200: https://github.com/MiguelsPizza/WebMCP
 - Google Cloud Blog — *Agent2Agent protocol is getting an upgrade* (A2A v0.3, Aug 2025). Verified HTTP 200: https://cloud.google.com/blog/products/ai-machine-learning/agent2agent-protocol-is-getting-an-upgrade
 - robotstxt.org — primary robots.txt specification: https://www.robotstxt.org/
