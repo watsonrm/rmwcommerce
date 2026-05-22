@@ -29,6 +29,6 @@ A public landing point. Links, references, and anything Rick wants to share open
 
 ### Guides
 
-- [Claude Code Workflow Optimizer](claude-code-optimizer.md) — patterns for cutting token spend 50–75% on Claude Code without losing output quality. Worktree fleets, plan-mode discipline, context-window management, model routing.
+- [Claude Code Workflow Optimizer](claude-code-optimizer.md) — patterns for reducing token waste and rework in Claude Code, ranked by ROI. Context-window discipline, CLAUDE.md hygiene, verification-first workflow, model routing, and worktree fleets — all grounded in Anthropic's official documentation.
 - [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) — when to stay with a prompt, when to package a skill, when to build an agent, and when a multi-agent system is actually warranted. The on-ramp before the multi-agent guide.
 - [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) — how to structure Claude agent systems that scale without silently breaking. Typed return contracts, intermediate-state logging, thin-orchestrator architecture, and a concrete phasing strategy.

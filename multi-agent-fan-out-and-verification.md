@@ -10,10 +10,12 @@
 
 ## TL;DR — what's in it for you
 
+The strongest empirical case for multi-agent architecture: Anthropic tested a system using Claude Opus 4 as the lead agent with Claude Sonnet 4 subagents against a single-agent Claude Opus 4 on their internal research evaluation. The multi-agent system outperformed by **90.2%**. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) That result was on a parallelizable research workload — identifying board members of S&P 500 IT companies, a breadth-first task that benefits from parallel investigation. For sequential decision-composition work, the gains are different and the risks are higher (covered in the counterargument below).
+
 If you're building or refactoring a multi-agent Claude system, applying these patterns will:
 
 - Eliminate the class of bug where a subagent returns bad output and the orchestrator propagates it silently across every downstream step
-- Cut orchestrator context size by 60–80% on workflows that currently return full prose blobs from each agent
+- Reduce orchestrator context size substantially on workflows that currently return full prose blobs from each agent
 - Make partial failures debuggable without re-running the whole workflow from scratch
 - Give you a concrete phasing strategy so you don't have to rewrite everything at once
 
@@ -23,12 +25,12 @@ Most readers should implement the first two before anything else. They prevent t
 
 | # | Practice | Why it matters | Effort |
 | :-- | :--- | :--- | :--- |
-| **1** | **Typed return contracts** — every agent returns a defined schema, not freeform prose | Failures surface at the boundary instead of poisoning downstream state. Cognition's research shows this is also the primary defense against subagent decision-composition failures. This is the single highest-leverage change for any existing system. | 1–2 hrs per agent |
+| **1** | **Typed return contracts** — every agent returns a defined schema, not freeform prose | Failures surface at the boundary instead of poisoning downstream state. This is also the primary defense against subagent decision-composition failures. The single highest-leverage change for any existing system. | 1–2 hrs per agent |
 | **2** | **Intermediate-state logging** — every run writes input, output, and log to a known path | Without this, partial failures are unrecoverable. Silent failures look like successes. This is the idempotency and debuggability foundation. | 2–3 hrs once, then copy the pattern |
 | **3** | **Thin orchestrator / fat subagents** — orchestrator plans and aggregates; subagents execute | Reduces noise in the orchestrator context. Scoped subagents are easier to test and replace. Matches Anthropic's orchestrator-workers composition pattern. | Refactor by skill |
-| **4** | **Fan-out by complexity** — match parallelism to the task, not to a fixed number | Explicit fan-out caps prevent runaway token spend on simple queries and ensure hard queries get enough coverage. Use fan-out only for parallelizable reads, not for decisions that need to compose. | 1 hr (policy + prompt) |
+| **4** | **Fan-out by complexity** — match parallelism to the task, not to a fixed number | Explicit fan-out caps prevent runaway token spend on simple queries. Anthropic's system uses 1 agent for simple fact-finding, 2–4 for comparisons, 10+ for complex research. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) Use fan-out only for parallelizable reads, not for decisions that need to compose. | 1 hr (policy + prompt) |
 | **5** | **Action schemas for write agents** — discriminated union of legal outcomes | Prevents write agents from inventing a fourth option. Tight contracts on destructive operations. | 30 min per write agent |
-| **6** | **Full Anthropic-style 10+ subagent fan-out** — complex research with many parallel specialists | Real gains for deep research workflows, but most consulting/operations systems don't need this level. Start with items 1–3. | Days |
+| **6** | **Full Anthropic-style 10+ subagent fan-out** — complex research with many parallel specialists | Real gains for deep research workflows: Anthropic's system cuts research time by up to 90% for complex queries using parallel tool calling. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) Most consulting/operations systems don't need this level to start. Begin with items 1–3. | Days |
 
 ---
 
@@ -46,15 +48,15 @@ The output is a punch list of schema gaps, ordered by the agents your orchestrat
 
 Four engineering sources and two research papers, converging on the same structural conclusions.
 
-Anthropic published two pieces that form the theoretical and applied foundation. The first — "Building Effective Agents" by Erik Schluntz and Barry Zhang (Dec 2024) — defines the workflow-vs-agent distinction and catalogs five core composition patterns: prompt chaining, routing, parallelization, orchestrator-workers, and evaluator-optimizer. ([source](https://www.anthropic.com/engineering/building-effective-agents)) The orchestrator-workers pattern is the direct theoretical ancestor of the fan-out architecture in this guide: a central LLM dynamically breaks down unpredictable tasks and delegates to worker LLMs, with subtask decomposition determined at runtime rather than pre-defined. The second Anthropic piece covers their internal multi-agent research system — a production implementation of these patterns. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) The central insight is architectural: keep the orchestrator thin, give subagents complete scoped briefs, have subagents write heavy outputs to disk and return lightweight references.
+Anthropic published two pieces that form the theoretical and applied foundation. The first — "Building Effective Agents" by Erik Schluntz and Barry Zhang (Dec 2024) — defines the workflow-vs-agent distinction and catalogs five core composition patterns: prompt chaining, routing, parallelization, orchestrator-workers, and evaluator-optimizer. ([source](https://www.anthropic.com/engineering/building-effective-agents)) The orchestrator-workers pattern is the direct theoretical ancestor of the fan-out architecture in this guide: a central LLM dynamically breaks down unpredictable tasks and delegates to worker LLMs, with subtask decomposition determined at runtime rather than pre-defined. The second Anthropic piece covers their internal multi-agent research system — a production implementation of these patterns. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) Its headline result: a multi-agent system with Claude Opus 4 as lead agent and Claude Sonnet 4 subagents outperformed single-agent Claude Opus 4 by **90.2%** on their internal research evaluation. The central architectural principle: keep the orchestrator thin, give subagents complete scoped briefs, have subagents write heavy outputs to disk and return lightweight references.
 
 GitHub Engineering published a separate analysis of why multi-agent workflows fail in practice. ([source](https://github.blog/ai-and-ml/generative-ai/multi-agent-workflows-often-fail-heres-how-to-engineer-ones-that-dont/)) Their diagnosis: agents fail not because the model is bad but because the contracts between agents are loose. Natural language instructions produce inconsistent returns; freeform outputs propagate errors downstream. The fix is typed schemas enforced at every boundary.
 
-OpenAI's counterpart guide (April 2025) covers much of the same ground with a different emphasis. ([source](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf)) Where Anthropic leans on composition patterns, OpenAI leans on guardrails as a layered defense: "Think of guardrails as a layered defense mechanism. While a single one is unlikely to provide sufficient protection, using multiple, specialized guardrails together creates more resilient agents." Both sources recommend starting with a single agent and adding multi-agent complexity only when prompts become difficult to scale or tool overlap becomes a real problem.
+OpenAI's counterpart guide (April 2025) covers much of the same ground with a different emphasis. ([source](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf)) Where Anthropic leans on composition patterns, OpenAI leans on guardrails as a layered defense: *"Think of guardrails as a layered defense mechanism. While a single one is unlikely to provide sufficient protection, using multiple, specialized guardrails together creates more resilient agents."* Both sources recommend starting with a single agent and adding multi-agent complexity only when prompts become difficult to scale or tool overlap becomes a real problem.
 
 Cognition's "Don't Build Multi-Agents" (Walden Yan, June 2025) offers the strongest counter-position. ([source](https://cognition.ai/blog/dont-build-multi-agents)) It's worth reading before committing to the architecture. That counterargument gets its own section below.
 
-Lilian Weng's "LLM Powered Autonomous Agents" (June 2023) provides the foundational taxonomy — planning, memory, tool use — that every later agent discussion inherits. ([source](https://lilianweng.github.io/posts/2023-06-23-agent/)) Yao et al.'s ReAct paper (NeurIPS 2022) describes the reason-act-observe loop that underlies what a single agent does inside that architecture. ([source](https://arxiv.org/abs/2210.03629))
+Lilian Weng's "LLM Powered Autonomous Agents" (June 2023) provides the foundational taxonomy — planning, memory, tool use — that every later agent discussion inherits. ([source](https://lilianweng.github.io/posts/2023-06-23-agent/)) Yao et al.'s ReAct paper (ICLR 2023) describes the reason-act-observe loop that underlies what a single agent does inside that architecture, and demonstrated that the approach outperformed imitation and reinforcement learning baselines by an absolute success rate of 34% on ALFWorld and 10% on WebShop in decision-making tasks. ([source](https://arxiv.org/abs/2210.03629))
 
 Applied together to a real ~20-skill consulting and media workflow (the system behind this repo's tooling), both architecture patterns held. The failure modes that surfaced were: brand-styling regressions in document-generation agents that fixed themselves in one place and re-broke in another; silent failures in scheduled cron-style agents that left no trace of what happened; raw API JSON from external services flooding the orchestrator context and degrading output quality mid-session. Every one of those is addressed by the patterns below.
 
@@ -76,13 +78,15 @@ The multi-agent architectures in the rest of this guide are coordination layers 
 
 Read this before building. Cognition (the team behind Devin) published a direct argument against multi-agent architectures in June 2025. ([source](https://cognition.ai/blog/dont-build-multi-agents)) It's worth engaging with seriously, not dismissing.
 
-Walden Yan's core claim: multi-agent systems are fragile because decision-making ends up too dispersed and context can't be shared thoroughly enough between agents. When agents work in parallel on subdivided tasks, each subagent makes implicit decisions the orchestrator can't see. Those decisions can conflict. A final agent tasked with combining the outputs inherits inconsistencies it has no way to resolve. As Yan writes: "Actions carry implicit decisions, and conflicting decisions carry bad results."
+Walden Yan's core claim: multi-agent systems are fragile because decision-making ends up too dispersed and context can't be shared thoroughly enough between agents. When agents work in parallel on subdivided tasks, each subagent makes implicit decisions the orchestrator can't see. Those decisions can conflict. A final agent tasked with combining the outputs inherits inconsistencies it has no way to resolve. As Yan writes: *"Actions carry implicit decisions, and conflicting decisions carry bad results."*
 
 Yan's proposed default is a single-threaded linear agent that maintains continuous context through its full task. For longer tasks, he suggests an LLM trained to compress conversation history into key decisions rather than spawning parallel subagents.
 
 This critique is correct for a specific class of problems: workloads where subagents need to make decisions that compose into a unified output. If you're asking four subagents to each write a section of a document in a consistent style, you're asking them to make implicit formatting, tone, and scoping decisions that the orchestrator can't adjudicate after the fact. The architecture works against you.
 
-Fan-out works well under different conditions: parallelizable read operations with clear typed returns, where each subagent fetches or synthesizes a discrete piece of data and hands it back to the orchestrator, which makes all the decisions. Meeting prep is a good example: eight parallel CRM lookups, each returning a typed `CRMLookupResult`, finish faster than eight sequential ones and the orchestrator can reason over all eight simultaneously. The subagents aren't making decisions; they're retrieving data.
+This is where the asymmetry between the two arguments matters. Cognition's critique is rhetorical and applies specifically to decision-composition workloads — tasks where subagent outputs need to merge into a coherent whole. Anthropic's 90.2% improvement is measured on parallelizable research workloads — breadth-first queries where subagents independently fetch discrete data points and return typed results. Both can be simultaneously true. The gap is about task structure, not model capability.
+
+Fan-out works well under the conditions Anthropic tested: parallelizable read operations with clear typed returns, where each subagent fetches or synthesizes a discrete piece of data and hands it back to the orchestrator, which makes all the decisions. Meeting prep is a practical example: eight parallel CRM lookups, each returning a typed `CRMLookupResult`, finish faster than eight sequential ones and the orchestrator can reason over all eight simultaneously. The subagents aren't making decisions; they're retrieving data.
 
 The resolution: use fan-out for reads with typed returns, not for decisions that need to compose. Typed contracts (Pillar 1 below) are the mechanism that keeps this boundary sharp. If a subagent's return includes anything that could be interpreted differently by downstream steps, you're already in decision-composition territory and fan-out is working against you.
 
@@ -168,7 +172,7 @@ These schemas produce small, precise returns. An orchestrator prepping eight mee
 
 ### The noise fix, in concrete terms
 
-The Anthropic system took this further: subagents write their full output to the filesystem and return only a lightweight reference. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) The orchestrator sees `{path, 1-line summary}`. It only reads the full output if it needs to.
+Anthropic's system took this further: subagents write their full output to the filesystem and return only a lightweight reference. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) The orchestrator sees `{path, 1-line summary}`. It only reads the full output if it needs to. This is the "artifact system" — specialized agents create outputs that persist independently, then pass lightweight references back to the coordinator. The result is substantially reduced token overhead and lower information loss in multi-stage processing.
 
 For a web research agent, the return might be `{path: "/tmp/agent-runs/run123/web-research/inv-001/output.json", headline: "Filed Chapter 11, Feb 2026"}`. The orchestrator can make routing decisions from the headline alone. It pulls the full report only if something downstream actually needs it.
 
@@ -218,9 +222,9 @@ Write specialists do not auto-retry. They return a failure union variant and let
 
 ## Pillar 3: Design for failure
 
-The Anthropic system runs research that can take dozens of tool calls across many subagents. GitHub's framing treats agents like distributed systems, not chat flows. The shared assumption is that things will fail — network errors, API rate limits, partial data, model outputs that don't match the expected schema. Design for it up front rather than adding recovery logic after the first production incident.
+Anthropic's system runs research that can take dozens of tool calls across many subagents. GitHub's framing treats agents like distributed systems, not chat flows. The shared assumption is that things will fail — network errors, API rate limits, partial data, model outputs that don't match the expected schema. Design for it up front rather than adding recovery logic after the first production incident.
 
-Karpathy's autonomy-slider framing sharpens this: the more autonomous the system, the more systematic the failure design needs to be. ([source](https://www.youtube.com/watch?v=LCEmiRjPEtQ)) "Demo is works.any(), product is works.all()" — a system that works most of the time in a demo is not a system that works reliably in production. As you increase agent autonomy (more parallel subagents, longer task chains, fewer human checkpoints), the verification overhead grows in proportion. Logging, typed contracts, and idempotent writes are the mechanisms that let you increase autonomy without proportionally increasing risk.
+Karpathy's autonomy-slider framing sharpens this: the more autonomous the system, the more systematic the failure design needs to be. ([source](https://www.youtube.com/watch?v=LCEmiRjPEtQ)) A system that works most of the time in a demo is not a system that works reliably in production. As you increase agent autonomy (more parallel subagents, longer task chains, fewer human checkpoints), the verification overhead grows in proportion. Logging, typed contracts, and idempotent writes are the mechanisms that let you increase autonomy without proportionally increasing risk.
 
 Two rules, both non-negotiable.
 
@@ -256,7 +260,7 @@ This has a direct effect on context quality. An orchestrator that receives typed
 
 ### Fan-out by complexity
 
-Anthropic built explicit scaling thresholds into their system: simple fact-finding uses one agent with a handful of tool calls; comparisons need two to four subagents; complex research deploys ten or more with divided responsibilities. ([source](https://www.anthropic.com/engineering/multi-agent-research-system))
+Anthropic built explicit scaling thresholds into their system based on query complexity: simple fact-finding uses one agent with a handful of tool calls; direct comparisons need two to four subagents with ten to fifteen calls each; complex research deploys ten or more subagents with clearly divided responsibilities. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) They also report that parallel tool calling across this architecture reduced research time by up to 90% for complex queries, and that token usage alone explains 80% of performance variance on their benchmarks — making token spend the primary lever to watch.
 
 The practical version for most systems is simpler: identify the workflows where you're doing sequential work that could run in parallel. A meeting-prep workflow that looks up eight attendees sequentially is doing eight network round-trips one at a time. Eight parallel subagents, each returning a typed CRM lookup result, finish in roughly the time of one.
 
@@ -350,17 +354,23 @@ A few practical questions that come up when applying these patterns in Claude Co
 
 All source URLs verified live as of 2026-05-22.
 
-**Primary sources:**
+**Tier 1 — Primary sources with measured results:**
 
-- Erik Schluntz & Barry Zhang / Anthropic Engineering — *Building Effective Agents* (Dec 2024): https://www.anthropic.com/engineering/building-effective-agents
-- Anthropic Engineering — *How we built our multi-agent research system*: https://www.anthropic.com/engineering/multi-agent-research-system
-- GitHub Engineering — *Multi-agent workflows often fail. Here's how to engineer ones that don't.*: https://github.blog/ai-and-ml/generative-ai/multi-agent-workflows-often-fail-heres-how-to-engineer-ones-that-dont/
-- OpenAI — *A Practical Guide to Building Agents* (Apr 2025): https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf
-- Lilian Weng — *LLM Powered Autonomous Agents* (Jun 2023): https://lilianweng.github.io/posts/2023-06-23-agent/
-- Andrej Karpathy — *Software Is Changing (Again)*, YC AI Startup School (Jun 2025): https://www.youtube.com/watch?v=LCEmiRjPEtQ
-- Walden Yan / Cognition — *Don't Build Multi-Agents* (Jun 2025): https://cognition.ai/blog/dont-build-multi-agents
-- Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, Yuan Cao — *ReAct: Synergizing Reasoning and Acting in Language Models*, arXiv 2210.03629 (Oct 2022): https://arxiv.org/abs/2210.03629
+- Anthropic Engineering — *How we built our multi-agent research system* (source for the 90.2% improvement, fan-out thresholds, 90% speed gain from parallel tool calling, and the artifact/filesystem pattern): https://www.anthropic.com/engineering/multi-agent-research-system
+- Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, Yuan Cao — *ReAct: Synergizing Reasoning and Acting in Language Models*, arXiv 2210.03629 (Oct 2022, ICLR 2023) (source for +34% ALFWorld, +10% WebShop success rates over imitation/RL baselines): https://arxiv.org/abs/2210.03629
 
-**Attribution:** The Anthropic "Building Effective Agents" article covers the theoretical composition patterns (orchestrator-workers as the named pattern underlying the fan-out architecture). The Anthropic multi-agent research system article covers the applied implementation (filesystem-as-state, subagent specialization, fan-out thresholds). The GitHub article covers the protocol layer (typed schemas, discriminated-union action schemas, logged intermediate state). The OpenAI guide adds the guardrails-as-layers framing and the manager-vs-decentralized pattern taxonomy. Weng's foundational taxonomy (planning, memory, tool use) provides the vocabulary for what individual agents do. Karpathy's autonomy-slider concept provides the risk calibration frame for "design for failure." Cognition's critique is the strongest counterargument; this guide engages with it directly rather than dismissing it. The ReAct paper underlies the reason-act-observe loop description for individual agent operation. The synthesis, ranking, implementation notes, phasing strategy, TypeScript-style schemas, and the resolution of the Cognition critique are Rick Watson's original work, validated against a production multi-agent consulting and media workflow.
+**Tier 2 — Trusted primary documentation:**
+
+- Erik Schluntz & Barry Zhang / Anthropic Engineering — *Building Effective Agents* (Dec 2024, source for the five composition patterns and orchestrator-workers definition): https://www.anthropic.com/engineering/building-effective-agents
+- GitHub Engineering — *Multi-agent workflows often fail. Here's how to engineer ones that don't.* (source for typed schemas and action-schema framing): https://github.blog/ai-and-ml/generative-ai/multi-agent-workflows-often-fail-heres-how-to-engineer-ones-that-dont/
+- OpenAI — *A Practical Guide to Building Agents* (Apr 2025, source for guardrails-as-layers and manager/decentralized pattern taxonomy): https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf
+- Lilian Weng — *LLM Powered Autonomous Agents* (Jun 2023, foundational planning/memory/tool-use taxonomy): https://lilianweng.github.io/posts/2023-06-23-agent/
+
+**Tier 3 — Practitioner perspectives (supporting role only):**
+
+- Walden Yan / Cognition — *Don't Build Multi-Agents* (Jun 2025, strongest counterargument; critique is valid for decision-composition workloads): https://cognition.ai/blog/dont-build-multi-agents
+- Andrej Karpathy — *Software Is Changing (Again)*, YC AI Startup School (Jun 2025, autonomy-slider framing for calibrating verification overhead): https://www.youtube.com/watch?v=LCEmiRjPEtQ
+
+**Attribution:** The Anthropic multi-agent research system article provides both the primary empirical evidence (90.2% improvement) and the applied architecture (filesystem-as-state, subagent specialization, fan-out thresholds). The "Building Effective Agents" article provides the theoretical composition patterns. GitHub's article provides the protocol layer (typed schemas, discriminated-union action schemas). OpenAI adds the guardrails-layers framing and manager/decentralized taxonomy. Weng's taxonomy gives the vocabulary for what individual agents do. ReAct provides the benchmark-verified description of the reason-act-observe loop. Karpathy's autonomy-slider is the risk-calibration frame for "design for failure." Cognition's critique is the strongest counterargument and is engaged with directly rather than dismissed. The synthesis, ranking, implementation notes, phasing strategy, TypeScript-style schemas, and the resolution of the Cognition critique against Anthropic's measured data are Rick Watson's original work, validated against a production multi-agent consulting and media workflow.
 
 **Compilation, ranking, and commentary © 2026 Rick Watson, RMW Commerce Consulting.** Linked sources are the property of their respective owners. Found an error or a sharper pattern to add? Open an issue or PR.
