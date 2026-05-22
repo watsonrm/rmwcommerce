@@ -2,7 +2,7 @@
 
 **When to stay with a prompt, when to package a skill, when to build an agent — and when a multi-agent system is actually warranted.**
 
-> © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. Quoted material is the property of its respective owners and used under fair use with attribution — see [Sources & Attribution](#sources--attribution). Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
+> © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. Quoted material is the property of its respective owners and used under fair use with attribution — see [Sources & Attribution](#sources--attribution). Quoted sources include: Andrew Ng / DeepLearning.AI, Ethan Mollick, Harrison Chase / LangChain, Yohei Nakajima, Riley Goodside, Anthropic, OpenAI, Simon Willison, Shunyu Yao et al., Lilian Weng, and Andrej Karpathy. Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
 ---
 
@@ -60,7 +60,7 @@ A prompt is a single instruction in a chat session. Stateless or near-stateless.
 
 **Where it works:** Tasks you do rarely, tasks where context varies materially each time, or tasks where you need to think out loud with the model to figure out what you actually want. A prompt is also the right starting point for *everything* — you should run a thing as a bare prompt before packaging it, to make sure it actually works.
 
-**The trigger to move up:** You find yourself pasting the same setup text more than twice. Or you're onboarding a teammate by sharing your favorite prompt template. At that point, you're already maintaining a skill — you just haven't packaged it yet.
+**The trigger to move up:** You find yourself pasting the same setup text more than twice. Or you're onboarding a teammate by sharing your favorite prompt template. Riley Goodside — the first person hired anywhere as a Staff Prompt Engineer — makes the underlying principle clear: prompt engineering is *"an expressive, mind-bending way to specify tasks to a machine that clarifies your own thinking."* ([source](https://x.com/goodside/status/1614125922332061698)) When a prompt has done that work — when the specific phrasing is what carries the value, not just the general intent — it has earned its own artifact. That's when you package it.
 
 ---
 
@@ -70,7 +70,7 @@ A skill is a packaged, reusable instruction set. It loads on demand. It does one
 
 **What it adds over a prompt:** Reuse, optional tool allowlists, optional scripts the skill can call, and versioning you can reason about. In Claude Code, a skill is a folder with a `SKILL.md` file — instructions, scripts, and reference docs that Claude loads when the skill is relevant. ([source](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)) Trigger phrases or slash commands route to it. Anthropic introduced this as a named pattern in October 2025 with their Agent Skills release.
 
-OpenAI's parallel pattern is Custom GPTs: *"a tailored version of ChatGPT"* configured with custom instructions, external knowledge, and allowed actions — same concept, different implementation.
+OpenAI's parallel pattern is Custom GPTs: *"a tailored version of ChatGPT"* configured with custom instructions, external knowledge, and allowed actions — same concept, different implementation. Ethan Mollick, Wharton professor and one of the most widely read practitioner voices on practical AI use, described Custom GPTs as *"the easiest way of sharing structured prompts"* — more repeatable and shareable than pasting a prompt into a chat window each time. ([source](https://www.oneusefulthing.org/p/almost-an-agent-what-gpts-can-do)) But he was also precise about what they are not: *"GPTs aren't autonomous agents yet. I had to give feedback to the AI a few times."* Rung 2 is where a human is still present for each output. That is not a bug — it is often the right design.
 
 Simon Willison, who covered the Anthropic skills launch the day it shipped, described the core simplicity well: *"The core simplicity of the skills design is why I'm so excited about it."* ([source](https://simonwillison.net/2025/Oct/16/claude-skills/)) Skills are Markdown files with optional scripts. They compose. They don't require a new protocol or a new agent runtime.
 
@@ -96,7 +96,15 @@ An agent is a skill plus a decision-making loop plus tools plus verification log
 
 **The formal definition:** Shunyu Yao et al.'s ReAct paper (ICLR 2023) established the pattern: *"LLMs generate both reasoning traces and task-specific actions in an interleaved manner."* ([source](https://arxiv.org/abs/2210.03629)) Thought → Action → Observation, repeated until the task is done or the agent hits a stopping condition. This loop is what distinguishes an agent from a skill. A skill is one pass. An agent is many passes with reasoning between them.
 
-Lilian Weng's taxonomy describes the three components that define an agent: planning (decompose the task, decide the next step), memory (track what's happened so far), and tool use (call external systems to gather information or take action). ([source](https://lilianweng.github.io/posts/2023-06-23-agent/)) A skill typically has tool use. An agent has all three.
+At the API level, the loop is concrete: your application sends a request with a tools array, Claude responds with `stop_reason: "tool_use"` and one or more `tool_use` blocks, your code executes the tools and returns `tool_result` blocks, and the cycle repeats until `stop_reason` is `"end_turn"`. ([source](https://platform.claude.com/docs/en/docs/agents-and-tools/tool-use/how-tool-use-works)) The model never executes anything itself — it emits a structured request and waits for the result.
+
+**What distinguishes Rung 3 from Rung 2.** Andrew Ng's "Agentic Design Patterns" series (DeepLearning.AI, March 2024) named four patterns that characterize agentic workflows: reflection (the model examines its own output to find ways to improve it), tool use (calling external functions to gather information or take action), planning (decomposing a goal into a multi-step plan and executing it), and multi-agent collaboration (multiple agents dividing work and debating solutions). ([source](https://www.deeplearning.ai/the-batch/how-agents-can-improve-llm-performance/)) A skill typically exhibits only one of these — tool use. An agent exhibits all four, or at minimum reflection and planning in addition to tool use. That is the sharpest vocabulary for the Rung 2 → Rung 3 line: if your system only has tool use, you have a skill. If it has reflection or planning on top of that, you have an agent.
+
+Ng's empirical finding is also worth quoting directly: GPT-3.5 in an agentic loop achieves 95.1% on the HumanEval coding benchmark; the same model in zero-shot mode achieves 48.1%. The loop itself is a substantial capability multiplier — which is exactly why it's worth being intentional about when to reach for it.
+
+Lilian Weng's taxonomy describes the three foundational components: planning (decompose the task, decide the next step), memory (track what's happened so far), and tool use (call external systems to gather information or take action). ([source](https://lilianweng.github.io/posts/2023-06-23-agent/)) The Ng four-pattern framing adds reflection explicitly and extends multi-agent as a fourth design axis; the two taxonomies are complementary.
+
+Harrison Chase, who built LangChain (the most-deployed agent framework in production), defines an agent as *"a system that uses an LLM to decide the control flow of an application."* ([source](https://www.langchain.com/blog/what-is-an-agent)) He frames the agent/workflow distinction not as a binary but as a spectrum of how much the LLM determines system behavior — consistent with Karpathy's autonomy slider, below. The framework-builder community has converged on the same boundary the academic taxonomy describes: when the model is making decisions between steps rather than following a fixed path, you have crossed into agent territory.
 
 Anthropic's framing distinguishes agents from workflows on the axis of control: agents are *"systems where LLMs dynamically direct their own processes and tool usage, maintaining control over how they accomplish tasks."* ([source](https://www.anthropic.com/engineering/building-effective-agents)) The model is in the driver's seat, not the code.
 
@@ -140,6 +148,8 @@ What happened: someone saw the agent architecture, liked how it sounded, and bui
 
 The test: write out what the agent actually does, step by step. If you can describe it without using the word "decides," it's a skill.
 
+There is a useful historical reference point here. In March 2023, Yohei Nakajima published BabyAGI — a task-driven autonomous agent that spawned tasks, prioritized them, and executed them in a loop. ([source](https://github.com/yoheinakajima/babyagi)) The project generated enormous attention, and teams across the industry started building autonomous agent loops on the same pattern. Most of those early systems were unstable in production: the loop would drift, accumulate errors, or fail silently in ways that were hard to diagnose. The creator's own repository notes explicitly that BabyAGI is "not meant for production use." The autonomous-loop-with-LLM pattern only became reliable once typed contracts, intermediate-state logging, and verification at agent boundaries were added — which is what the multi-agent companion guide addresses. BabyAGI's arc from excitement to caution is the clearest possible illustration of why Rung 3 needs to earn its place before you build it.
+
 ### Failure 2: Skill where a prompt would do
 
 Building an entire Claude Skill for a task you do twice a year, with custom scripts and a trigger phrase and a tool allowlist, is engineering for the sake of engineering. The skill takes time to build, requires maintenance, and saves you approximately nothing.
@@ -168,12 +178,18 @@ All primary sources were verified live before publication (2026-05-22).
 
 - Anthropic Engineering — *Equipping Agents for the Real World with Agent Skills* (Oct 16, 2025): https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills
 - Anthropic Engineering — *Building Effective Agents*, Erik Schluntz and Barry Zhang (Dec 19, 2024): https://www.anthropic.com/engineering/building-effective-agents
+- Anthropic — *Tool use with Claude: How tool use works* (2026): https://platform.claude.com/docs/en/docs/agents-and-tools/tool-use/how-tool-use-works
+- Andrew Ng / DeepLearning.AI — *Agentic Design Patterns Part 1: Four AI Agent Strategies That Improve GPT-4 and GPT-3.5 Performance* (March 20, 2024): https://www.deeplearning.ai/the-batch/how-agents-can-improve-llm-performance/
+- Ethan Mollick — *Almost an Agent: What GPTs can do*, One Useful Thing (Nov 7, 2023): https://www.oneusefulthing.org/p/almost-an-agent-what-gpts-can-do
+- Harrison Chase / LangChain — *What is an AI agent?* (June 28, 2024): https://www.langchain.com/blog/what-is-an-agent
+- Yohei Nakajima — *BabyAGI* (March 2023, archived September 2024): https://github.com/yoheinakajima/babyagi
+- Riley Goodside — prompt engineering philosophy, X / The Gradient: https://x.com/goodside/status/1614125922332061698 and https://thegradientpub.substack.com/p/riley-goodside-the-art-and-craft
 - Lilian Weng — *LLM Powered Autonomous Agents* (June 23, 2023): https://lilianweng.github.io/posts/2023-06-23-agent/
 - Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, Yuan Cao — *ReAct: Synergizing Reasoning and Acting in Language Models* (arXiv Oct 2022, ICLR 2023): https://arxiv.org/abs/2210.03629
 - Simon Willison — *Claude Skills are awesome, maybe a bigger deal than MCP* (Oct 16, 2025): https://simonwillison.net/2025/Oct/16/claude-skills/
 - Andrej Karpathy — *Software Is Changing (Again)*, YC AI Startup School keynote (June 2025): https://www.youtube.com/watch?v=LCEmiRjPEtQ
 - OpenAI — *A Practical Guide to Building Agents* (April 2025): https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf
 
-**Attribution:** The framing, ranking, decision criteria, anti-pattern analysis, and "where to stay / when to move up" structure are Rick Watson's original work. The underlying technical definitions and research — the workflow/agent distinction (Anthropic), the planning/memory/tools taxonomy (Weng), the ReAct loop (Yao et al.), the autonomy slider concept (Karpathy), the skills pattern (Anthropic, Willison) — are the property of their respective authors and cited with attribution. OpenAI introduced Custom GPTs in November 2023 as their parallel to the skills pattern (see https://openai.com/index/introducing-gpts/).
+**Attribution:** The framing, ranking, decision criteria, anti-pattern analysis, and "where to stay / when to move up" structure are Rick Watson's original work. The underlying technical definitions and research — the workflow/agent distinction (Anthropic), the planning/memory/tools taxonomy (Weng), the ReAct loop (Yao et al.), the four agentic design patterns (Ng), the autonomy slider concept (Karpathy), the skills pattern (Anthropic, Willison), the practitioner framing (Mollick), the framework-builder perspective (Chase), the BabyAGI historical reference (Nakajima), and the prompt-engineering craft perspective (Goodside) — are the property of their respective authors and cited with attribution. OpenAI introduced Custom GPTs in November 2023 as their parallel to the skills pattern (see https://openai.com/index/introducing-gpts/).
 
 **Original commentary © 2026 Rick Watson, RMW Commerce Consulting.** Linked sources are the property of their respective owners. Found an error or a sharper framing? Open an issue or PR.
