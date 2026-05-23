@@ -50,3 +50,10 @@ These are the runnable, on-demand forms of the guides above. Drop any folder int
 - [skills/multi-agent-fan-out/](skills/multi-agent-fan-out/) — design or audit a multi-agent system before building
 - [skills/claude-code-for-non-developers/](skills/claude-code-for-non-developers/) — coach a non-developer through ongoing Claude Code work
 - [skills/claude-code-first-session/](skills/claude-code-first-session/) — walk a first-time non-developer through their initial session
+- [skills/claude-token-optimization/](skills/claude-token-optimization/) — audit Claude API or Claude Code token spend and recommend one concrete cost reduction
+
+### Token optimization
+
+Token cost analysis and the full optimization guide live at tokenmin.ai, the measurement product built on top of these patterns.
+
+- [Token Optimization for Claude: The Full Guide Lives at tokenmin.ai](tokenmin-optimization-pointer.md) — 3-bullet TL;DR plus links to the complete guide and the runnable skill
