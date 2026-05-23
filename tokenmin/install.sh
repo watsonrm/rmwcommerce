@@ -229,21 +229,39 @@ fi
 # F&F users accept the "free for anonymized data" bargain via their invite —
 # extending that to anonymous usage stats is a natural fit. Pre-seed the
 # settings.json so they skip the first-run consent ask.
+#
+# If the per-user installer also carries TOKENMIN_TELEMETRY_ENDPOINT (and,
+# for github:// transport, TOKENMIN_TELEMETRY_GITHUB_TOKEN), bake those into
+# settings.json too so events transmit. The PATs stay file-local (chmod 0600)
+# and never reach .git/config or git history.
 if [ "${KIND}" = "F&F bundle (private)" ]; then
   settings_dir="${HOME}/.tokenmin"
   mkdir -p "${settings_dir}"
   settings_file="${settings_dir}/settings.json"
   if [ ! -f "${settings_file}" ]; then
-    cat > "${settings_file}" <<'JSON'
-{
-  "telemetry": "on",
-  "telemetry_consent_asked": true,
-  "telemetry_endpoint": null
+    python3 - "${TOKENMIN_TELEMETRY_ENDPOINT:-}" "${TOKENMIN_TELEMETRY_GITHUB_TOKEN:-}" <<'PY'
+import json, os, sys
+endpoint, gh_token = sys.argv[1] or None, sys.argv[2] or None
+settings = {
+    "telemetry": "on",
+    "telemetry_consent_asked": True,
+    "telemetry_endpoint": endpoint,
 }
-JSON
+if gh_token:
+    settings["telemetry_github_token"] = gh_token
+path = os.path.expanduser("~/.tokenmin/settings.json")
+with open(path, "w") as f:
+    json.dump(settings, f, indent=2, sort_keys=True)
+os.chmod(path, 0o600)
+PY
     chmod 600 "${settings_file}"
-    ok "telemetry enabled (F&F default — see SECURITY.md for the data dictionary)"
+    if [ -n "${TOKENMIN_TELEMETRY_ENDPOINT:-}" ]; then
+      ok "telemetry enabled + endpoint configured (transmitting to ${TOKENMIN_TELEMETRY_ENDPOINT})"
+    else
+      ok "telemetry enabled (no endpoint configured — events form but don't transmit)"
+    fi
     say "  disable anytime: tokenmin telemetry off"
+    say "  inspect what's sent: tokenmin telemetry dry-run"
   fi
 fi
 
