@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
 # Tokenmin friends-and-family installer.
 #
-#   curl -fsSL https://watsonrm.github.io/rmwcommerce/tokenmin/install.sh | bash
-#   # or
 #   curl -fsSL https://raw.githubusercontent.com/watsonrm/rmwcommerce/main/tokenmin/install.sh | bash
 #
-# The F&F repo (watsonrm/tokenmin) is PRIVATE. You need to be added before
-# this works — ping Rick.
+# Two install modes:
+#
+#   TOKENMIN_FF=1 (default)   Clone the private F&F bundle (watsonrm/tokenmin)
+#                             which vendors the scanner + bundled engine + server.
+#                             Requires being added to the F&F preview.
+#
+#   TOKENMIN_FF=0             Clone the PUBLIC scanner only
+#                             (watsonrm/tokenmin-scanner, Apache-2.0). No
+#                             engine — you'll write anonymized snapshots only.
+#                             Use this to audit the code before joining F&F.
+#
+# The scanner code in the F&F bundle is mirrored from the public scanner repo.
 #
 # What this does, in order:
 #   1. Confirm gh + python3 are installed and gh is authenticated.
@@ -20,7 +28,14 @@
 
 set -euo pipefail
 
-REPO="watsonrm/tokenmin"
+FF_MODE="${TOKENMIN_FF:-1}"
+if [ "${FF_MODE}" = "1" ]; then
+  REPO="watsonrm/tokenmin"
+  REPO_KIND="F&F bundle (private)"
+else
+  REPO="watsonrm/tokenmin-scanner"
+  REPO_KIND="public scanner (Apache-2.0)"
+fi
 DEST="${TOKENMIN_HOME:-$HOME/.tokenmin}"
 BIN_DIR="${TOKENMIN_BIN_DIR:-$HOME/.local/bin}"
 
@@ -37,9 +52,15 @@ gh auth status >/dev/null 2>&1 \
 
 # Access check before doing anything else — friendly message instead of a clone failure.
 if ! gh api "repos/${REPO}" >/dev/null 2>&1; then
-  die "you don't have access to ${REPO} yet. ask Rick to add you to the F&F preview."
+  if [ "${FF_MODE}" = "1" ]; then
+    die "you don't have F&F access to ${REPO} yet.
+   to install the public scanner instead (read-only audit, no engine):
+   TOKENMIN_FF=0 curl -fsSL https://raw.githubusercontent.com/watsonrm/rmwcommerce/main/tokenmin/install.sh | bash"
+  else
+    die "could not reach ${REPO} — check your network or gh auth status."
+  fi
 fi
-ok "access to ${REPO} confirmed"
+ok "access to ${REPO} confirmed (${REPO_KIND})"
 
 if [ -d "${DEST}/.git" ]; then
   say "updating existing install at ${DEST}"
@@ -71,7 +92,16 @@ esac
 
 say ""
 ok "installed. try it:"
-say "    tokenmin --days 7 --out report.md"
-say ""
-say "see ${DEST}/README.md for what gets collected, how it's anonymized,"
-say "and the F&F bargain (free for anonymized data)."
+if [ "${FF_MODE}" = "1" ]; then
+  say "    tokenmin --days 7 --out report.md             # full report (engine bundled)"
+  say "    tokenmin --selfcheck                          # see the anonymizer rules"
+  say ""
+  say "see ${DEST}/README.md for what gets collected, how it's anonymized,"
+  say "and the F&F bargain (free for anonymized data)."
+else
+  say "    tokenmin --selfcheck                          # see the anonymizer rules"
+  say "    tokenmin --days 7 --snapshot snap.json        # see what would be sent"
+  say ""
+  say "this is the public scanner — no engine. it writes anonymized snapshots"
+  say "but doesn't generate reports. ask Rick for F&F access to get reports."
+fi
