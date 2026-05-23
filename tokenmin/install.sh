@@ -208,33 +208,89 @@ else
   fi
 fi
 
-# ---- post-install: detect Claude Code presence ----------------------------
-if [ -d "$HOME/.claude" ]; then
-  ok "found ~/.claude — ready for 'tokenmin --source code'"
+# ---- multi-Claude detection -----------------------------------------------
+# Tokenmin supports every Claude variant: Code (native), Desktop (via export),
+# claude.ai web (via export). Detect what's installed and tell the user what
+# they can do without making them figure it out.
+
+CLAUDE_CODE_DIR="$HOME/.claude"
+case "$(uname -s 2>/dev/null)" in
+  Darwin)  CLAUDE_DESKTOP_DIR="$HOME/Library/Application Support/Claude" ;;
+  Linux)   CLAUDE_DESKTOP_DIR="$HOME/.config/Claude" ;;
+  MINGW*|CYGWIN*|MSYS*) CLAUDE_DESKTOP_DIR="${APPDATA:-$HOME/AppData/Roaming}/Claude" ;;
+  *)       CLAUDE_DESKTOP_DIR="" ;;
+esac
+
+found_code=0
+found_desktop=0
+say ""
+say "Claude variants on this machine:"
+
+if [ -d "${CLAUDE_CODE_DIR}" ]; then
+  n_sess=0
+  if [ -d "${CLAUDE_CODE_DIR}/projects" ]; then
+    n_sess=$(find "${CLAUDE_CODE_DIR}/projects" -name '*.jsonl' -type f 2>/dev/null | wc -l | tr -d ' ')
+  fi
+  ok "Claude Code        ${CLAUDE_CODE_DIR} (${n_sess} session files)"
+  found_code=1
 else
-  warn "no ~/.claude on this machine."
-  say "  if you use Claude Code:    install it first (https://claude.com/code)"
-  say "  if you use claude.ai or Claude Desktop:"
-  say "    export your chats, then run:"
-  say "      tokenmin --source export --from path/to/export.zip --out report.md"
+  say "  Claude Code        not found at ${CLAUDE_CODE_DIR}"
+fi
+
+if [ -n "${CLAUDE_DESKTOP_DIR}" ] && [ -d "${CLAUDE_DESKTOP_DIR}" ]; then
+  ok "Claude Desktop     ${CLAUDE_DESKTOP_DIR}"
+  found_desktop=1
+else
+  if [ -n "${CLAUDE_DESKTOP_DIR}" ]; then
+    say "  Claude Desktop     not found at ${CLAUDE_DESKTOP_DIR}"
+  fi
+fi
+
+if [ "${found_code}" = "0" ] && [ "${found_desktop}" = "0" ]; then
+  warn "no Claude install detected on this machine."
+  say "  Claude Code:    https://claude.com/code"
+  say "  Claude Desktop: https://claude.ai/download"
+  say "  claude.ai web:  no install \xE2\x80\x94 export chats then use --source export"
 fi
 
 # ---- greet -----------------------------------------------------------------
 say ""
 ok "tokenmin ${KIND} installed."
+say "  tokenmin --version              what you have"
+say "  tokenmin doctor                 self-diagnose"
+say "  tokenmin --selfcheck            see the anonymizer rules"
+
 if [ "${KIND}" = "F&F bundle (private)" ]; then
-  say "  tokenmin --version              what you have"
-  say "  tokenmin doctor                 self-diagnose"
-  say "  tokenmin --selfcheck            see the anonymizer rules"
-  say "  tokenmin --days 7 --out report.md   full report"
+  RUN="--out report.md"
+  RUN_DESCRIPTION="full report"
 else
-  say "  tokenmin --version              what you have"
-  say "  tokenmin doctor                 self-diagnose"
-  say "  tokenmin --selfcheck            see the anonymizer rules"
-  say "  tokenmin --days 7 --snapshot snap.json  audit what would be sent"
+  RUN="--snapshot snap.json"
+  RUN_DESCRIPTION="audit what would be sent"
+fi
+
+if [ "${found_code}" = "1" ]; then
   say ""
-  say "this is the public scanner — no engine. for the full report,"
-  say "ask Rick for an F&F invite URL."
+  say "Claude Code (the easy one — reads your sessions directly):"
+  say "  tokenmin --days 7 ${RUN}   # ${RUN_DESCRIPTION}"
+fi
+
+if [ "${found_desktop}" = "1" ]; then
+  say ""
+  say "Claude Desktop (live native parser still in progress; use export today):"
+  say "  1. open Claude Desktop -> Settings -> Export data"
+  say "  2. tokenmin --source export --from ~/Downloads/claude-export-*.zip ${RUN}"
+fi
+
+if [ "${found_code}" = "0" ] && [ "${found_desktop}" = "0" ]; then
+  say ""
+  say "Once you've used a Claude product on this machine, return and run:"
+  say "  tokenmin --days 7 ${RUN}"
+fi
+
+if [ "${KIND}" != "F&F bundle (private)" ]; then
+  say ""
+  say "(this is the public scanner — no engine. for the full report, ask Rick"
+  say " for an F&F invite URL.)"
 fi
 if [ "${patched}" = "1" ]; then
   say ""
