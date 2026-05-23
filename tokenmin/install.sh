@@ -225,6 +225,28 @@ else
   fi
 fi
 
+# ---- telemetry: F&F default on, public scanner asks on first run ----------
+# F&F users accept the "free for anonymized data" bargain via their invite —
+# extending that to anonymous usage stats is a natural fit. Pre-seed the
+# settings.json so they skip the first-run consent ask.
+if [ "${KIND}" = "F&F bundle (private)" ]; then
+  settings_dir="${HOME}/.tokenmin"
+  mkdir -p "${settings_dir}"
+  settings_file="${settings_dir}/settings.json"
+  if [ ! -f "${settings_file}" ]; then
+    cat > "${settings_file}" <<'JSON'
+{
+  "telemetry": "on",
+  "telemetry_consent_asked": true,
+  "telemetry_endpoint": null
+}
+JSON
+    chmod 600 "${settings_file}"
+    ok "telemetry enabled (F&F default — see SECURITY.md for the data dictionary)"
+    say "  disable anytime: tokenmin telemetry off"
+  fi
+fi
+
 # ---- multi-Claude detection -----------------------------------------------
 # Tokenmin supports every Claude variant: Code (native), Desktop (via export),
 # claude.ai web (via export). Detect what's installed and tell the user what
