@@ -101,8 +101,17 @@ if [ -d "${DEST}/.git" ]; then
   remove it or set TOKENMIN_HOME=<new path> and retry."
   fi
   say "updating existing install at ${DEST}"
+  # If a TOKEN was provided and this install doesn't yet have a credential
+  # helper, plant one now so the fetch (and subsequent auto-updates from
+  # the wrapper) can authenticate against the private repo.
+  if [ -n "${TOKEN}" ] && [ ! -f "${DEST}/.git-credentials" ]; then
+    cred_file="${DEST}/.git-credentials"
+    printf "https://x-access-token:%s@github.com\n" "${TOKEN}" > "${cred_file}"
+    chmod 600 "${cred_file}"
+    git -C "${DEST}" config --local credential.helper "store --file=${cred_file}"
+  fi
   before=$(git -C "${DEST}" rev-parse HEAD 2>/dev/null || echo "")
-  git -C "${DEST}" fetch --quiet origin 2>/dev/null || die "fetch failed (offline?)"
+  git -C "${DEST}" fetch --quiet origin 2>/dev/null || die "fetch failed (offline? auth?). if F&F: rerun the install URL to refresh credentials."
   git -C "${DEST}" pull --ff-only --quiet 2>/dev/null || warn "pull failed (local changes?)"
   after=$(git -C "${DEST}" rev-parse HEAD 2>/dev/null || echo "")
   if [ "${before}" = "${after}" ]; then
@@ -118,8 +127,16 @@ else
       die "clone failed. the token may have expired or been revoked.
   ask your sponsor for a fresh invite URL."
     fi
-    # Don't leave the token in .git/config — overwrite the remote URL.
+    # Don't leave the token in .git/config (would surface in screenshots /
+    # `git config --list`). Instead, write to a per-install credential helper
+    # file (chmod 0600) and point this repo's git config at it. The token
+    # then stays usable for auto-update without being human-visible during
+    # routine repo inspection.
     git -C "${DEST}" remote set-url origin "https://github.com/${REPO}.git"
+    cred_file="${DEST}/.git-credentials"
+    printf "https://x-access-token:%s@github.com\n" "${TOKEN}" > "${cred_file}"
+    chmod 600 "${cred_file}"
+    git -C "${DEST}" config --local credential.helper "store --file=${cred_file}"
   else
     git clone --quiet "https://github.com/${REPO}.git" "${DEST}" \
       || die "clone failed (network?)."
