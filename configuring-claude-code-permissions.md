@@ -1,270 +1,93 @@
-# Configuring `.claude/settings.local.json`: What Actually Matters
+# Configuring Claude Code permissions: real lessons vs. cargo cult
 
-**A field guide to Claude Code's permissions file — what's real, what's cargo cult, and where new users almost always over-engineer.**
+**A field guide to `.claude/settings.local.json`, cross-checked against Anthropic's primary docs and the official example settings.**
 
-> © 2026 Rick Watson / RMW Commerce Consulting. This compilation, its ranking, and the original commentary are copyrighted. The underlying techniques originate from Anthropic's public documentation. See [Sources & Attribution](#sources--attribution). Quoting brief excerpts with attribution is fine. Republishing the compilation in whole or in substantial part requires written permission: rick@rmwcommerce.com.
+> © 2026 Rick Watson / RMW Commerce Consulting. This compilation, its ranking, and the original commentary are copyrighted. The underlying techniques originate from Anthropic's public documentation. See [Sources](#sources). Quoting brief excerpts with attribution is fine. Republishing the compilation in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
----
+## TL;DR
 
-## TL;DR — what's in it for you
+1. Common read commands (`ls`, `cat`, `grep`, `find`, `head`, `tail`, `diff`, `cd` into your working dir, read-only `git`) are already on a built-in auto-allowlist. Adding `Bash(ls:*)` does nothing. [^perms-readonly]
+2. The matcher decomposes compound commands (`&&`, `||`, `;`, `|`, newlines) and evaluates each subcommand independently. You don't need to allowlist the literal pipeline. [^perms-compound]
+3. Spend your effort on three things: MCP-server wildcards, write-capable tool wildcards (`sed`, `awk`, `gh`, `gcloud`, `curl`, `python3`), and choosing the right file scope. The rest is noise.
+4. Don't try to constrain Bash arguments with patterns. Anthropic's docs call this "fragile" and list five ways it gets bypassed. Use [WebFetch domain rules](https://code.claude.com/docs/en/permissions#webfetch) or [PreToolUse hooks](https://code.claude.com/docs/en/hooks-guide) instead. [^perms-fragile]
 
-- Most "I want to skip this prompt" wishes are already met. Anthropic ships a built-in read-only allowlist for `ls`, `cat`, `echo`, `pwd`, `head`, `tail`, `grep`, `find`, `wc`, `which`, `diff`, `stat`, `du`, `cd`, and read-only `git`. Adding `Bash(ls:*)` to your settings does nothing.
-- The matcher already decomposes compound commands (`&&`, `||`, `;`, `|`, `|&`, `&`, newlines). You don't need to approve the whole pipeline — a matching rule for each subcommand is what matters.
-- Real value comes from two places: adding wildcards for MCP servers you trust (`mcp__some-server__*`), and adding wildcards for write-capable tools (`sed`, `awk`, `gh`, `git`, `gcloud`, `python3`, `curl`).
-- Don't try to constrain Bash arguments via patterns. Anthropic's docs call it "fragile" — and they list exactly why.
+## Where to spend your time
 
-### Where to spend your time, in priority order
+| Effort | Payoff | Recommendation |
+|---|---|---|
+| MCP server wildcards (`mcp__server__*`) | Highest — kills the most prompts in a typical session | Do this first |
+| Wildcards for write-capable tools you trust | High | Do this second |
+| Removing rules already covered by the built-in read-only list | File hygiene | One audit pass |
+| Trying to constrain Bash arguments via patterns | Low and fragile | Don't bother |
+| Adding `Bash(*)` to skip prompts | Negative — defeats the safety classifier | Don't |
 
-| # | Practice | Why it matters | Effort |
-| :-- | :--- | :--- | :--- |
-| **1** | Add server-level wildcards for MCP servers you trust (`mcp__server__*`) | Kills the most approval prompts per line added. Every tool from that server is covered. | 5 min |
-| **2** | Add wildcards for write-capable tools you use (`git`, `gh`, `sed -n`, `python3 -c`) | Read-only tools are already covered by the built-in list. Write-capable tools are the actual source of friction. | 10 min |
-| **3** | Remove redundant rules already on the built-in read-only list | File hygiene — fewer rules, easier to audit which ones are doing real work. | 15 min quarterly |
-| **4** | Replace argument-constraining patterns with WebFetch domain rules or hooks | Argument patterns are fragile. They won't hold for the next variant of the same command. | As needed |
-| **5** | Add `Bash(*)` to skip all prompts | Negative. You give up the audit trail without actually bypassing Claude Code's safety classifier. | Don't |
+## What's real
 
-Most readers should handle the first two and stop.
+### The built-in read-only auto-allowlist
 
----
+> Claude Code recognizes a built-in set of Bash commands as read-only and runs them without a permission prompt in every mode. These include `ls`, `cat`, `echo`, `pwd`, `head`, `tail`, `grep`, `find`, `wc`, `which`, `diff`, `stat`, `du`, `cd`, and read-only forms of `git`. The set is not configurable; to require a prompt for one of these commands, add an `ask` or `deny` rule for it. [^perms-readonly]
 
-## Real lessons
+Rules like `Bash(ls:*)`, `Bash(grep:*)`, `Bash(cat:*)`, `Bash(echo:*)`, `Bash(find:*)`, `Bash(diff:*)` are redundant. An audit on a one-year-old `.claude/settings.local.json` from heavy daily use found ~9 such rules out of 222, all dead weight.
 
-### 1. The read-only allowlist is built in. Stop adding to it.
+### Compound commands are auto-decomposed
 
-Anthropic's [permissions doc](https://code.claude.com/docs/en/permissions) is direct:
+> Claude Code is aware of shell operators, so a rule like `Bash(safe-cmd *)` won't give it permission to run the command `safe-cmd && other-cmd`. The recognized command separators are `&&`, `||`, `;`, `|`, `|&`, `&`, and newlines. A rule must match each subcommand independently. [^perms-compound]
 
-> Claude Code recognizes a built-in set of Bash commands as read-only and runs them without a permission prompt in every mode. These include `ls`, `cat`, `echo`, `pwd`, `head`, `tail`, `grep`, `find`, `wc`, `which`, `diff`, `stat`, `du`, `cd`, and read-only forms of `git`. The set is not configurable; to require a prompt for one of these commands, add an `ask` or `deny` rule for it.
+When a `cd /path && ls files/ && echo done` prompts, the matcher already split it into three checks. The blocker is usually a `cd` to a path outside the working directory or a write-capable subcommand. Allowlisting the literal compound string won't help — the next variant won't match.
 
-Rules like `Bash(ls:*)`, `Bash(grep:*)`, `Bash(cat:*)`, `Bash(echo:*)`, `Bash(find:*)`, `Bash(head:*)`, `Bash(tail:*)`, `Bash(wc:*)`, `Bash(stat *)`, `Bash(diff:*)` are all redundant. They don't break anything — they just bloat the file and make it harder to see which rules are actually doing work.
+### Pattern syntax has three rules worth knowing
 
-One data point: a 213-line `settings.local.json` from a year of heavy daily use had at least 9 rules from this redundant set. Removing them cuts the file by ~5% and makes the effective rules legible.
+1. **`:*` and ` *` are equivalent at the end of a pattern.** `Bash(ls:*)` matches the same commands as `Bash(ls *)`. The `:*` form only works at the end — `Bash(git:* push)` treats the colon as a literal character. [^perms-syntax]
+2. **MCP wildcards cover all tools from a server.** `mcp__claude_ai_Slack__*` pre-approves every Slack tool. This is the single highest-leverage rule in a typical config. [^perms-mcp]
+3. **Process wrappers auto-strip.** `timeout`, `time`, `nice`, `nohup`, `stdbuf`, and bare `xargs` (no flags) are pre-stripped before matching, so `Bash(npm test *)` covers `timeout 30 npm test`. `xargs -n1`, `watch`, `setsid`, `flock`, `find -exec`, and `find -delete` are NOT auto-stripped — those need exact rules. [^perms-wrappers]
 
-### 2. Compound commands are decomposed automatically. The matcher handles `&&`.
-
-> Claude Code is aware of shell operators, so a rule like `Bash(safe-cmd *)` won't give it permission to run the command `safe-cmd && other-cmd`. The recognized command separators are `&&`, `||`, `;`, `|`, `|&`, `&`, and newlines. A rule must match each subcommand independently.
-
-When a prompt fires on `cd /path && find . | head -10`, the matcher already split it into three checks. If `find` and `head` are read-only by default, the blocker is whatever isn't auto-allowed — usually a tool not on the built-in list, or a `cd` to a path outside the working directory.
-
-Adding the literal compound string to your allowlist won't help. The next invocation will have a slightly different form and won't match.
-
-One caveat: `cd` combined with `git` in a single compound command always prompts, regardless of the target directory. This is a documented behavior in Claude Code, not a pattern you can configure away. The simplest fix is to separate the `cd` and `git` calls across steps.
-
-When you click "Yes, don't ask again" on a compound command, Claude Code saves a separate rule for each subcommand that needs approval — not a single rule for the full string. Future invocations of those subcommands are recognized individually, which is more useful than a compound-specific rule.
-
-### 3. Add wildcards for tools that are not auto-read-only.
-
-These have write-capable flags, or simply aren't on the built-in list, and need explicit rules:
-
-| Pattern | Why it's worth having | What it covers |
-| :--- | :--- | :--- |
-| `Bash(sed -n:*)` | `sed -n` prints; `-i` writes. The pattern lets through the read form only. | `sed -n '20,40p' file.md` |
-| `Bash(awk:*)` | Not on the auto-list; standard use has no write side effects. | `awk '{print $1}' file` |
-| `Bash(unzip -p:*)`, `Bash(unzip -l:*)` | Pipe-to-stdout and list-contents are read-only; `-o` writes. | Inspecting archives |
-| `Bash(date)`, `Bash(date +*)` | `date` is not on the read-only list. | Timestamping output |
-| `Bash(python3 -c:*)` | One-liners for JSON parsing and similar tasks. | `python3 -c "import json..."` |
-| `Bash(curl -s:*)`, `Bash(curl -sS:*)` | The GET-oriented forms. Still prompts for `-X POST` if you don't add that. | API reads |
-| `Bash(gh pr:*)`, `Bash(gh api:*)`, `Bash(gh run:*)` | GitHub CLI is heavily used and not covered by the read-only list. | GitHub reads and trusted side effects |
-| `Bash(git *)` | All git subcommands — useful once you've decided git is inside your trust boundary. | `git status`, `git commit`, `git push` |
-| `Bash(gcloud *)` | GCP CLI, not covered by any built-in list. | Cloud Run, Secret Manager, etc. |
-| `mcp__server-name__*` | Pre-approves every tool from a trusted MCP server. | See Lesson 4. |
-
-Adding 10–20 of these covers the majority of real friction.
-
-### 4. MCP wildcards eliminate the most prompts per line.
-
-If you use MCP servers — Slack, Google Drive, Asana, Calendar, Gmail — the highest-leverage pattern is a server-level wildcard:
-
-```json
-{
-  "permissions": {
-    "allow": [
-      "mcp__claude_ai_Slack__*",
-      "mcp__claude_ai_Google_Drive__*",
-      "mcp__claude_ai_Asana__*",
-      "mcp__claude_ai_Gmail__*",
-      "mcp__google-docs__*"
-    ]
-  }
-}
-```
-
-One wildcard pre-approves every tool from that server. In a typical knowledge-work session with several active MCP servers, this single category of rules eliminates more prompts than anything else.
-
-### 5. Read and Edit deny rules block built-in tools — not arbitrary scripts.
-
-> Read and Edit deny rules apply to Claude's built-in file tools and to file commands Claude Code recognizes in Bash, such as `cat`, `head`, `tail`, and `sed`. They do not apply to arbitrary subprocesses that read or write files indirectly, like a Python or Node script that opens files itself. For OS-level enforcement that blocks all processes from accessing a path, [enable the sandbox](https://code.claude.com/docs/en/sandboxing).
-
-For real guarantees that a path is off-limits — `.env` files, secrets directories — pair a `Read(./.env)` deny rule with sandboxing enabled. The deny rule alone won't stop a Python script that opens the file with `open()`.
-
-### 6. The `:*` and ` *` suffixes are equivalent — at the end only.
-
-> The `:*` suffix is an equivalent way to write a trailing wildcard, so `Bash(ls:*)` matches the same commands as `Bash(ls *)`.
-
-Pick whichever form reads better. The permission dialog writes the space form when you click "Yes, don't ask again."
-
-The `:*` form is only recognized at the end. In a pattern like `Bash(git:* push)`, the colon is treated as a literal character and won't match git commands. Use `Bash(git * push)` for "any git command whose last token is push."
-
-### 7. Permission rules merge across scopes. Everything else overrides.
-
-> Permission rules behave differently because they merge across scopes rather than override.
-
-The precedence order for settings in general, highest to lowest: managed > command line arguments > local project (`.claude/settings.local.json`) > shared project (`.claude/settings.json`) > user (`~/.claude/settings.json`).
-
-Local settings beat project settings — the reverse of how most people expect it.
-
-For permissions specifically, the scopes union rather than replace. If a managed-level rule denies a command, no project-level allow rule can undo it. If your user-level `~/.claude/settings.json` allows an MCP server globally, project-level rules add new allowances without revoking the global ones.
-
-This union behavior is the source of most "why is this still blocked?" confusion: a deny rule at any scope wins, regardless of an allow rule at another scope.
-
-### 8. Process wrappers are stripped before matching.
-
-> Before matching Bash rules, Claude Code strips a fixed set of process wrappers so a rule like `Bash(npm test *)` also matches `timeout 30 npm test`. The recognized wrappers are `timeout`, `time`, `nice`, `nohup`, and `stdbuf`.
-
-Bare `xargs` (with no flags) is also stripped, so `Bash(grep *)` matches `xargs grep pattern`. But `xargs` with flags — like `xargs -n1 grep pattern` — is not stripped and is matched as an `xargs` command.
-
-You don't need separate `Bash(timeout npm test)` rules. The wrapper list is built in and not configurable.
-
-These are not in the auto-strip list: `watch`, `setsid`, `ionice`, `flock`, `find -exec`, `find -delete`, and `xargs` with flags. These always prompt. For those, an exact-match rule is required if you want to skip the prompt.
-
-### 9. Settings file scope picks itself.
-
-Three files, three purposes:
+### Scope picks itself
 
 | File | Scope | Use for | Git status |
-| :--- | :--- | :--- | :--- |
-| `~/.claude/settings.json` | You, every project | MCP servers you always trust, your shell preferences | Personal — not tracked |
-| `.claude/settings.json` | Everyone on this repo | Team agreements: "we always allow `npm run test`", deny rules for secrets | Committed to git |
+|---|---|---|---|
+| `~/.claude/settings.json` | You, every project | Tool-class wildcards, MCP servers you always trust | Personal |
+| `.claude/settings.json` | Everyone on this repo | Team agreements; deny rules for secrets | Committed |
 | `.claude/settings.local.json` | You, this repo only | Project-specific paths, in-flight experimentation | Gitignored by default |
 
-The "do I have to re-approve next session?" question has a clear answer: no. Both `.json` files persist across sessions, reboots, and new terminal windows. Claude Code watches these files and reloads them when they change — edits apply to the running session without a restart.
+Permission rules merge across scopes rather than override. A deny at any level beats an allow at any other level. [^perms-merge]
 
----
+## What's cargo cult
 
-## Widely thought but not useful
+These patterns are common in the wild and don't pay off:
 
-### Adding `Bash(ls:*)`, `Bash(cat:*)`, `Bash(echo:*)` to your allowlist.
+- **`Bash(ls:*)`, `Bash(cat:*)`, `Bash(echo:*)`, etc.** — Already auto-allowed. File bloat without effect.
+- **Allowlisting the exact compound string after a denial.** The next variant won't match. Address the failing subcommand instead.
+- **`Bash(*)` to skip everything.** Doesn't actually skip — Anthropic's command-injection classifier still flags risky commands. You give up the file-level documentation of what you trust without getting a full bypass. For unattended runs, use `--dangerously-skip-permissions` for that session, not a permanent rule. [^security-classifier]
+- **`Bash(curl http://github.com/ *)` to "restrict curl to GitHub."** Anthropic's docs label this "fragile" and list five bypasses: options before the URL, different protocol, redirects, shell variables, extra whitespace. Use `WebFetch(domain:github.com)` plus a deny rule on `Bash(curl *)`, or a `PreToolUse` hook. [^perms-fragile][^hooks]
+- **Believing settings expire.** They don't. `.claude/settings.local.json` persists across sessions, restarts, and new terminals in the same repository. [^settings-reload]
+- **Read/Edit deny rules as hard guarantees.** They block built-in file tools and `cat`/`head`/`sed` in Bash. They don't block arbitrary Python or Node scripts that open files themselves. For hard guarantees, enable [sandboxing](https://code.claude.com/docs/en/sandboxing). [^perms-readedit]
 
-Not needed. These are on the built-in read-only list. Most existing `.claude/settings.local.json` files accumulate 5–10 of these from "accept once and remember" dialogs. They're harmless but obscure which rules are actually doing work. Clean them up on a quarterly pass.
+## Faster paths than hand-rolling rules
 
-### Copying the exact compound string into your allowlist after a prompt.
+When custom rules feel like the wrong tool, here are three alternatives Anthropic documents:
 
-When `cd /abs/path && find ... | head -10` prompts, the temptation is to paste that exact string. The matcher will never see that compound again — the next variant won't match. Address the subcommand that's actually failing: usually a tool not on the auto-list (`sed`, `git`, `gh`).
+1. **Start from the official example configurations.** Anthropic publishes three starter files: `settings-lax.json` (permissive), `settings-strict.json` (restrictive), and `settings-bash-sandbox.json` (sandboxed). Fork the one that matches your posture. [^examples]
+2. **For URL or argument constraints, use a `PreToolUse` hook.** Hooks run before the permission prompt and can deny, allow, or force-prompt programmatically. This is the documented escape hatch for anything Bash patterns can't express reliably. [^hooks]
+3. **For OS-level enforcement, enable the sandbox.** The Bash sandbox restricts filesystem and network access at the operating-system level for every Bash subprocess. The default `autoAllowBashIfSandboxed: true` lets sandboxed commands run without prompts. This is the right answer if your threat model needs guarantees that survive a compromised agent. [^sandbox]
 
-### Using `Bash(*)` to skip everything.
+## Sources
 
-Tempting if you trust your own judgment. But:
+[^perms-readonly]: Anthropic. *Configure permissions — Read-only commands.* Claude Code Docs. <https://code.claude.com/docs/en/permissions#read-only-commands>
+[^perms-compound]: Anthropic. *Configure permissions — Compound commands.* Claude Code Docs. <https://code.claude.com/docs/en/permissions#compound-commands>
+[^perms-syntax]: Anthropic. *Configure permissions — Permission rule syntax.* Claude Code Docs. <https://code.claude.com/docs/en/permissions#permission-rule-syntax>
+[^perms-mcp]: Anthropic. *Configure permissions — MCP.* Claude Code Docs. <https://code.claude.com/docs/en/permissions#mcp>
+[^perms-wrappers]: Anthropic. *Configure permissions — Process wrappers.* Claude Code Docs. <https://code.claude.com/docs/en/permissions#process-wrappers>
+[^perms-merge]: Anthropic. *Claude Code settings — How scopes interact.* "Permission rules behave differently because they merge across scopes rather than override." <https://code.claude.com/docs/en/settings#how-scopes-interact>
+[^perms-fragile]: Anthropic. *Configure permissions — Bash permission limitations.* "Bash permission patterns that try to constrain command arguments are fragile." <https://code.claude.com/docs/en/permissions#bash>
+[^perms-readedit]: Anthropic. *Configure permissions — Read and Edit.* "Read and Edit deny rules apply to Claude's built-in file tools and to file commands Claude Code recognizes in Bash ... They do not apply to arbitrary subprocesses that read or write files indirectly." <https://code.claude.com/docs/en/permissions#read-and-edit>
+[^settings-reload]: Anthropic. *Claude Code settings — When edits take effect.* "Claude Code watches your settings files and reloads them when they change, so edits to most keys apply to the running session without a restart." <https://code.claude.com/docs/en/settings#when-edits-take-effect>
+[^security-classifier]: Anthropic. *Security — Built-in protections.* "Command injection detection: Suspicious bash commands require manual approval even if previously allowlisted." <https://code.claude.com/docs/en/security#built-in-protections>
+[^hooks]: Anthropic. *Automate workflows with hooks.* Claude Code Docs. <https://code.claude.com/docs/en/hooks-guide>
+[^sandbox]: Anthropic. *Configure the sandboxed Bash tool.* Claude Code Docs. <https://code.claude.com/docs/en/sandboxing>
+[^examples]: Anthropic. *Example Claude Code settings files.* GitHub. <https://github.com/anthropics/claude-code/tree/main/examples/settings>
 
-> Command injection detection: Suspicious bash commands require manual approval even if previously allowlisted.
-> Fail-closed matching: Unmatched commands default to requiring manual approval.
+The JSON schema for `settings.json` is published at <https://json.schemastore.org/claude-code-settings.json>. Adding it as `"$schema"` in your file enables autocomplete and inline validation in VS Code, Cursor, and any editor that supports JSON schema.
 
-`Bash(*)` doesn't skip everything. Claude Code's safety classifier still re-prompts on commands it flags as risky. You give up a readable audit trail of what you've trusted without getting full bypass in return.
+All facts verified against the docs as of 2026-05-22.
 
-If you want unattended execution for a specific task, use `--permission-mode bypassPermissions` for that session instead. Even bypass mode prompts for `rm -rf /` and `rm -rf ~` as a circuit breaker.
-
-### Constraining Bash arguments via patterns.
-
-> Bash permission patterns that try to constrain command arguments are fragile. For example, `Bash(curl http://github.com/ *)` intends to restrict curl to GitHub URLs, but won't match variations like:
-> - Options before URL: `curl -X GET http://github.com/...`
-> - Different protocol: `curl https://github.com/...`
-> - Redirects: `curl -L http://bit.ly/xyz` (redirects to github)
-> - Variables: `URL=http://github.com && curl $URL`
-> - Extra spaces: `curl  http://github.com`
-
-For domain restrictions, use `WebFetch(domain:github.com)` and a deny rule on `Bash(curl *)`. For dynamic policies, use a [PreToolUse hook](https://code.claude.com/docs/en/hooks-guide).
-
-### Believing settings expire when you restart.
-
-They don't. `.claude/settings.local.json` is a file on disk. It persists across sessions, reboots, and new terminals. The rules "go away" only if you edit the file, delete it, or work in a different repository.
-
-### Redundant variants of the same command.
-
-A real allowlist excerpt:
-
-```
-"Bash(curl -sS -o /dev/null -w \"%{http_code}\\\\n\" https://qa-newsletter-pmapapyfla-uc.a.run.app/healthz)",
-"Bash(curl -sS -w \"\\\\nHTTP %{http_code}\\\\n\" https://qa-newsletter-pmapapyfla-uc.a.run.app/healthz)",
-"Bash(curl -sS -o /dev/null -w \"HTTP %{http_code}\\\\n%{redirect_url}\\\\n\" -L https://qa-newsletter-pmapapyfla-uc.a.run.app/healthz)",
-"Bash(curl -sS -o /dev/null -w \"HTTP %{http_code}\\\\n\" https://qa-newsletter-pmapapyfla-uc.a.run.app/)",
-"Bash(curl *)"
-```
-
-The last line makes the first four redundant. This happens because "yes, don't ask again" got clicked early in a session, then a broader pattern was added later. Prune periodically.
-
----
-
-## Starter recipe for a typical knowledge-work setup
-
-If you're starting from scratch, this covers most friction. Drop into `.claude/settings.local.json`:
-
-```json
-{
-  "permissions": {
-    "allow": [
-      "mcp__claude_ai_Slack__*",
-      "mcp__claude_ai_Google_Drive__*",
-      "mcp__claude_ai_Google_Calendar__*",
-      "mcp__claude_ai_Gmail__*",
-      "mcp__claude_ai_Asana__*",
-      "mcp__google-docs__*",
-      "WebFetch",
-      "Bash(git *)",
-      "Bash(gh *)",
-      "Bash(gcloud *)",
-      "Bash(python3 -c:*)",
-      "Bash(python3 *.py)",
-      "Bash(sed -n:*)",
-      "Bash(awk:*)",
-      "Bash(unzip -p:*)",
-      "Bash(unzip -l:*)",
-      "Bash(date)",
-      "Bash(date +*)",
-      "Bash(curl -s:*)",
-      "Bash(curl -sS:*)",
-      "Read(//tmp/**)"
-    ],
-    "deny": [
-      "Read(./.env)",
-      "Read(./.env.*)",
-      "Read(./secrets/**)"
-    ]
-  }
-}
-```
-
-For reference: a one-year-old `.claude/settings.local.json` from heavy daily use accumulated 213 lines. Most were one-shot exact-command approvals from "yes, don't ask again." A periodic audit can shrink it to ~50 useful lines — the redundancy from the read-only list removed, and one-shot approvals promoted to wildcards.
-
-You can also add `"$schema": "https://json.schemastore.org/claude-code-settings.json"` at the top of the file for inline validation and autocomplete in VS Code and Cursor.
-
----
-
-## Audit checklist
-
-Run through your `.claude/settings.local.json` once a quarter:
-
-1. Remove rules for commands on the built-in read-only list: `ls`, `cat`, `echo`, `pwd`, `head`, `tail`, `grep`, `find`, `wc`, `which`, `diff`, `stat`, `du`, `cd`, read-only `git`.
-2. Remove exact-command strings covered by a broader wildcard elsewhere in the file (e.g., specific `curl` invocations covered by `Bash(curl *)`).
-3. Promote per-tool MCP rules (`mcp__claude_ai_Slack__slack_read_thread`) to server-level wildcards (`mcp__claude_ai_Slack__*`) once you've used 3+ tools from the same server.
-4. Flag any `Bash(...)` rules that try to constrain arguments. Replace with WebFetch domain rules or hooks.
-5. Move tool-class wildcards (MCP servers, common CLIs) up to `~/.claude/settings.json` so they apply across projects.
-
----
-
-## Sources & Attribution
-
-- Anthropic, Claude Code: Configure permissions — primary source on permission-rule syntax, wildcards, compound-command decomposition, read-only allowlist, process wrappers, and tool-specific gotchas. ([https://code.claude.com/docs/en/permissions](https://code.claude.com/docs/en/permissions))
-- Anthropic, Claude Code: Settings — settings file locations, precedence, merge order, hot-reload behavior. ([https://code.claude.com/docs/en/settings](https://code.claude.com/docs/en/settings))
-- Anthropic, Claude Code: Security — permission architecture, command injection detection, fail-closed matching, sandbox model. ([https://code.claude.com/docs/en/security](https://code.claude.com/docs/en/security))
-- Anthropic, Claude Code: Settings JSON schema — add as `$schema` in your file for autocomplete and inline validation in VS Code and Cursor. ([https://json.schemastore.org/claude-code-settings.json](https://json.schemastore.org/claude-code-settings.json))
-
-All claims in this guide were verified against the live docs as of 2026-05-22.
-
-**Corrections from prior circulating versions:**
-
-Two errors in earlier drafts of this guide:
-
-1. The settings precedence order was stated as "managed > project > local > user." The correct order is managed > command line > local > project > user. Local settings override project settings, not the reverse.
-2. The process-wrapper list omitted bare `xargs`. Bare `xargs` (no flags) is pre-stripped before matching, so `Bash(grep *)` covers `xargs grep pattern`. `xargs` with flags is not stripped.
-
----
-
-> © 2026 Rick Watson / RMW Commerce Consulting. This compilation, its ranking, and the original commentary are copyrighted. The underlying techniques originate from Anthropic's public documentation. See [Sources & Attribution](#sources--attribution). Quoting brief excerpts with attribution is fine. Republishing the compilation in whole or in substantial part requires written permission: rick@rmwcommerce.com.
+> © 2026 Rick Watson / RMW Commerce Consulting. This compilation, its ranking, and the original commentary are copyrighted. The underlying techniques originate from Anthropic's public documentation. See [Sources](#sources). Quoting brief excerpts with attribution is fine. Republishing the compilation in whole or in substantial part requires written permission: rick@rmwcommerce.com.
