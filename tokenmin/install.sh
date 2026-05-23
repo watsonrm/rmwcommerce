@@ -294,14 +294,19 @@ fi
 if [ "${found_desktop}" = "1" ]; then
   say ""
   say "Claude Desktop (live native parser still in progress; use export today):"
-  say "  1. open Claude Desktop -> Settings -> Export data"
-  say "  2. tokenmin --source export --from ~/Downloads/claude-export-*.zip ${RUN}"
+  say "  tokenmin help-export                 walk through the export, with a deep-link"
+  say "  tokenmin --source export --watch-downloads   auto-run when the export arrives"
+  say "  tokenmin demo                        see what a report looks like first"
 fi
 
 if [ "${found_code}" = "0" ] && [ "${found_desktop}" = "0" ]; then
   say ""
   say "Once you've used a Claude product on this machine, return and run:"
   say "  tokenmin --days 7 ${RUN}"
+  say ""
+  say "If you use claude.ai (web) only:"
+  say "  tokenmin help-export                 step-by-step export instructions"
+  say "  tokenmin demo                        see what a report looks like first"
 fi
 
 if [ "${KIND}" != "F&F bundle (private)" ]; then
