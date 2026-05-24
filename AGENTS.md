@@ -20,7 +20,7 @@ Every guide in this repository follows Rick's house style. Agents touching conte
 - **Inline citations + Sources & Attribution at the end.** Every load-bearing claim links inline; every guide closes with a `Sources & Attribution` section organized by category (vendor primary docs, standards bodies, industry studies, academic, etc.).
 - **No AI tells, no emoji in headings.** Avoid em-dash–heavy throat-clearing, "in conclusion", "delve into", "navigate the landscape", "it's important to note", and similar register tics. Headings are plain English; do not decorate them.
 - **ISO 8601 for any date you publish.** `YYYY-MM-DD` minimum; prefer `<time datetime="…">` where the rendering surface supports it.
-- **Visible byline.** Author identity should be obvious near the top of every guide (currently delivered via the copyright masthead — see `Files agents should know about` below for the canonical reference).
+- **Visible byline.** Every guide carries `*By [Rick Watson](https://rmwcommerce.com) · YYYY-MM-DD*` (or `· Published P · Updated U` if the dates differ) on the line between the tagline and the copyright blockquote. When you edit a guide, bump the `Updated` date to that day's ISO 8601 string (and switch to the two-date form if it isn't already).
 
 ## How publishing works
 

@@ -2,6 +2,8 @@
 
 **This repo is the home for Claude coding patterns and workflow guides. Token cost analysis lives at tokenmin.ai — here's what you need to know and where to go.**
 
+*By [Rick Watson](https://rmwcommerce.com) · 2026-05-23*
+
 > © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved. Quoting brief excerpts with attribution is fine. Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
 ---

@@ -2,6 +2,8 @@
 
 **A curated compilation of Claude Code best practices, ranked by real-world ROI.**
 
+*By [Rick Watson](https://rmwcommerce.com) · Published 2026-05-21 · Updated 2026-05-22*
+
 > © 2026 Rick Watson / RMW Commerce Consulting. This compilation, its ranking, and the original commentary are copyrighted. The underlying techniques originate from Anthropic's official Claude Code documentation — see [Sources & Attribution](#sources--attribution). Quoting brief excerpts with attribution is fine. Republishing the compilation in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
 ---

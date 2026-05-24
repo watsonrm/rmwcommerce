@@ -12,6 +12,8 @@ keywords: AI agents, AI search, LLM citation, robots.txt, llms.txt, AGENTS.md, M
 
 **The authoritative playbook for making any website readable, citable, and operable across every class of AI agent: indexer bots, AI search surfaces, chat assistants, and agentic browsers. Every claim sourced. 22-item checklist impact-ordered by evidence weight.**
 
+*By [Rick Watson](https://rmwcommerce.com) · 2026-05-24*
+
 > © 2026 Rick Watson / RMW Commerce Consulting. This compilation, its ranking, and the original commentary are copyrighted. The underlying techniques originate from vendor primary documentation, peer-reviewed research, and large-N industry studies. See [Sources & Attribution](#sources--attribution). Quoting brief excerpts with attribution is fine. Republishing the compilation in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
 **Published:** <time datetime="2026-05-21">2026-05-21</time>  ·  **Last updated:** <time datetime="2026-05-24">2026-05-24</time>  ·  **Author:** [Rick Watson](https://www.rmwcommerce.com/), Principal, RMW Commerce Consulting  ·  **Canonical URL:** [`github.com/watsonrm/rmwcommerce/blob/main/guides/marketing-to-agents.md`](https://github.com/watsonrm/rmwcommerce/blob/main/guides/marketing-to-agents.md)
