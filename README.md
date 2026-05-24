@@ -23,48 +23,66 @@ Advisory for leadership teams on commerce strategy, marketplaces, payments, reta
 
 ---
 
-## This repo
+## This repo: Claude + AI guides
 
-A public landing point. Links, references, and anything Rick wants to share openly will live here over time.
+Long-form guides on Claude, AI agents, and the discoverability standards that make all of it citable. Pick your starting point by what you're trying to do.
 
-### Guides
+### Start here
 
+| You are… | Start with |
+|---|---|
+| **New to Claude Code, not a developer** | [Field Guide for Non-Developers](claude-code-for-non-developers.md) → [Your First Session](claude-code-non-developers-first-session.md) |
+| **Already using Claude Code, want it cheaper or faster** | [Workflow Optimizer](claude-code-optimizer.md) → [Making Claude Faster](guides/making-claude-faster.md) |
+| **Drowning in noise or permission prompts** | [Why Claude Code Is So Noisy](claude-code-noise.md) → [Stop the Interruption Hell](claude-permissions-guide.md) |
+| **Building skills, agents, or multi-agent systems** | [Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) → [Multi-Agent Fan-Out](multi-agent-fan-out-and-verification.md) |
+| **Shipping software with Claude, not just one-shot tasks** | [Building Excellent Software (with Claude)](guides/building-excellent-software-with-claude.md) |
+| **Making your own site readable by AI agents** | [Marketing to Agents](guides/marketing-to-agents.md) |
+| **Just need a definition** | [Glossary](glossary.md) |
+
+### The full library by topic
+
+**Getting started (non-developers welcome):**
 - [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md) — start here if you're not a developer. The meta-skill is knowing what to ask Claude, not learning implementations. Written by a non-developer who runs a 20+ skill agent system daily.
-- [Claude Code for Non-Developers: Your First Session](claude-code-non-developers-first-session.md) — the hands-on companion to the field guide. Installation, conservative permissions, asking Claude to handle the technical setup, and the approval process as it plays out in a real session.
-- [Claude Code Workflow Optimizer](claude-code-optimizer.md) — patterns for reducing token waste and rework in Claude Code, ranked by ROI. Context-window discipline, CLAUDE.md hygiene, verification-first workflow, model routing, and worktree fleets — all grounded in Anthropic's official documentation.
-- [Making Claude Respond Faster](guides/making-claude-faster.md) — prompt caching, model selection, parallel tool calls, and the patterns that slow you down. 17 sources across primary docs, Anthropic engineering, independent practitioners, and peer-reviewed research.
+- [Your First Session](claude-code-non-developers-first-session.md) — the hands-on companion. Installation, conservative permissions, asking Claude to handle the technical setup, and the approval process as it plays out in a real session.
+- [Why Claude Code Is So Noisy](claude-code-noise.md) — your terminal looks like a wall of text by design. The four sources of noise and the tactics for filtering what matters from what's just volume.
+
+**Cost + speed optimization:**
+- [Claude Code Workflow Optimizer](claude-code-optimizer.md) — patterns for reducing token waste and rework, ranked by ROI. Context-window discipline, CLAUDE.md hygiene, model routing, worktree fleets. Grounded in Anthropic's official documentation.
+- [Making Claude Respond Faster](guides/making-claude-faster.md) — prompt caching, model selection, parallel tool calls, and the patterns that slow you down. 17 sources across primary docs, Anthropic engineering, and independent practitioners.
+- [Token Optimization Pointer](tokenmin-optimization-pointer.md) — 3-bullet TL;DR plus a link to the full Claude-token guide at tokenmin.ai.
+
+**Permissions:**
+- [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md) — covers the permission model across claude.ai, Claude Desktop, and Claude Code, with starter defaults and a drift-consolidation strategy.
+- [Configuring Claude Code Permissions: real lessons vs. cargo cult](configuring-claude-code-permissions.md) — what the built-in read-only allowlist covers, what's cargo cult, when hooks and sandboxing are better tools than hand-rolled rules. 13 cited sources.
+
+**Building agent systems:**
 - [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) — when to stay with a prompt, when to package a skill, when to build an agent, and when a multi-agent system is actually warranted. The on-ramp before the multi-agent guide.
-- [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) — how to structure Claude agent systems that scale without silently breaking. Typed return contracts, intermediate-state logging, thin-orchestrator architecture, and a concrete phasing strategy.
-- [Why Is Claude Code So Noisy? What to Do About It](claude-code-noise.md) — your terminal looks like a wall of text by design. Explains the four sources of noise and ranks the tactics for filtering what matters from what's just volume.
-- [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md) — the interruption problem isn't your imagination. Covers the permission model across claude.ai, Claude Desktop, and Claude Code, with starter defaults and a drift-consolidation strategy.
-- [Configuring Claude Code permissions: real lessons vs. cargo cult](configuring-claude-code-permissions.md) — what the built-in read-only allowlist covers, what patterns are cargo cult, and when hooks and sandboxing are better tools than hand-rolled rules. 13 cited sources.
-- [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md) — concept by concept on the AI-agent discoverability and protocol stack: what's deployable, what's wait-and-see, what's already dead. Includes audience-specific recommendations and direct attribution of hype.
-- [RMW Commerce Glossary](glossary.md) — every named concept across all guides defined once, with hype vs. reality marked per entry. Organized by category; deep-linkable by anchor.
-- [Building Excellent Software (with Claude)](guides/building-excellent-software-with-claude.md) — the tokenmin v0.12.1 → v0.12.5 case study: eight disciplines for taking a Claude-built artifact from working to production-grade. Grounded in the public issue backlog and test suite.
+- [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) — how to structure Claude agent systems that scale without silently breaking. Typed return contracts, intermediate-state logging, thin-orchestrator architecture, phasing strategy.
+- [Building Excellent Software (with Claude)](guides/building-excellent-software-with-claude.md) — the tokenmin v0.12.1 → v0.12.5 case study. Eight disciplines for taking a Claude-built artifact from working to production-grade, grounded in the public issue backlog and test suite.
+
+**Publishing for AI agents:**
 - [Marketing to Agents](guides/marketing-to-agents.md) — the authoritative playbook for making any website readable, citable, and operable across every class of AI agent: indexer bots, AI search surfaces, chat assistants, and agentic browsers. Every claim sourced; 22-item checklist impact-ordered by evidence weight.
+- [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md) — concept by concept on the AI-agent protocol stack: what's deployable, what's wait-and-see, what's already dead. Includes audience-specific recommendations and direct attribution of hype.
 
-### Skills
+**Reference:**
+- [RMW Commerce Glossary](glossary.md) — every named concept across all guides defined once, with hype vs. reality marked per entry. Organized by category; deep-linkable by anchor.
 
-These are the runnable, on-demand forms of the guides above. Drop any folder into `~/.claude/skills/` and Claude Code will load it when the trigger phrases match.
+### Runnable skills
 
-- [skills/prompts-to-agents-ladder/](skills/prompts-to-agents-ladder/) — apply the 4-rung ladder to a workflow and recommend the right rung
-- [skills/claude-code-optimizer/](skills/claude-code-optimizer/) — audit a Claude Code workflow and prescribe one high-leverage fix
-- [skills/multi-agent-fan-out/](skills/multi-agent-fan-out/) — design or audit a multi-agent system before building
-- [skills/claude-code-for-non-developers/](skills/claude-code-for-non-developers/) — coach a non-developer through ongoing Claude Code work
-- [skills/claude-code-first-session/](skills/claude-code-first-session/) — walk a first-time non-developer through their initial session
-- [skills/claude-token-optimization/](skills/claude-token-optimization/) — audit Claude API or Claude Code token spend and recommend one concrete cost reduction
-- [skills/building-excellent-software/](skills/building-excellent-software/) — apply the excellent-software checklist to a Claude-built artifact and surface the highest-leverage gap before shipping
+The on-demand companions to the guides above. Drop any folder into `~/.claude/skills/` and Claude Code will load it when its trigger phrases match.
 
-### Token optimization
+- [prompts-to-agents-ladder](skills/prompts-to-agents-ladder/) — apply the 4-rung ladder to a workflow and recommend the right rung
+- [claude-code-optimizer](skills/claude-code-optimizer/) — audit a Claude Code workflow and prescribe one high-leverage fix
+- [multi-agent-fan-out](skills/multi-agent-fan-out/) — design or audit a multi-agent system before building
+- [claude-code-for-non-developers](skills/claude-code-for-non-developers/) — coach a non-developer through ongoing Claude Code work
+- [claude-code-first-session](skills/claude-code-first-session/) — walk a first-time non-developer through their initial session
+- [claude-token-optimization](skills/claude-token-optimization/) — audit Claude API or Claude Code token spend and recommend one concrete cost reduction
+- [building-excellent-software](skills/building-excellent-software/) — apply the excellent-software checklist to a Claude-built artifact and surface the highest-leverage gap before shipping
 
-Token cost analysis and the full optimization guide live at tokenmin.ai, the measurement product built on top of these patterns.
+### For AI agents reading this repo
 
-- [Token Optimization for Claude: The Full Guide Lives at tokenmin.ai](tokenmin-optimization-pointer.md) — 3-bullet TL;DR plus links to the complete guide and the runnable skill
+This repository applies the [Marketing to Agents](guides/marketing-to-agents.md) playbook to itself. The discoverability files at the root let agents find, index, and operate on the content here without scraping:
 
-### For AI agents
-
-This repository applies the [Marketing to Agents](guides/marketing-to-agents.md) playbook to itself. The discoverability files at the root exist so agents can find, index, and operate on the content here without scraping:
-
-- [llms.txt](llms.txt) — curated index of every guide and skill in this repository, per the [llmstxt.org](https://llmstxt.org/) spec.
-- [llms-full.txt](llms-full.txt) — concatenated full text of every guide in `llms.txt` order, for one-shot LLM ingestion.
+- [llms.txt](llms.txt) — curated index of every guide and skill, per the [llmstxt.org](https://llmstxt.org/) spec.
+- [llms-full.txt](llms-full.txt) — concatenated full text of every guide for one-shot LLM ingestion.
 - [AGENTS.md](AGENTS.md) — house conventions, source taxonomy, and publishing process for agents and human contributors working in this repo.
