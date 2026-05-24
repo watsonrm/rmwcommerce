@@ -40,6 +40,7 @@ A public landing point. Links, references, and anything Rick wants to share open
 - [Configuring Claude Code permissions: real lessons vs. cargo cult](configuring-claude-code-permissions.md) — what the built-in read-only allowlist covers, what patterns are cargo cult, and when hooks and sandboxing are better tools than hand-rolled rules. 13 cited sources.
 - [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md) — concept by concept on the AI-agent discoverability and protocol stack: what's deployable, what's wait-and-see, what's already dead. Includes audience-specific recommendations and direct attribution of hype.
 - [RMW Commerce Glossary](glossary.md) — every named concept across all guides defined once, with hype vs. reality marked per entry. Organized by category; deep-linkable by anchor.
+- [Building Excellent Software (with Claude)](guides/building-excellent-software-with-claude.md) — the tokenmin v0.12.1 → v0.12.5 case study: eight disciplines for taking a Claude-built artifact from working to production-grade. Grounded in the public issue backlog and test suite.
 
 ### Skills
 
@@ -51,6 +52,7 @@ These are the runnable, on-demand forms of the guides above. Drop any folder int
 - [skills/claude-code-for-non-developers/](skills/claude-code-for-non-developers/) — coach a non-developer through ongoing Claude Code work
 - [skills/claude-code-first-session/](skills/claude-code-first-session/) — walk a first-time non-developer through their initial session
 - [skills/claude-token-optimization/](skills/claude-token-optimization/) — audit Claude API or Claude Code token spend and recommend one concrete cost reduction
+- [skills/building-excellent-software/](skills/building-excellent-software/) — apply the excellent-software checklist to a Claude-built artifact and surface the highest-leverage gap before shipping
 
 ### Token optimization
 
