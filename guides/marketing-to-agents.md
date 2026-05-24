@@ -108,7 +108,6 @@ Most readers should complete Tier 1 of [the 22-item priority checklist](#the-22-
 - [Part 2 — Being cited in AI search](#part-2--being-cited-in-ai-search) — what drives citation in Google AI Overviews and Perplexity
 - [Part 3 — Being cited in chat assistants](#part-3--being-cited-in-chat-assistants) — ChatGPT, Claude, Copilot citation surfaces
 - [Part 4 — Being usable by agentic systems](#part-4--being-usable-by-agentic-systems) — operator-grade interactions and MCP
-- [Claude Code](#claude-code) — the developer-docs surface for coding agents
 - [Part 5 — The technical infrastructure stack](#part-5--the-technical-infrastructure-stack) — JSON-LD, sitemaps, llms.txt, AGENTS.md
 - [The 22-item priority checklist](#the-22-item-priority-checklist) — full impact-ranked list
 - [What we still don't know](#what-we-still-dont-know) — open questions and weak evidence
