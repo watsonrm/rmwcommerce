@@ -13,26 +13,27 @@
 - Get a complete, tested `robots.txt` template that separates training opt-outs from search allowlists from user-triggered fetchers.
 - Make your site navigable by agentic browsers and legible to coding agents reading your docs — the newest class, and the most underspecified.
 
+### The foundational move — before any checklist
+
+Earn citations from authoritative third-party domains and a Wikipedia/Wikidata entity if you're eligible. Brands in the top 25% of web mentions earn 10× more AI citations than the next quartile ([Semrush AI visibility data](https://www.semrush.com/blog/most-cited-domains-ai/)). This is multi-year work — press relations, conference talks, earned media, original research, open-source contributions — and no on-your-site checklist item replaces it. Section [The known-entity flywheel](#the-known-entity-flywheel) covers what "earn citations" actually means in practice.
+
+Everything in the rest of this guide is what you do *on your own site* to convert that earned authority into citations. The site work is necessary. It is not sufficient.
+
 ### Where to spend your time, in priority order
 
-Highest-leverage moves first. Tiers are impact-ordered based on the empirical data summarized in this guide.
+The top seven on-your-site moves, ordered by evidence weight. Each maps to an item in [the 22-item priority checklist](#the-22-item-priority-checklist) at the end of the guide.
 
-| # | Practice | Why it matters | Effort |
-|---|---|---|---|
-| 1 | Serve content as server-rendered HTML — headline, body, dates visible in the raw response before JS runs | Most AI crawlers (GPTBot, ClaudeBot, CCBot, PerplexityBot) do not execute JavaScript. Content hidden behind hydration is invisible to ~80% of AI crawlers ([Google Search Central on JS SEO](https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics)) | Medium |
-| 2 | Publish `Article` / `Organization` / `Person` JSON-LD on every editorial page, with `datePublished`, `dateModified`, `author`, `publisher`, and `sameAs` arrays pointing at Wikipedia / Wikidata / ORCID / official profiles | ~71% of ChatGPT-cited pages and ~65% of Google AI Mode-cited pages carry structured data ([SEranking dataset summarized in PPC.land](https://ppc.land/23-factors-that-actually-get-your-content-cited-by-ai-search-engines/)). Schema is the cheapest signal that lifts citation rate across every surface | Low |
-| 3 | Write a deliberate `robots.txt` that separates training crawlers from search/answer crawlers from user-triggered fetchers | Blanket `Disallow: /` blocks ChatGPT-User, Claude-User, and Perplexity-User — meaning a user who explicitly asks the LLM to read your page is refused. The single most common self-inflicted wound in 2026 ([OpenAI bot docs](https://developers.openai.com/api/docs/bots)) | Low |
-| 4 | Front-load the answer in the first 30% of the page in a 40–75 word paragraph | 44% of citations come from the first third of a page; 75% from the first two-thirds ([ALM Corp content-placement study](https://almcorp.com/blog/chatgpt-citations-study-44-percent-first-third-content/)) | Low |
-| 5 | Earn citations from authoritative third-party domains and (if eligible) a Wikipedia / Wikidata entry, then `sameAs`-link to them | Brands in the top 25% of web mentions earn 10× more AI citations than the next quartile ([Semrush AI visibility data](https://www.semrush.com/blog/most-cited-domains-ai/)). Wikipedia and Reddit punch above their weight in every large-N citation dataset | High |
-| 6 | Publish a sitemap.xml with truthful `<lastmod>` timestamps and reference it in robots.txt | `<lastmod>` is the only freshness signal Google and Bing publicly use; `<changefreq>` and `<priority>` are ignored ([sitemaps.org](https://www.sitemaps.org/protocol.html)). Perplexity's Sonar resets freshness on even minor edits | Low |
-| 7 | Pass WCAG 2.2 AA — semantic HTML5, ARIA labels on every interactive element, alt text on every meaningful image | OpenAI Operator, Anthropic Computer Use, and Google Project Mariner all navigate via the accessibility tree — the same data structure built for screen readers ([Search Engine Journal on accessibility-tree convergence](https://www.searchenginejournal.com/how-ai-agents-see-your-website-and-how-to-build-for-them/570443/)) | Medium |
-| 8 | Ship `.md` mirrors of every important HTML page (`/article` and `/article.md`) | The pattern Stripe, Anthropic, Cloudflare, Vercel, and every Mintlify-hosted docs site uses. Markdown is 30–60% fewer tokens, no CSS/JS noise, structure intact | Low |
-| 9 | If you ship developer docs: publish `/llms.txt` and `/llms-full.txt`; ship an `AGENTS.md` at every public repo root; consider an MCP server for high-value actions | The 60,000+ open-source repos with `AGENTS.md`, the live `llms.txt` files at Anthropic / Stripe / Cloudflare / Vercel / Mintlify, and the MCP ecosystem are how coding agents currently consume documentation ([agents.md](https://agents.md/), [llmstxt.org](https://llmstxt.org/), [modelcontextprotocol.io](https://modelcontextprotocol.io/)) | Medium |
-| 10 | Author bylines on every article linking to author pages with `Person` schema; ISO 8601 timestamps in JSON-LD and visible `<time>` elements | E-E-A-T is Google's evaluator framework; Trust is "the most important member of the E-E-A-T family" ([Google Search Central, December 2022](https://developers.google.com/search/blog/2022/12/google-raters-guidelines-e-e-a-t)). Visible authorship is the cheapest Trust signal | Low |
-| 11 | Subscribe your site to Bing Webmaster Tools — AI Performance for actual citation telemetry from Microsoft Copilot and Bing AI summaries | The only major surface as of May 2026 that gives publishers per-query citation data. Google Search Console does not break out AI Overview clicks ([Bing Webmaster blog](https://blogs.bing.com/webmaster/February-2026/Introducing-AI-Performance-in-Bing-Webmaster-Tools-Public-Preview)) | Low |
-| 12 | If you publish anything time-sensitive, push IndexNow notifications | The open protocol Bing and Yandex co-developed; the freshness signaling layer Microsoft officially recommends for Copilot ([indexnow.org](https://indexnow.org)) | Low |
+| Rank | Practice | Why it matters | Effort | Checklist item |
+|---|---|---|---|---|
+| 1 | Serve content as server-rendered HTML — headline, body, dates visible in the raw response before JS runs | Most AI crawlers (GPTBot, ClaudeBot, CCBot, PerplexityBot) do not execute JavaScript. Content hidden behind hydration is invisible to ~80% of AI crawlers ([Google JS SEO docs](https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics)) | Medium | Tier 1 #1 |
+| 2 | Publish `Article` / `Organization` / `Person` JSON-LD with `datePublished`, `dateModified`, `author`, `publisher`, and `sameAs` arrays to Wikipedia / Wikidata / ORCID / official profiles | ~71% of ChatGPT-cited pages and ~65% of Google AI Mode-cited pages carry structured data ([SEranking dataset via PPC.land](https://ppc.land/23-factors-that-actually-get-your-content-cited-by-ai-search-engines/)). The cheapest signal that lifts citation rate across every surface | Low | Tier 1 #2 |
+| 3 | Write a deliberate `robots.txt` that separates training crawlers from search/answer crawlers from user-triggered fetchers | Blanket `Disallow: /` blocks ChatGPT-User, Claude-User, and Perplexity-User — meaning a user who explicitly asks the LLM to read your page is refused. The single most common self-inflicted wound in 2026 ([OpenAI bot docs](https://developers.openai.com/api/docs/bots)) | Low | Tier 1 #4 |
+| 4 | Publish `sitemap.xml` with truthful `<lastmod>` and reference it from `robots.txt` | `<lastmod>` is the only freshness signal Google and Bing publicly use; `<changefreq>` and `<priority>` are ignored ([sitemaps.org](https://www.sitemaps.org/protocol.html)). Perplexity's Sonar resets freshness on minor edits | Low | Tier 1 #5 |
+| 5 | Front-load the answer in the first 30% of the page in a 40–75 word paragraph | 44% of citations come from the first third of a page; 75% from the first two-thirds ([ALM Corp content-placement study](https://almcorp.com/blog/chatgpt-citations-study-44-percent-first-third-content/)) | Low | Tier 2 #6 |
+| 6 | Pass WCAG 2.2 AA — semantic HTML5, ARIA labels on every interactive element, alt text on every meaningful image | OpenAI Operator, Anthropic Computer Use, and Google Project Mariner navigate via the accessibility tree — the same data structure built for screen readers | Medium | Tier 2 #12 |
+| 7 | Subscribe to Bing Webmaster Tools — AI Performance | The only major surface that gives publishers per-query AI citation data. Google Search Console does not break out AI Overview clicks ([Bing Webmaster blog](https://blogs.bing.com/webmaster/February-2026/Introducing-AI-Performance-in-Bing-Webmaster-Tools-Public-Preview)) | Low | Tier 4 #22 |
 
-Most readers should complete items 1–5 and stop. Everything else is amplification.
+Most readers should complete Tier 1 of [the 22-item priority checklist](#the-22-item-priority-checklist) and the foundational move above, then stop. Everything else is amplification.
 
 ---
 
@@ -192,7 +193,9 @@ User-agent: Bytespider
 User-agent: Meta-ExternalAgent
 User-agent: CCBot
 Disallow: /
-# (Switch to Allow: / if you want to be part of training corpora.)
+# (To allow training, remove the bot from this block. Don't change Disallow to Allow
+# inside it — under RFC 9309 longest-match-wins, the most specific UA block governs,
+# so removing the entry is the clean way to fall back to the wildcard Allow above.)
 
 # Search-index crawlers — always allow if you want to be cited
 User-agent: OAI-SearchBot
@@ -235,7 +238,7 @@ Google's stated stance on what gets cited is straightforward (from [developers.g
 
 The controls are the standard Search controls: `noindex`, `nosnippet`, `data-nosnippet` for sections, `max-snippet:[number]`, and `robots.txt` for Googlebot. There is no AI-specific opt-out for AI Overviews. Blocking AI Overviews means blocking yourself from Google Search.
 
-The data partially contradicts the official line. Ahrefs' March 2026 study of 863,000 keywords found that only 38% of AI Overview citations rank in Google's top 10 organically for the same query — down from 76% just seven months earlier ([primary source: Ahrefs on Google AI Overviews](https://ahrefs.com/blog/google-ai-overviews/); [ALM Corp summary](https://almcorp.com/blog/google-ai-overview-citations-drop-top-ranking-pages-2026/)). 26.2% rank 11–100 organically; 36.7% rank outside the top 100 entirely. AI Overview eligibility is increasingly orthogonal to organic ranking.
+The data partially contradicts the official line. Ahrefs' 2026 follow-up study of 863,000 keywords found that only 38% of AI Overview citations rank in Google's top 10 organically for the same query — down from 76% in [Ahrefs' July 2025 baseline](https://ahrefs.com/blog/search-rankings-ai-citations/) ([2026 update](https://ahrefs.com/blog/ai-overview-citations-top-10/); [ALM Corp summary](https://almcorp.com/blog/google-ai-overview-citations-drop-top-ranking-pages-2026/)). 26.2% rank 11–100 organically; 36.7% rank outside the top 100 entirely. AI Overview eligibility is increasingly orthogonal to organic ranking.
 
 Source patterns inside AI Overviews, from multiple independent studies:
 
@@ -307,16 +310,36 @@ When Siri hands off to ChatGPT, grounding comes from OpenAI's surface — so the
 
 ### The known-entity flywheel
 
-A signal every grounded-AI surface rewards: being a known entity in the open web's knowledge graph.
+The single most durable AI-citation signal is being a known entity in the open web's knowledge graph. It is the foundational move flagged at the top of this guide. This section is what "earn citations" actually means.
 
-The path is the same regardless of vendor:
+**The path is the same regardless of vendor:**
 
 1. Earn third-party citations from authoritative outlets (press, `.edu`, `.gov`, trade publications, conference proceedings).
 2. A Wikipedia article becomes possible once the entity meets Wikipedia's notability threshold (cited by reliable secondary sources, not self-published).
 3. A Wikidata entry follows. Wikidata's bar is lower than Wikipedia's but still requires verifiable references.
 4. The site adds `Organization` and `Person` schema with `sameAs` linking to those Wikidata + Wikipedia URLs.
 
-The knowledge-graph layer is what lets a grounded-AI surface confidently say "X is a Y who does Z" and attach a citation. Wikidata's Q-IDs power entity disambiguation across Google Knowledge Graph, Bing, Apple, Perplexity, and Gemini. It is a multi-year build and cannot be shortcut, but it is the single most durable AI-citation signal an organization can earn.
+The knowledge-graph layer is what lets a grounded-AI surface confidently say "X is a Y who does Z" and attach a citation. Wikidata's Q-IDs power entity disambiguation across Google Knowledge Graph, Bing, Apple, Perplexity, and Gemini. Eighteen to thirty-six months is a realistic timeline. There is no shortcut.
+
+**What actually earns citations**, ranked by leverage:
+
+1. **Original research.** Publish data nobody else has — a survey, a benchmark, a primary-research teardown, a longitudinal tracker. Original data is the single highest-yield citation magnet because every secondary write-up cites the source. The 1.4M-prompt Ahrefs study, the 13-week Semrush study, the Cloudflare bot telemetry posts are cited dozens of times in industry analysis, including in this guide. That citation tail compounds.
+
+2. **Earned press.** Bylines or quotes in outlets the knowledge graph already trusts — Reuters, Bloomberg, Forbes, Wired, your trade's flagship publication, major newspapers, Wikipedia-eligible academic press. One Reuters mention beats fifty SEO blog placements.
+
+3. **Conference talks at named events.** Speaking slots at events with their own Wikipedia entries (NRF, RSA, SIGGRAPH, AWS re:Invent, ICML, ICLR, etc.) leave durable third-party traces — programs, recordings, abstracts. The conference's own page is a citation. The recording on YouTube is a citation. The press write-up of the talk is a citation.
+
+4. **Open-source contributions** with named authorship. A merged PR to a high-star repo, a contributed example to a vendor cookbook, a published library — each lives at a permanent URL with your name attached. Especially load-bearing for technical entities Wikidata can't otherwise verify.
+
+5. **Wikipedia notability gates** are stricter than most operators realize. The bar is "significant coverage in reliable secondary sources independent of the subject." Press releases do not count. Sponsored content does not count. The company's own blog does not count. Two or three independent feature-length articles in qualifying outlets is the minimum realistic bar; for individuals, expect five or more.
+
+6. **Wikidata is the cheaper, faster step.** Wikidata accepts entries with any verifiable reference and is the entity layer Google Knowledge Graph, Apple, and Perplexity disambiguate against. If a Wikipedia article is two years away, a Wikidata Q-ID is achievable in months. Create one and bind your site's `Organization`/`Person` schema to it via `sameAs`.
+
+7. **The sameAs array is hygiene, not magic.** Point at high-authority external references that already exist: Wikidata, Wikipedia, Crunchbase, ORCID, GitHub, the official LinkedIn URL. Pointing at your own Twitter and Facebook pages adds nothing. Pointing at a Wikipedia article you own *yourself* is a flag, not a signal.
+
+**What does not work:** sponsored content, press-release-grade brand mentions on the long tail of SEO-content farms, paid placements that no editorial outlet actually fact-checked, bought reviews, AI-generated commentary citing your name back at you, link-network schemes. AI surfaces increasingly weight citation source by the same authority graph Google's quality raters do. Cheap mentions degrade your score; they don't raise it.
+
+**The compounding measurement.** Brand-mention monitoring tools (Ahrefs Brand Radar, Semrush Brand24, Profound, Peec AI) track third-party mentions across the web. The metric to watch is unique-authoritative-domain count over time. A site that grows from 20 mentions in 5 outlets to 200 mentions in 60 outlets in 18 months is on the flywheel. A site stuck on the same 5 outlets is not.
 
 ---
 
@@ -355,7 +378,7 @@ Two structural features matter for publishers:
 
 Pricing: $10 per 1,000 searches on top of standard token costs. Developers can constrain with `allowed_domains` / `blocked_domains` — meaning any Claude app can hard-allowlist or hard-blocklist publishers, a different dynamic from consumer Claude.ai where Anthropic controls the search surface.
 
-Large-N research on Claude citation behavior specifically is thinner than for ChatGPT or Perplexity. The Ahrefs July 2025 overlap study did not break Claude out; the Semrush 13-week study didn't include Claude; the Profound dataset focuses on ChatGPT/AIO/Perplexity. This is a meaningful research gap and we flag it candidly. What is observable: Claude with web_search heavily favors documentation, Wikipedia, and established editorial publishers in qualitative tests; `page_age` is exposed as a signal so freshness is structurally available; dynamic filtering biases toward pages whose first chunks pass the relevance check, reinforcing the front-load-the-answer pattern.
+Large-N research on Claude citation behavior is thinner than for ChatGPT or Perplexity. The Ahrefs July 2025 overlap study did not break Claude out; the Semrush 13-week study didn't include Claude; the Profound dataset focuses on ChatGPT, AIO, and Perplexity. This is a real research gap. What is observable: Claude with web_search heavily favors documentation, Wikipedia, and established editorial publishers in qualitative tests; `page_age` is exposed as a signal so freshness is structurally available; dynamic filtering biases toward pages whose first chunks pass the relevance check, reinforcing the front-load-the-answer pattern.
 
 ### Perplexity
 
@@ -437,11 +460,11 @@ OpenAI's CUA (Computer-Using Agent), which powers Operator and ChatGPT's agent m
 
 The action vocabulary is fixed: `click`, `double_click`, `scroll`, `type`, `keypress`, `drag`, `move`, `wait`, `screenshot`.
 
-Anthropic's Computer Use, available behind the `computer-use-2025-11-24` beta header on Claude Opus 4.5+ and Sonnet 4.5+, has the same surface area ([platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool)): screenshot capture, mouse control, keyboard input, plus optional bash and text-editor tools. Anthropic's January 2026 acquisition of Vercept (vision-based perception) lifted Claude Sonnet's OSWorld score from ~15% to 72.5%, signaling that visual perception is where current capability gains are coming from.
+Anthropic's Computer Use, available behind the `computer-use-2025-11-24` beta header on Claude Opus 4.5+ and Sonnet 4.5+, has the same surface area ([platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool)): screenshot capture, mouse control, keyboard input, plus optional bash and text-editor tools. Anthropic's [February 2026 acquisition of Vercept](https://www.anthropic.com/news/acquires-vercept) lifted Claude Sonnet's OSWorld score from under 15% to 72.5%, signaling that visual perception is where current capability gains are coming from.
 
 Browser Use (the open-source library at [github.com/browser-use/browser-use](https://github.com/browser-use/browser-use), 95k+ GitHub stars as of May 2026) makes the hybrid explicit: feeds the model screenshots, DOM, accessibility tree, and an indexed list of "clickable elements" the model can address by number. Playwright is the underlying driver.
 
-Browserbase ([browserbase.com](https://www.browserbase.com/)) is the infrastructure layer underneath much of this — isolated cloud browsers, session replay (Inspector), delegated authentication (Identity), an SDK called Stagehand that translates natural language into Playwright actions. 10,000+ customers including Microsoft, DeepMind, Clay, Amplitude, Ramp, Lovable. After a $40M Series B in June 2025 at a $300M valuation, Browserbase became the default infrastructure layer for production browser agents.
+Browserbase ([browserbase.com](https://www.browserbase.com/)) is the infrastructure layer underneath much of this — isolated cloud browsers, session replay (Inspector), delegated authentication (Identity), an SDK called Stagehand that translates natural language into Playwright actions. 1,000+ customers including Microsoft, DeepMind, Clay, Amplitude, Ramp, Lovable. After a [$40M Series B in June 2025 at a $300M valuation](https://www.prnewswire.com/news-releases/browserbase-launches-director-to-automate-the-web-for-everyone-announces-40m-series-b-302483761.html), Browserbase became the default infrastructure layer for production browser agents.
 
 The convergence across CUA, Computer Use, Browser Use, Atlas, Comet, and Playwright MCP, per [Search Engine Journal's analysis](https://www.searchenginejournal.com/how-ai-agents-see-your-website-and-how-to-build-for-them/570443/):
 
@@ -451,7 +474,7 @@ Google's response: WebMCP. In February 2026, Google shipped WebMCP in Chrome Can
 
 ### What an agentic browser rewards
 
-The single underrated insight in this entire space: what makes a site work for an agent is what makes it work for a screen reader. The accessibility community has carried water on semantic HTML, ARIA roles, and accessible state representation for twenty years. The agent era turns that work into an economic asset.
+What makes a site work for an agent is what makes it work for a screen reader. The accessibility community has carried water on semantic HTML, ARIA roles, and accessible state representation for twenty years. The agent era turns that work into an economic asset.
 
 Concrete moves for site owners:
 
@@ -465,6 +488,26 @@ Concrete moves for site owners:
 8. **Auth that works for delegated agents.** Browserbase Identity, OAuth-for-agents proposals, scoped API tokens with clear revoke UX. Sites that demand re-auth every session or fight cookies-cleared-between-sessions are hostile to agent-operated workflows.
 9. **Don't rely on hover-only menus.** Hover doesn't translate cleanly to the CUA action vocabulary. Click-to-open or always-visible navigation works for agents and accessibility alike.
 10. **Expose an MCP server or WebMCP descriptor for high-value actions** — search, checkout, ticket, schedule. This is the agentic-web equivalent of "we have an API."
+
+### Agentic commerce — what it takes for an agent to actually buy from you
+
+The browser-agent moves above keep an agent from getting *stuck*. They don't make checkout work. Commerce is the surface where most sites that look agent-friendly fail in practice — the agent navigates fine, adds to cart fine, and then the checkout flow throws a CAPTCHA, demands a fresh login, or rejects a stored card with no recovery path. Most agentic-commerce attempts fail somewhere between "agent has cart" and "merchant has order." The failure modes are knowable:
+
+1. **Cart state survives the navigation the agent makes.** Cart-as-cookie that vanishes on a fresh session is a write-off for delegated agents. Cart-as-account-state, accessible via the same auth the agent already holds, works. Server-persisted carts win; localStorage-only carts lose.
+
+2. **Auth that supports delegation.** Passkeys with scoped grants beat passwords. OAuth-for-agents proposals (and the early implementations from Browserbase Identity, Skyfire, and emerging spec work at the W3C) are where this is headed. Sites that force re-auth on every session, send SMS OTPs as a hard gate, or terminate sessions when User-Agent doesn't match are hostile to agentic checkout — they treat legitimate delegated traffic as fraud.
+
+3. **Inventory and price freshness as structured fields.** `Offer` schema with `availability`, `price`, `priceCurrency`, and `priceValidUntil` lets an agent confirm what it's buying without scraping a "Add to cart" button to find out the item is out of stock. SKU- and variant-level structured data is meaningfully more useful to an agent than to a human shopper.
+
+4. **A machine-readable returns and refund policy.** `MerchantReturnPolicy` schema (`returnPolicyCategory`, `merchantReturnDays`, `returnMethod`) lets the agent confirm the deal before committing. Hiding the return policy behind three clicks and a PDF is hostile to agentic buyers.
+
+5. **Payment handoff that doesn't punish stored credentials.** Agents reusing a saved payment method should not face the same friction as a card typed for the first time. If your processor's adaptive-fraud model treats every agent session as suspect, you've blocked the buyer your customer wants to send. Work with the processor on agent-session signals (request-signed scoped tokens, attestation headers) instead of stricter blocks.
+
+6. **A confirmation surface the agent can read.** Order-confirmation pages with `Order` schema (`orderNumber`, `orderStatus`, `orderDate`, line items with `OrderItem`) close the loop. Receipt-only-in-email is a black box to the agent.
+
+7. **Expose checkout as an MCP tool.** For high-volume merchants, the most durable agentic-commerce play is `add_to_cart()`, `apply_promo()`, `checkout()` as MCP tools with documented argument shapes — not "agent figures out our DOM." Stripe is already shipping `mcp-server-stripe`; Shopify has agentic-checkout experiments in motion. This is the surface where commerce platforms compete on whose merchants get the agent traffic.
+
+Most of this is invisible to humans visiting your site. That's exactly the point — agentic commerce is a parallel set of failure modes that classical UX QA never tests. A merchant whose human-side checkout has a 70% completion rate may be at 5% on agent sessions and not know it.
 
 ### How coding agents consume docs
 
@@ -503,43 +546,23 @@ The other patterns coding agents reward:
 
 ### llms.txt and llms-full.txt — what's real, what's aspirational
 
-Proposed by Jeremy Howard of Answer.AI in September 2024 at [llmstxt.org](https://llmstxt.org/). The pitch in his own words:
+**The verdict.** Publish `llms.txt` if you ship developer docs. Skip it for marketing-only sites. No major frontier lab has confirmed `llms.txt` is a privileged crawl signal the way Google treats `/robots.txt` or `/sitemap.xml` — its real value today is toolchain-mediated (Mintlify, Cursor docs integrations, Devin's repo onboarding, Claude Code's `/init`), not model-consumed by default.
 
-> "A proposal to standardise on using an `/llms.txt` file to provide information to help LLMs use a website at inference time. Large language models increasingly rely on website information, but face a critical limitation: context windows are too small to handle most websites in their entirety."
+Proposed by Jeremy Howard of Answer.AI in September 2024 at [llmstxt.org](https://llmstxt.org/). Format: H1 → blockquote summary → free-form Markdown → H2-delimited file lists (`- [name](url): notes`). Companion convention: every HTML page also published as `.md` at the same path with `.md` appended. `llms.txt` is the curated index; `llms-full.txt` concatenates the full content.
 
-The format spec, in order: H1 (required) → blockquote summary (optional) → free-form Markdown (optional) → H2-delimited file lists (`- [name](url): notes`) → optional "Optional" section for lower-priority links.
-
-Companion convention: every HTML page also published as `.md` by appending `.md` to the URL.
-
-`llms.txt` vs `llms-full.txt`: the first is a curated index designed to fit in context; the second is a concatenation of full content of every linked page for one-shot consumption.
-
-**Live-verified `llms.txt` files (fetched May 2026):**
+**Live-verified `llms.txt` files** (fetched during research for this guide):
 
 | Site | URL | Notes |
 |---|---|---|
 | Anthropic | [`platform.claude.com/llms.txt`](https://platform.claude.com/llms.txt) | 1,541 English pages indexed, 11 languages, every page has a `.md` twin |
-| Stripe | [`docs.stripe.com/llms.txt`](https://docs.stripe.com/llms.txt) | Includes embedded agent instructions — "always check the npm registry for the latest version… never hardcode an old version number from training data" — then ~25 product sections |
-| Cloudflare | [`developers.cloudflare.com/llms.txt`](https://developers.cloudflare.com/llms.txt) | Tree of `llms.txt` files — top-level routes to per-product `llms.txt` files, not one monolithic file |
+| Stripe | [`docs.stripe.com/llms.txt`](https://docs.stripe.com/llms.txt) | Embedded agent instructions ("always check the npm registry…"), ~25 product sections |
+| Cloudflare | [`developers.cloudflare.com/llms.txt`](https://developers.cloudflare.com/llms.txt) | Tree structure: top-level routes to per-product `llms.txt` files |
 | Vercel | [`vercel.com/llms.txt`](https://vercel.com/llms.txt) | Hierarchical, points to `vercel.com/docs/llms-full.txt` |
-| Model Context Protocol | [`modelcontextprotocol.io/llms.txt`](https://modelcontextprotocol.io/llms.txt) | Referenced from page header |
-| Claude Code docs | [`code.claude.com/docs/llms.txt`](https://code.claude.com/docs/llms.txt) | Referenced from page header |
-| Mintlify | Auto-generated for every hosted docs site | See below |
+| Mintlify | Auto-generated for every hosted docs site | Zero customer config |
 
-Mintlify's first-class support ([mintlify.com/docs/ai/llmstxt](https://mintlify.com/docs/ai/llmstxt)) auto-generates and serves with zero customer config: `/llms.txt`, `/llms-full.txt`, `/.well-known/` variants per RFC 8615, HTTP discovery headers (`Link: </llms.txt>; rel="llms-txt"`, `X-Llms-Txt: /llms.txt`). Auth-gated docs produce auth-gated `llms.txt` files. Customers can override with a hand-curated file; delete the override and auto-generation resumes. This is the model to copy. Any docs-as-code platform that wants share-of-agent-traffic will follow.
+Mintlify ([mintlify.com/docs/ai/llmstxt](https://mintlify.com/docs/ai/llmstxt)) is the model to copy: auto-generates `/llms.txt`, `/llms-full.txt`, `/.well-known/` variants per RFC 8615, and HTTP discovery headers. Auth-gated docs produce auth-gated `llms.txt` files. Override with a hand-curated file when you need to; delete the override and auto-generation resumes. [directory.llmstxt.cloud](https://directory.llmstxt.cloud/) tracks 849+ adopting sites; [llmstxt.site](https://llmstxt.site/) shows token counts (Next.js 675K, Nuxt 637K, Convex 408K).
 
-**Adoption directories:**
-
-- [directory.llmstxt.cloud](https://directory.llmstxt.cloud/) — 849+ sites listed by category. Anthropic, Vercel, Cloudflare, ElevenLabs, Hugging Face, MCP, Cursor, Zapier, Trigger.dev, CrewAI, Codeium, Coinbase, Mangopay, Finch, Sardine, Pinecone, Turso, Upstash, Unstructured, Flatfile, and on.
-- [llmstxt.site](https://llmstxt.site/) — hundreds of entries with token counts for the `llms-full.txt` versions: Next.js 675,809 tokens, Nuxt 636,952, Convex 408,171, Retool 398,898, Postman 32,550.
-
-**Does any production LLM consume `llms.txt` automatically as a default crawl behavior?** Honest answer: partly, and mostly toolchain-mediated, not by default. What is true in May 2026:
-
-- Claude.ai web fetch and ChatGPT browse will return `llms.txt` content if the model asks for it by URL, like any other text file.
-- Coding agents with project context (Claude Code, Cursor, Cline) will read an `llms.txt` if a user pastes the URL or if a docs MCP server points at one.
-- IDE-side, Cursor, Windsurf, Claude Code, Cline, and Aider probe for `/llms.txt` when pointed at a docs domain.
-- There is no public confirmation that any major LLM training pipeline or inference-time auto-crawler treats `/llms.txt` as a privileged file the way Google treats `/robots.txt` or `/sitemap.xml`. Anthropic, OpenAI, Google, Meta have not announced "we read llms.txt as a discovery signal."
-
-The protocol's value today is therefore mostly toolchain-mediated (Mintlify, Cursor docs integrations, Devin's repo onboarding, Claude Code's `/init` flow) rather than directly model-consumed. Publish it if you ship docs — the cost is low and the toolchain coverage is real. Skip it for marketing-only sites — a clean sitemap and good JSON-LD is better leverage.
+What's actually consuming `llms.txt` today: coding agents with project context (Claude Code, Cursor, Cline, Windsurf, Aider) probe for it when pointed at a docs domain. Consumer chat models will fetch it on request like any other text file but do not treat it as privileged. That's the entire footprint — useful if your audience is coding agents, irrelevant if it isn't.
 
 ### MCP — the next layer above llms.txt
 
@@ -703,13 +726,47 @@ JavaScript bundles >500KB compressed are a tax on every crawler that does render
 
 ### Accessibility as agent-friendliness
 
-The most underrated insight in this entire space, repeated for emphasis: the accessibility tree is the same data structure agentic browsers see.
-
-WCAG 2.2 ([w3.org/TR/wcag22](https://www.w3.org/TR/wcag22/)) Success Criterion 1.3.1:
+The accessibility tree is the same data structure agentic browsers see. WCAG 2.2 ([w3.org/TR/wcag22](https://www.w3.org/TR/wcag22/)) Success Criterion 1.3.1:
 
 > "Information, structure, and relationships conveyed through presentation can be programmatically determined or are available in text."
 
 That is the literal requirement for agent-readability, written twenty years before agents existed. A site passing WCAG AA is by construction a site Operator and Computer Use can drive. A site failing it — `<div onclick>` buttons, image-only nav, missing alt text — is a site agents fail on.
+
+### Visual content for vision-capable agents
+
+Most large frontier models now process images natively — GPT-4o, Gemini 2.5+, Claude with vision input, Apple Intelligence's on-device VLM. Agentic browsers (Operator, Anthropic Computer Use, Atlas, Comet) all loop on screenshots. Image-as-citation is a small but growing surface.
+
+Concrete moves:
+
+1. **Descriptive alt text, not decorative alt text.** "Bar chart showing AI bot share of all crawler traffic in 2025: Googlebot 50%, GPTBot 7.7%, ClaudeBot 5.4%" beats "chart." Alt text is what a VLM-blind agent uses; for VLM-capable agents, alt text is still cheaper to read than the image itself.
+2. **`ImageObject` schema** with `contentUrl`, `caption`, `description`, and `representativeOfPage` lets grounded-AI surfaces select the right image for a citation thumbnail.
+3. **Image sitemaps** ([Google image sitemap docs](https://developers.google.com/search/docs/crawling-indexing/sitemaps/image-sitemaps)) with `<image:caption>` and `<image:title>` on key visuals. Underused.
+4. **Open Graph image dimensions accurate.** `og:image:width` / `og:image:height` enables link-unfurler agents to render previews without round-tripping for the file.
+5. **Charts and tables as text first, image second.** Publish the underlying data table in HTML; the image is the human-friendly rendering. Agents that can't parse the image can still parse the table; agents that can parse the image will cite the table for precision.
+6. **EXIF / IPTC metadata on photography.** For visual journalism, product imagery, and primary-source documentation, embedded metadata (photographer, date, location, rights) is the only signal a VLM has about provenance.
+
+The whole space is still settling. Today's leverage is alt-text discipline plus `ImageObject` schema; the rest is amplification.
+
+### How to measure — did any of this work
+
+For a moving target with no single dashboard, measurement is the weakest part of the agent-marketing stack. The current 2026 reality:
+
+| Surface | Tool | What it tells you | Cost |
+|---|---|---|---|
+| Microsoft Copilot, Bing AI summaries | [Bing Webmaster Tools — AI Performance](https://blogs.bing.com/webmaster/February-2026/Introducing-AI-Performance-in-Bing-Webmaster-Tools-Public-Preview) | Per-query citation count, cited pages, grounding queries, visibility trends | Free |
+| ChatGPT, ChatGPT Search | Analytics filter on `utm_source=chatgpt.com` referrals | Click-through volume only; not citations | Free |
+| Google AI Overviews | Google Search Console — no AI Overview breakout exists | Inferred from total impressions/clicks plus position drops | Free (incomplete) |
+| Cross-surface citation tracking | Profound, Peec AI, Ahrefs Brand Radar, Semrush Brand24 | Mention/citation tracking across ChatGPT, Perplexity, AIO, Claude | Paid |
+| Crawler activity | Cloudflare bot analytics, server logs, Google Search Console crawl stats | Per-bot fetch volume, 304 rate, response time | Free if on Cloudflare |
+
+What to actually track, monthly, in one report:
+
+1. Bing AI Performance — citation count, top cited pages, grounding queries
+2. `utm_source=chatgpt.com` and `utm_source=perplexity.ai` referral volume from analytics
+3. Brand-mention monitor — unique authoritative domains citing your brand month-over-month
+4. Crawler logs — confirm GPTBot, ClaudeBot, OAI-SearchBot, PerplexityBot, Googlebot, ChatGPT-User, Claude-User, Perplexity-User are all returning 200 OK on the URLs you care about
+
+If you cannot answer "did Bing's AI Performance dashboard show more citations this month than last," you cannot defend any investment in this work. Get the dashboard set up before you ship anything else from this guide.
 
 ---
 
@@ -751,7 +808,7 @@ Impact-ordered. Items 1–5 are the 80/20.
 
 ## What we still don't know
 
-Intellectual honesty matters more in a moving market than confident prescription. The major open questions as of May 2026:
+Here's what we don't know yet. The major open questions:
 
 1. **`llms.txt` consumption by frontier labs.** No major lab (Anthropic, OpenAI, Google, Meta) has publicly confirmed automatic crawl-based consumption of `/llms.txt`. Current value is real but toolchain-mediated. Publish it if you ship docs; skip it for marketing sites.
 
