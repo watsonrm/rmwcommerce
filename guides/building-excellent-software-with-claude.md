@@ -1,6 +1,6 @@
-# Building Excellent Software (with Claude)
+# Building Excellent Software with Claude
 
-**A real case study: what disciplines you have to apply to a Claude-built artifact to get it from working to production-grade.**
+**Seven disciplines that close the gap between "Claude built it" and production-grade — grounded in the public tokenmin-scanner build record.**
 
 > © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. Technical claims are grounded in the public source repositories and Anthropic documentation cited throughout — see [Sources & Attribution](#sources--attribution). Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
@@ -8,32 +8,30 @@
 
 ## TL;DR — what's in it for you
 
-- The tokenmin v0.12.1 → v0.12.5 build happened in roughly 12 hours of focused work. The code is public. You can read every decision.
-- "Claude built it" is not a quality guarantee — it's a starting point. The disciplines in this article are what close the gap.
-- This isn't about software development specifically. Every one of these lessons applies to any consequential artifact you build with Claude's help: a proposal, an analysis, an automation, a report.
-- If you take nothing else: the metric that seems right can be the most dangerous one. Fix the framing before you fix the calculation.
+- "Claude built it" is not a quality guarantee. It is a starting point. The seven disciplines in this article are what close the gap.
+- Every principle here is verifiable in the public [tokenmin-scanner](https://github.com/watsonrm/tokenmin-scanner) repo — filed issues, committed tests, CI workflows, and SECURITY.md form the audit trail.
+- These lessons are not specific to software. Every one applies to any consequential artifact you build with Claude's help: a proposal, an analysis, an automation, a report.
+- If you take nothing else: a metric that is technically correct and contextually wrong is worse than no metric at all. Fix the framing before you fix the calculation.
 
 ### Where to spend your time, in priority order
 
 | # | Discipline | Why it matters | Effort |
 | :-- | :--- | :--- | :--- |
-| **1** | Dogfood relentlessly | A spec review never catches what five minutes of real use catches | Ongoing |
-| **2** | File the bug, then fix it | Design clarity before code; the issue is the spec | Per session |
-| **3** | Be honest about cost and benefit | Technically correct and contextually wrong is worse than no metric | Design phase |
-| **4** | Encode every constraint as a test | Claude doesn't remember constraints across sessions — the test does | Per constraint |
-| **5** | Red-team your own work | Your threat model has more gaps than you think, and Claude will find them if you ask | Pre-release |
-| **6** | Check the ranking, not just the output | An accurate finding ranked #1 when it shouldn't be is a UX problem | Per release |
-| **7** | Build for survival | Software that only works while you're watching isn't software yet | Architecture |
+| **1** | Be honest about cost and benefit | A contextually wrong metric damages trust in everything else | Design phase |
+| **2** | Dogfood before you ship | Real use catches what spec reviews miss | Ongoing |
+| **3** | File the bug, then fix it | The issue defines acceptance before the fix begins | Per session |
+| **4** | Encode every constraint as a test | Claude doesn't carry constraints across sessions — the test does | Per constraint |
+| **5** | Red-team your own work | The threat model is your job; Claude will find gaps if you ask | Pre-release |
+| **6** | Check the ranking, not just the output | A correct finding ranked first when it shouldn't be is a UX problem | Per release |
+| **7** | Build for survival | Software that only runs while you're watching isn't software yet | Architecture |
 
-Most readers should absorb the first three and stop. The rest matter, but rows 1–3 address the failure modes that actually ship.
+Most readers should absorb the first three and stop. Rows 4–7 matter, but rows 1–3 address the failure modes that actually ship.
 
 ---
 
 ## How to use this guide
 
-This guide is the reasoning. The companion skill at [`skills/building-excellent-software/`](../skills/building-excellent-software/) is the live coach.
-
-Install it once:
+The companion skill at [`skills/building-excellent-software/`](../skills/building-excellent-software/) is the operational form of this guide. Install it once:
 
 ```bash
 # from a clone of this repo
@@ -46,88 +44,84 @@ Then describe your build to Claude — what you're building, where you are in th
 > "Where am I on the dogfood-to-production ladder?"
 > "Red-team what I just built"
 
-Claude will load the skill and work through the relevant disciplines against your actual artifact. The article below is the reasoning behind each discipline. The skill is how you apply them.
+Claude will load the skill and work through the relevant disciplines against your actual artifact. The article below is the reasoning behind each discipline.
 
 ---
 
-## The case study: tokenmin v0.12.1 → v0.12.5
+## The case study: tokenmin-scanner
 
-Tokenmin is a Claude usage audit tool — it scans your local Claude session history, anonymizes it, and surfaces where you're wasting tokens or spending in the wrong places. The public scanner is open source at [github.com/watsonrm/tokenmin-scanner](https://github.com/watsonrm/tokenmin-scanner) under Apache-2.0.
+[tokenmin-scanner](https://github.com/watsonrm/tokenmin-scanner) is an open-source Claude usage audit tool — it scans local Claude session history, anonymizes it, and surfaces where tokens are wasted or spent in the wrong places. The scanner is public under Apache-2.0.
 
-The v0.12.1 → v0.12.5 sprint covered roughly 12 hours of focused work. Every decision is traceable to a filed issue or a commit on main. That traceability is part of the discipline — not a post-hoc documentation exercise.
-
-This article pulls from what actually happened during that sprint. Where a claim is grounded in a public issue or a specific test, I link it. Where I'm summarizing my own working method, I say so.
+The examples in this article come from the issue backlog, test files, and CI workflows in that public repo. Every claim links to its source. Where an example illustrates a general principle, the principle is stated separately so it generalizes beyond this specific tool.
 
 ---
 
-## 1. Dogfood relentlessly
+## 1. Be honest about cost and benefit
+
+This is the discipline that matters most for anyone building instrumentation, reporting, or any tool that puts a number in front of a user — and it is ranked first because getting it wrong is the highest-cost mistake.
+
+The tokenmin-scanner issue backlog documents a concrete failure of this kind. [Scanner #2](https://github.com/watsonrm/tokenmin-scanner/issues/2) describes a scenario where the tool reported an API-equivalent cost that was mathematically correct — input tokens plus output tokens plus cache reads and writes, priced at retail API rates — but wrong for the user's actual plan. A Claude Pro or Max subscriber who sees an API-equivalent dollar figure does not pay that figure. The number is accurate at the token level and misleading at the plan level. ([scanner #3](https://github.com/watsonrm/tokenmin-scanner/issues/3) documents the same problem in the savings framing: showing a dollar-per-month savings to a user on a flat-fee plan is equally incoherent.)
+
+The fix had two parts.
+
+**Plan-aware framing.** Pro and Max reports no longer show dollar amounts in the TL;DR or savings cards. Subscribers see quota stretch percentage, token volume, and time instead. The underlying API-equivalent cost is still computed — the math is preserved — but the framing matches what the user actually pays. API and unknown-plan users see dollars unchanged.
+
+**Externalized pricing.** Before the fix, model prices were hardcoded constants in source. When Anthropic changes pricing, every installed copy is silently wrong until the user updates. The fix moved prices to `engine/pricing.json` with a `last_updated` field and a staleness warning threshold. The 18 tests in `test_cost_framing.py` guard both properties. The lead fixture comment states the acceptance criterion directly: a subscriber who sees an implausible dollar figure distrust the tool before getting any value from it.
+
+The principle generalizes to every reporting context: when a metric lands in front of someone, you are making an implicit claim about what it means to them. The right question is not "is this number accurate?" but "does this number mean what the user thinks it means?" Anthropic's own prompt caching documentation frames the same idea: the latency cost of a cache miss is real, and users feel it even if they cannot quantify it — perceived cost is the cost that matters. ([Anthropic: Prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching))
+
+**The principle:** validate framing, not just calculation. A technically correct metric that is contextually wrong is worse than no metric — it damages trust in everything else the tool says.
+
+---
+
+## 2. Dogfood before you ship
 
 The only honest source of UX feedback is using your own artifact on your own real work.
 
-During the tokenmin sprint, every release got installed on my actual laptop within minutes of the commit landing on main. Not deployed to staging. Not run against synthetic fixtures. Installed as a real user would install it, against my real `~/.claude/` session history.
+Anthropic's own engineering teams follow this practice. Their post on building agent tools describes testing against "our internal workspace, mirroring the complexity of our internal workflows, including real projects, documents, and messages" — not synthetic fixtures, but live internal infrastructure. ([Anthropic: Writing effective tools for agents — with agents](https://www.anthropic.com/engineering/writing-tools-for-agents))
 
-This caught things no spec review would have caught. The install output was noisy — 24 lines of terminal output before the tool even did anything meaningful. That's not a number I got from analyzing the install script. That's a number I got from watching my own terminal fill up and thinking "this is too much." The fix was a CI guard that asserts install completes in five lines or fewer. The spec review would have said "installation should be quiet." The dogfood session said "here are the 24 lines."
+The tokenmin-scanner build record shows what this catches. One early release produced 24 lines of terminal output before the tool did anything meaningful. That number was not derived from analyzing the install script — it was observed by watching a real terminal fill up and noticing that something was wrong. The fix was a CI guard asserting that install completes in five lines or fewer. The spec review would have said "installation should be quiet." The dogfood session said "here are the 24 lines."
 
-The second thing dogfooding caught was the model routing signal. Tokenmin fired `model_overspend` as its top finding on my setup — "100% Opus, route to Sonnet." The finding was factually accurate about the main session. But I run 16 explicitly-routed subagents: 7 on Haiku, 9 on Sonnet, 0 inheriting from the main session. The subagent routing I'd already done was invisible to the detector. The main session is 100% Opus on purpose — it handles judgment work. The recommendation to route to Sonnet was wrong for my setup. ([scanner #9](https://github.com/watsonrm/tokenmin-scanner/issues/9))
+A second thing real-use testing caught was a detector misfiring on a sophisticated multi-layer setup. [Scanner #9](https://github.com/watsonrm/tokenmin-scanner/issues/9) documents the pattern: the `model_overspend` detector classified the main-session model mix as "critical" without visibility into subagent routing. The detector was reading a real signal and drawing a wrong conclusion from it. Neither finding would have shown up in a code review. Both showed up within minutes of real use.
 
-Neither of these would have shown up in a code review. They both showed up immediately in five minutes of use.
+The Claude Code best practices documentation frames this precisely: Claude "performs dramatically better when it can verify its own work" — and the same logic applies to the builder. Without a real feedback loop, plausible-looking artifacts fail in ways that only real use reveals. ([Claude Code: Best practices](https://code.claude.com/docs/en/best-practices))
 
-**The principle:** use your own artifact on your own real problem before you declare it done. "Real use" means the messy version — your actual data, your actual workflow, your actual reaction when something looks off. Synthetic inputs produce synthetic confidence.
+**The principle:** use your own artifact on your own real problem before you declare it done. Synthetic inputs produce synthetic confidence.
 
 ---
 
-## 2. File the bug, then fix it
+## 3. File the bug, then fix it
 
-When something goes wrong during dogfooding, the temptation is to fix it immediately. Resist this. File the issue first.
+When something goes wrong during real use, the temptation is to fix it immediately. Resist this. File the issue first.
 
-Filing forces you to articulate what's actually wrong — and more importantly, what the correct behavior should be. The issue is the spec. It defines acceptance before the fix begins, which means you know when you're done. A fix without an issue is a fix without a definition of done.
+Filing forces you to articulate what is actually wrong — and more importantly, what the correct behavior should be. The issue is the spec. It defines acceptance before the fix begins, which means you know when you are done. A fix without an issue is a fix without a definition of done.
 
-The tokenmin issue backlog during the v0.12.x sprint:
+This also solves a Claude-specific problem. Claude does not carry context across sessions. A decision made in one session does not survive to the next without explicit encoding. The issue backlog is the durable form of your intent. Anthropic's context engineering guidance makes this explicit: agents should maintain "notes persisted to memory outside of the context window" to enable tracking across complex tasks. ([Anthropic: Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)) The GitHub issue tracker is that external memory for the humans directing the build.
 
-- [#1](https://github.com/watsonrm/tokenmin-scanner/issues/1) — `models_used_families` values reported as 0 because of an integer-flooring bug on the percentage calculation. Filed with exact repro. Closed after fix + test.
-- [#2](https://github.com/watsonrm/tokenmin-scanner/issues/2) — cost framing misleading for Pro/Max subscription users (the $7,622 moment — more on this in section 5).
-- [#3](https://github.com/watsonrm/tokenmin-scanner/issues/3) — savings shown in dollars per month doesn't apply to flat-fee plan users.
+The tokenmin-scanner issue backlog for the v0.12.x sprint is public and traceable:
+
+- [#1](https://github.com/watsonrm/tokenmin-scanner/issues/1) — `models_used_families` values reported as 0 due to integer-flooring on the percentage calculation. Filed with exact repro; closed after fix and test.
+- [#2](https://github.com/watsonrm/tokenmin-scanner/issues/2) — cost framing misleading for Pro/Max subscribers.
+- [#3](https://github.com/watsonrm/tokenmin-scanner/issues/3) — savings shown in dollars per month for flat-fee plan users.
 - [#5](https://github.com/watsonrm/tokenmin-scanner/issues/5) — low-impact findings diluting the main report.
-- [#6](https://github.com/watsonrm/tokenmin-scanner/issues/6) — `tokenmin show <id>` leaks dollar amounts on Pro/Max plans.
-- [#7](https://github.com/watsonrm/tokenmin-scanner/issues/7) — audit doesn't disclose subagent-model invisibility.
-- [#8](https://github.com/watsonrm/tokenmin-scanner/issues/8) — `no_global_claude_md` and `no_custom_agents` fire when the user has a project-scoped setup that makes them irrelevant.
-- [#9](https://github.com/watsonrm/tokenmin-scanner/issues/9) — `model_overspend` fires as the top finding even when the user has already optimized via subagent routing.
+- [#6](https://github.com/watsonrm/tokenmin-scanner/issues/6) — `tokenmin show <id>` leaking dollar amounts on Pro/Max plans.
+- [#7](https://github.com/watsonrm/tokenmin-scanner/issues/7) — audit not disclosing subagent-model invisibility.
+- [#8](https://github.com/watsonrm/tokenmin-scanner/issues/8) — `no_global_claude_md` and `no_custom_agents` firing when the user has project-scoped configuration that makes them irrelevant.
+- [#9](https://github.com/watsonrm/tokenmin-scanner/issues/9) — `model_overspend` ranking wrong for subagent-heavy users.
 
-Each issue has a description of the problem, a repro path, and a fix sketch. That's the spec. The fix that follows is constrained by the issue, not by whatever seemed easy to implement. This forces a clear answer to "what does fixed look like?" before a line of code changes.
+Each issue has a description of the problem, a repro path, and a fix sketch. That is the spec. The fix is constrained by the issue, not by whatever seemed easy to implement. This forces a clear answer to "what does fixed look like?" before a line of code changes.
 
-The secondary benefit: when the fix goes wrong, you have a clear record of what you were trying to do. Claude doesn't carry context across sessions. The issue backlog does.
-
----
-
-## 3. Red-team your own work
-
-Building with Claude creates a specific risk: Claude will build what you ask for. If you ask for "a telemetry system," you'll get a telemetry system. If you don't ask about the threat model, Claude won't invent one.
-
-The tokenmin security bar was explicit: "Glasswing-level security" — meaning the kind of care a well-run security consultancy would apply to a new product collecting user data.
-
-After the v0.12.x build, I ran a dedicated red-team pass. Here's what it found and fixed:
-
-**Identifier hashing.** The initial design used SHA-256 to anonymize file paths and identifiers. SHA-256 is not enough: an adversary who guesses that a path like `~/.ssh/known_hosts` is likely present can precompute its hash and reverse-identify it. The fix was HMAC-SHA256 with a 32-byte salt generated on first run and stored at `~/.tokenmin/.salt` (chmod 0600). The salt means precomputed tables fail. This is documented in [SECURITY.md](https://github.com/watsonrm/tokenmin-scanner/blob/main/SECURITY.md) and verifiable in the source.
-
-**ReDoS defense.** The anonymizer runs regex patterns against potentially adversarial content from session files. A carefully crafted input string can cause exponential backtracking in a naive regex engine — a denial-of-service against the user's own machine. The fix was a 64 KiB input cap: every string is truncated before the scrubber sees it. Bad lines are dropped, not raised on.
-
-**ANSI injection.** A session file with planted ANSI escape sequences in project or file names could hijack the user's terminal when `tokenmin watch` rendered them. The fix was a `_strip_ctl()` helper that removes ANSI CSI/OSC sequences and C0/C1 control characters before rendering any displayed string. There's a property test covering this in the scrubber suite.
-
-**Token handling in git config.** The F&F installer wrote authentication tokens to `.git/config`, where `git config --list` would expose them. The fix was a per-install git credential helper file (chmod 0600) that keeps the token out of the config entirely.
-
-**Open-source as a trust mechanism.** The scanner — the code that decides what leaves your machine — is fully open source under Apache-2.0. Not because open source makes software more secure by default, but because "trust me" is not a threat model. Anyone can diff their installed copy against the public repo. That's the stated deal in the README: "Read it. Diff it against your install. Then decide if you trust the bargain."
-
-**The GitHub PAT incident.** When I attempted to embed a PAT in the public repo for telemetry routing, GitHub's push protection blocked the commit. The right response was not to encode or obfuscate the token to evade the protection ("ick" was my exact word at the time). It was to go private on the telemetry repo and use GitHub Pro. The protection was correct. Evading it would have been a security regression dressed up as an implementation shortcut.
-
-**The principle:** Claude will implement what you specify. The threat model is your job. Ask Claude to red-team what it built — it's good at this — but give it a specific bar to work against, not just "check for security issues." "What would a researcher at a security consultancy flag in this?" produces different results than "is this secure?"
+**The principle:** the issue is the spec. File it before the fix. When the fix goes wrong, you have a record of what you were trying to do, and Claude has something to read in the next session.
 
 ---
 
 ## 4. CI guards every behavior you care about
 
-Claude does not remember constraints across sessions. A decision made in session 1 ("install output must be quiet") does not survive to session 12 without explicit encoding. The test suite is the only reliable mechanism for persistent constraints.
+Claude does not remember constraints across sessions. A decision made in session 1 — "install output must be quiet" — does not survive to session 12 without explicit encoding. The test suite is the only reliable mechanism for persistent constraints.
 
-The tokenmin test structure at v0.12.5:
+Anthropic's evaluation guidance describes the same architecture for agent work: convert manual checks into test cases, run them on every commit, and graduate passing evals to regression suites that maintain a near-100% pass rate. ([Anthropic: Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)) The principle transfers directly to CI for software built with Claude.
+
+The tokenmin-scanner test structure at v0.12.5 shows what this looks like in practice:
 
 **56 tests across 5 suites.** Each suite guards a specific behavioral contract:
 
@@ -135,150 +129,128 @@ The tokenmin test structure at v0.12.5:
 
 - `test_uninstall.py` (5 tests) — asserts that uninstall produces exactly one line of output (`tokenmin 0.12.5 uninstalled`), that dev-tree safety prevents accidental `rm -rf` of a checkout, that idempotent re-run on an already-uninstalled system exits cleanly.
 
-- `test_cost_framing.py` (18 tests) — asserts that Pro/Max plan reports contain no dollar amounts in the TL;DR or savings cards. Subscription users see quota stretch percentage, tokens, and hours instead. API/unknown plans continue showing dollars. Pricing loads from `engine/pricing.json`, not from hardcoded constants.
+- `test_cost_framing.py` (18 tests) — asserts that Pro/Max plan reports contain no dollar amounts in the TL;DR or savings cards. Subscription users see quota stretch percentage, tokens, and hours instead. API and unknown-plan users continue showing dollars. Pricing loads from `engine/pricing.json`, not from hardcoded constants.
 
-- `test_update_ux.py` (8 tests) — covers the `tokenmin update` command contract: `--check` doesn't pull, cache expires correctly, SHA comparison uses prefix (the short SHA from `_version_info()` must match against the 40-char full SHA from `git ls-remote`).
+- `test_update_ux.py` (8 tests) — covers the `tokenmin update` command contract: `--check` does not pull, cache expires correctly, SHA comparison uses prefix.
 
-- `test_v0_12_4.py` (10 tests) — guards the four specific behaviors shipped in v0.12.4: low-impact findings filter, plan-aware cost framing on `tokenmin show`, subagent invisibility footnote in the `model_overspend` evidence, and project-scoped CLAUDE.md detection.
+- `test_v0_12_4.py` (10 tests) — guards four specific behaviors shipped in v0.12.4: low-impact findings filter, plan-aware cost framing on `tokenmin show`, subagent invisibility footnote in the `model_overspend` evidence, and project-scoped CLAUDE.md detection.
 
 Every push to main runs all five suites across Python 3.10, 3.11, and 3.12. The CI configuration is [public](https://github.com/watsonrm/tokenmin-scanner/blob/main/.github/workflows/ci.yml).
 
-There's also a **synthetic-leak gate** in CI: it builds a fake `~/.claude/` directory with planted client names and file paths, runs the scanner against it, and fails the build if any plaintext leaks through the anonymizer. This catches anonymization regressions that are easy to introduce when adding new scraper paths and nearly impossible to catch in a code review.
+There is also a **synthetic-leak gate** in CI: it builds a fake `~/.claude/` directory with planted identifiers, runs the scanner against it, and fails the build if any plaintext leaks through the anonymizer. This catches anonymization regressions that are easy to introduce when adding new scraper paths and nearly impossible to catch in a code review.
 
-The mirror-parity check confirms the scanner files in the private F&F bundle are bit-identical to the public scanner repo. If they drift, CI fails.
-
-**The principle:** tests are how you delegate memory to the system. When you discover a constraint during dogfooding, your first question should be "what test would have caught this?" Write that test, then write the fix. The test is the durable form of the lesson. The fix without the test just defers the regression.
+**The principle:** tests are how you delegate memory to the system. When a constraint surfaces during real use, your first question should be "what test would have caught this?" Write that test, then write the fix. The test is the durable form of the lesson.
 
 ---
 
-## 5. Be honest about cost and benefit
+## 5. Red-team your own work
 
-This is the one that matters most for anyone building instrumentation, reporting, or any tool that puts a number in front of a user.
+Building with Claude creates a specific risk: Claude will build what you ask for. If you ask for a telemetry system, you will get a telemetry system. If you do not specify a threat model, Claude will not invent one.
 
-During the tokenmin F&F dogfood, the tool reported `$7,622 spent` over a 14-day window. The calculation was mathematically correct: input tokens + output tokens + cache reads + cache writes, priced at retail API rates. The problem was that I pay $200 per month for a Claude Max subscription, not $7,622.
+Anthropic's guidance on building effective agents notes that autonomous agents involve "higher costs, and the potential for compounding errors," and recommends "extensive testing in sandboxed environments, along with the appropriate guardrails." ([Anthropic: Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)) For security specifically, the threat model is the builder's responsibility, not Claude's default output.
 
-The number was technically right and contextually wrong. For a metered API user, it's the right framing. For a flat-fee subscriber, it's a number that makes you distrust the tool before you've gotten any value from it. ([scanner #2](https://github.com/watsonrm/tokenmin-scanner/issues/2))
+The tokenmin-scanner [SECURITY.md](https://github.com/watsonrm/tokenmin-scanner/blob/main/SECURITY.md) documents the findings from a dedicated red-team pass after the v0.12.x build. Four findings are instructive as patterns:
 
-The v0.12.3 fix had two parts:
+**Identifier hashing.** The initial design used SHA-256 to anonymize file paths and identifiers. SHA-256 is not enough: an adversary who guesses that a path like `~/.ssh/known_hosts` is likely present can precompute its hash and reverse-identify it. The fix was HMAC-SHA256 with a 32-byte salt generated on first run and stored at `~/.tokenmin/.salt` (chmod 0600). The salt means precomputed tables fail.
 
-**E: Plan-aware framing.** Pro and Max reports no longer show dollar amounts in the TL;DR or savings cards. Instead they show quota stretch percentage, token volume, and time. The underlying API-equivalent cost is still computed — the math is right — but the framing matches what the user actually pays. API and unknown-plan users see dollars unchanged.
+**ReDoS defense.** The anonymizer runs regex patterns against potentially adversarial content from session files. A carefully crafted input string can cause exponential backtracking in a naive regex engine — a denial-of-service against the user's own machine. The fix was a 64 KiB input cap: every string is truncated before the scrubber sees it. Bad lines are dropped, not raised on.
 
-**C: Externalized pricing.** Before v0.12.3, model prices were hardcoded constants in source. When Anthropic changes pricing, every installed tokenmin was silently wrong until the user updated. The fix moved prices to `engine/pricing.json` with a `last_updated` field and a staleness warning threshold. A future auto-update mechanism can refresh the pricing file without requiring a software release.
+**ANSI injection.** A session file with planted ANSI escape sequences in project or file names could hijack the terminal when the tool rendered them. The fix was a `_strip_ctl()` helper that removes ANSI CSI/OSC sequences and C0/C1 control characters before rendering any displayed string. There is a property test covering this in the scrubber suite.
 
-The 18 tests in `test_cost_framing.py` guard both of these properties. The lead fixture comment explains the exact failure mode: "A user on Max who sees $7,622 spent is confused, then doubts the tool." That's the acceptance criterion. The test either passes or it doesn't.
+**Token handling in configuration.** The initial approach wrote authentication tokens to `.git/config`, where `git config --list` would expose them. The fix was a per-install credential helper file (chmod 0600) that keeps the token out of the config entirely.
 
-**The principle:** when you put a metric in front of someone, you're making an implicit claim about what it means to them. A metric that's technically correct but contextually wrong is worse than no metric — it damages trust in everything else the tool says. The right question isn't "is this number accurate?" but "does this number mean what the user thinks it means?"
+The open-source approach to the scanner itself — the code that decides what leaves the user's machine — is a trust mechanism: anyone can diff their installed copy against the public repo. That is documented in the README as an explicit bargain, not a general claim about open source being more secure.
 
----
-
-## 6. Time-to-value is the only metric users feel
-
-Every interaction before the user has seen value is a tax. Prompts, warnings, confirmation dialogs, setup steps — all of them feel small in isolation and compound into an experience that people don't return to.
-
-The tokenmin install target was: one command, one response, working state.
-
-```
-curl --proto '=https' --tlsv1.2 -fsSL https://tokenmin.ai/install.sh | bash
-```
-
-Output on success:
-
-```
-tokenmin 0.12.5 installed → run: tokenmin
-```
-
-Uninstall:
-
-```
-tokenmin 0.12.5 uninstalled
-```
-
-The `tokenmin update` command bypasses the 24-hour cooldown for explicit user-initiated updates, reports the current and new version, and completes without confirmation prompts. The `--version` flag shows an "update available" hint when the local install is behind, so users know without having to check.
-
-This maps to the same principle behind Anthropic's prompt caching design: perceived latency is a cost, and users feel it even when they can't quantify it. ([Anthropic prompt caching docs](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)) The analogy isn't perfect — install UX and API latency are different problems — but the underlying logic is the same: the time between a user deciding to try something and seeing evidence that it works determines whether they keep going.
-
-The CI guard for install UX asserts that install completes in five lines of stdout. If a future change makes the install noisy again, the build fails. The constraint is encoded, not just documented.
-
-**The principle:** time-to-value is the moment a user sees that the artifact does what you claimed. Every second before that moment is borrowed attention. Design for that moment first, then add everything else.
+**The principle:** Claude will implement what you specify. The threat model is your job. Ask Claude to red-team what it built — it is good at this — but give it a specific bar to work against. "What would a security researcher flag in this?" produces different results than "is this secure?"
 
 ---
 
-## 7. Don't trust the obvious recommendation
+## 6. Check the ranking, not just the output
 
-The `model_overspend` detector fired as the top finding on my Max account with a "critical" severity rating: 100% Opus across 52 sessions, $7,055/month recoverable, confidence 55%. The recommendation was to route mechanical work to Sonnet.
+A correct finding ranked first when it should not be is a UX problem, not just a logic problem. The user's response to a list of recommendations depends heavily on what is at the top.
 
-For most users, this is good advice. For my setup, it was wrong in a specific way that didn't become obvious until I read the evidence carefully.
+[Scanner #9](https://github.com/watsonrm/tokenmin-scanner/issues/9) documents this failure mode. The `model_overspend` detector classified a user's setup as "critical" based on main-session model data. The detector is technically correct — the main session is using a premium model — and the recommendation is wrong for users who have already routed cheaper work to lower-cost models at the subagent layer. The detector sees the main session only. It cannot see subagent routing.
 
-The detector looks at main-session model usage. My main session is 100% Opus on purpose — it handles synthesis, proposal drafting, meeting prep dispatch, and design decisions. The cheap-routing wins are realized at the subagent layer: 375 Agent tool calls over 14 days, spread across 16 subagents, 7 on Haiku, 9 on Sonnet, 0 inheriting from the main session. The detector couldn't see any of that. It saw "100% Opus" and fired. ([scanner #9](https://github.com/watsonrm/tokenmin-scanner/issues/9))
+The v0.12.4 response was to add a disclaimer to the `model_overspend` evidence text noting that "this only measures your main session." That was honest but insufficient. The finding still ranked first with a critical severity label. A disclaimer is a footnote on a ranking that is wrong.
 
-v0.12.4 added a disclaimer to the `model_overspend` evidence text: "this only measures your main session." That was honest but insufficient — the finding still ranked first with a critical severity label. The disclaimer is a footnote on a ranking that was wrong.
+The issue remains open. The right fix is context-aware ranking: high subagent call volume should downgrade confidence substantially, because a user with significant Agent tool call activity over a given period has already separated cheap work from judgment work at the subagent layer.
 
-This is filed as an open issue. The right fix isn't just a disclaimer; it's making the detector context-aware: high subagent call volume should downgrade confidence substantially, because a user with 375 Agent calls in 14 days has already separated cheap work from judgment work.
+[Scanner #8](https://github.com/watsonrm/tokenmin-scanner/issues/8) illustrates the same pattern from a different angle: the `no_global_claude_md` and `no_custom_agents` detectors fired on a project-scoped setup where they are irrelevant. The detector fired because it only checks for global configuration, not for project-scoped equivalents that serve the same function.
 
-The same principle applies to the `no_global_claude_md` and `no_custom_agents` detectors — both fired on my setup, both are wrong because I have project-scoped configuration that makes them irrelevant. ([scanner #8](https://github.com/watsonrm/tokenmin-scanner/issues/8))
+The same principle appears in Anthropic's evaluation guidance: avoid "overly brittle" tests that grade specific tool sequences rather than outcomes, because agents "regularly find valid approaches that eval designers didn't anticipate." ([Anthropic: Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)) A detector that is right for the median user is wrong for sophisticated users in ways that make the tool less useful for exactly the people who would benefit most.
 
-**The principle:** a detector that's right for the median user can be wrong for sophisticated users in ways that make the tool less useful for exactly the people who would benefit most. When you build recommendations, build the ranking logic with the same care you'd give the detection logic. A correct finding ranked wrong is a UX problem.
-
----
-
-## 8. Build for survival
-
-At the end of the v0.12.5 sprint, I filed scanner #15: 15 candidate detectors, each grounded in a specific Anthropic source, each with a detection signal derivable from the tokenmin snapshot schema. ([scanner #15](https://github.com/watsonrm/tokenmin-scanner/issues/15)) The research for that issue came from a single in-foreground session of reading Anthropic docs and engineering posts. One session, 15 candidates.
-
-The problem with that approach: it only runs when I'm watching. The next useful research session happens when I remember to run it. That's not a system — it's a habit, and habits degrade.
-
-The v0.12.5 commit that shipped alongside the sprint also added a GitHub Actions workflow at [`.github/workflows/detector-research.yml`](https://github.com/watsonrm/tokenmin-scanner/blob/main/.github/workflows/detector-research.yml). It runs in the cloud every Monday at 13:23 UTC. It watches Anthropic's news feed, engineering blog, Claude Code releases, and cookbook commits for new posts. It files a GitHub issue for each newly-seen item so I can triage it as a detector candidate or not. The state is committed back to the repo after each run so it doesn't re-file what it's already seen.
-
-The workflow survives laptop shutdown, network outages on my end, and weeks where I don't think about tokenmin at all. The research continues without me.
-
-This is the distinction between using Claude to do work and building software with Claude that does work. The former requires you in the loop every time. The latter runs the relevant parts without you.
-
-The workflow itself is about 60 lines of YAML and a Python script in `bin/detector-research.py`. Claude wrote the first version in a single session from a spec I dictated. The spec was: "watch these sources, file issues for new posts, track what you've seen so you don't duplicate." The implementation is verifiable in the public repo.
-
-**The principle:** software that requires a human in the loop for routine operation isn't software — it's an elaborate prompt. Ask yourself, for any recurring task your artifact handles: what happens when I'm unavailable for a week? If the answer is "nothing runs," build the automation before you declare the artifact done.
+**The principle:** build ranking logic with the same care you give detection logic. A correct finding ranked wrong is a UX problem that erodes confidence in the whole tool.
 
 ---
 
-## What this means for non-developers
+## 7. Build for survival
+
+There is a meaningful difference between using Claude to do work and building software with Claude that does work. The former requires a human in the loop every time. The latter runs the relevant parts without one.
+
+Anthropic's multi-agent research system post describes this directly: the system was designed so agents "operate autonomously for many turns, making decisions about which directions to pursue," with the architecture decoupling computation from human availability. ([Anthropic: How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)) Their managed agents post goes further, describing a design where if a container fails mid-task, the harness catches the error and Claude resumes from the durable session log — not from scratch. ([Anthropic: Scaling Managed Agents](https://www.anthropic.com/engineering/managed-agents)) The principle is the same: software that depends on a human being present for routine operation is not software, it is an elaborate prompt.
+
+The tokenmin-scanner [detector-research workflow](https://github.com/watsonrm/tokenmin-scanner/blob/main/.github/workflows/detector-research.yml) illustrates the applied form. The workflow runs in GitHub Actions every Monday at 13:23 UTC. It watches Anthropic's news feed, engineering blog, Claude Code releases, and cookbook commits for new posts. It files a GitHub issue for each newly-seen item so the maintainer can triage it as a detector candidate or not. The state is committed back to the repo after each run so it does not re-file what it has already seen.
+
+The workflow survives laptop shutdown, network outages, and weeks where the maintainer does not think about the project at all. The research continues without human involvement.
+
+[Scanner #15](https://github.com/watsonrm/tokenmin-scanner/issues/15) documents the output of one such research session: 15 candidate detectors, each grounded in a specific Anthropic source, each with a detection signal derivable from the snapshot schema. The issue is the artifact; the workflow is what keeps producing similar artifacts on schedule.
+
+**The principle:** for any recurring task your artifact handles, ask what happens when the builder is unavailable for a week. If the answer is "nothing runs," build the automation before declaring the artifact done. Software that requires a human in the loop for routine operation is not software yet.
+
+---
+
+## What this means outside software development
 
 Every discipline in this article has a non-software version.
 
-Dogfooding is using your own deliverable as a real user before sending it to a client. File-then-fix is writing a clear description of what's wrong and what correct looks like before touching the draft. Red-teaming is asking Claude to take the opposing view on your proposal before you present it. Tests are checklists with acceptance criteria that get rechecked on every revision. Cost-and-benefit honesty is making sure the metric in your report means what your client thinks it means.
+Dogfooding is using your own deliverable as a real user before sending it to a client. File-then-fix is writing a clear description of what is wrong and what correct looks like before touching the draft. Red-teaming is asking Claude to take the opposing view on your proposal before you present it. Tests are checklists with acceptance criteria rechecked on every revision. Cost-and-benefit honesty is making sure the metric in your report means what your client thinks it means.
 
-The version-number-specific details in this article are specific to tokenmin. The disciplines are not.
+The version-number-specific details in this article are specific to tokenmin-scanner. The disciplines are not. Claude is capable of building things quickly. The gap between "quickly built" and "production-grade" is the set of disciplines above applied consistently across a real build.
 
-Claude is good at building things quickly. The gap between "quickly built" and "production-grade" is the set of disciplines above applied consistently across a real build. None of them require programming knowledge. All of them require the willingness to slow down at the moment when it's tempting to ship.
+None of them require programming knowledge. All of them require the willingness to slow down at the moment when it is tempting to ship.
 
 ---
 
 ## Sources & Attribution
 
-**Primary sources — data and first-party documentation:**
+**Primary sources — public repositories:**
 
-- [tokenmin-scanner public repo](https://github.com/watsonrm/tokenmin-scanner) — Apache-2.0 scanner, anonymizer, CLI, tests, CI
+- [tokenmin-scanner](https://github.com/watsonrm/tokenmin-scanner) — Apache-2.0 scanner, anonymizer, CLI, tests, CI
 - [scanner #1](https://github.com/watsonrm/tokenmin-scanner/issues/1) — `models_used_families` flooring bug (closed)
-- [scanner #2](https://github.com/watsonrm/tokenmin-scanner/issues/2) — cost framing misleading for Pro/Max users
-- [scanner #3](https://github.com/watsonrm/tokenmin-scanner/issues/3) — savings shown in $/mo for flat-fee plans
-- [scanner #5](https://github.com/watsonrm/tokenmin-scanner/issues/5) — low-impact findings dilute main report
-- [scanner #6](https://github.com/watsonrm/tokenmin-scanner/issues/6) — `tokenmin show` leaks dollars on Pro/Max
+- [scanner #2](https://github.com/watsonrm/tokenmin-scanner/issues/2) — cost framing misleading for Pro/Max subscribers
+- [scanner #3](https://github.com/watsonrm/tokenmin-scanner/issues/3) — savings shown in dollars per month for flat-fee plans
+- [scanner #5](https://github.com/watsonrm/tokenmin-scanner/issues/5) — low-impact findings diluting main report
+- [scanner #6](https://github.com/watsonrm/tokenmin-scanner/issues/6) — `tokenmin show` leaking dollars on Pro/Max
 - [scanner #7](https://github.com/watsonrm/tokenmin-scanner/issues/7) — subagent-model invisibility not disclosed
 - [scanner #8](https://github.com/watsonrm/tokenmin-scanner/issues/8) — project-scoped setup not detected
 - [scanner #9](https://github.com/watsonrm/tokenmin-scanner/issues/9) — `model_overspend` ranking wrong for subagent-heavy users
-- [scanner #15](https://github.com/watsonrm/tokenmin-scanner/issues/15) — 15 v0.12.6+ detector candidates
+- [scanner #15](https://github.com/watsonrm/tokenmin-scanner/issues/15) — v0.12.6+ detector candidates
 - [tokenmin-scanner SECURITY.md](https://github.com/watsonrm/tokenmin-scanner/blob/main/SECURITY.md) — threat model, HMAC design, ReDoS defense, transport defaults
-- [tokenmin-scanner CI workflow](https://github.com/watsonrm/tokenmin-scanner/blob/main/.github/workflows/ci.yml) — scrubber, uninstall, cost-framing, mirror-parity tests
+- [tokenmin-scanner CI workflow](https://github.com/watsonrm/tokenmin-scanner/blob/main/.github/workflows/ci.yml)
 - [detector-research workflow](https://github.com/watsonrm/tokenmin-scanner/blob/main/.github/workflows/detector-research.yml) — weekly cloud research agent
-- [Anthropic: Prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) — TTL design, latency-as-cost framing
-- [Anthropic: Claude Code best practices](https://code.claude.com/docs/en/best-practices) — subagent routing, context hygiene
-- [Anthropic: Built a multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system) — parallel tool-use, agent architecture tradeoffs
+
+**Primary sources — Anthropic first-party documentation:**
+
+- [Claude Code: Best practices](https://code.claude.com/docs/en/best-practices) — context window management, verification, subagent routing
+- [Anthropic: How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system) — autonomous agent loops, parallel tool use, survival architecture
+- [Anthropic: Scaling Managed Agents](https://www.anthropic.com/engineering/managed-agents) — decoupling brain from hands, durable session log, error recovery
+- [Anthropic: Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) — sandboxed testing, guardrails, poka-yoke tool design
+- [Anthropic: Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) — eval methodology, CI integration, regression suites
+- [Anthropic: Writing effective tools for agents — with agents](https://www.anthropic.com/engineering/writing-tools-for-agents) — dogfooding on internal infrastructure, using Claude to improve Claude's tools
+- [Anthropic: Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) — persistent state, just-in-time retrieval, external memory
+- [Anthropic: Prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) — perceived latency as a cost, cache pre-warming, time-to-first-token
 
 **Corrections from prior circulating versions:**
 
-The brief that seeded this article listed the issue count for the v0.12.x sprint as covering "#4-#8 (low-impact filter, show leaks dollars, subagent invisibility, project-scoped)." Issue #4 in the public repo is a pull request (the fix for #2), not a standalone issue. The correct issue numbers for those four items are #5, #6, #7, and #8. All four are linked above.
+The article previously listed the priority order with "Dogfood relentlessly" as discipline #1. The rewritten version re-ranks "Be honest about cost and benefit" to #1. Cost-framing errors are the failure mode most likely to ship: they are subtle, they survive spec review, they survive code review, and they damage user trust immediately on first use. Dogfooding is what catches them — so dogfooding is the mechanism, and cost-honesty is the most important thing to catch.
 
-The brief cited "55 tests across 5 suites." The actual count at v0.12.5 is 56: 18 + 15 + 5 + 8 + 10 across the five files in `tests/`. The claim has been corrected throughout.
+The prior version referenced the "v0.12.1 → v0.12.5 build" and "roughly 12 hours of focused work" as the case study framing. Those phrases have been removed. The time claim was unverifiable from the public repo, and the specific-version framing added no generalized value. The case study now refers to the issue backlog and CI record, both of which are verifiable.
 
-The brief mentioned an `install-smoke.yml` CI workflow in `watsonrm/tokenmin-site`. That repo is private; the workflow could not be independently verified. The CI claim in this article is limited to what's verifiable in the public `tokenmin-scanner` repo.
+The prior version referenced the F&F bundle and tokenmin-site (a private repository). Those references have been stripped. Claims grounded only in private repos cannot be verified by readers.
+
+The prior version's Sources section cited `anthropic.com/engineering/claude-code-best-practices`. That URL redirects permanently (HTTP 308) to `code.claude.com/docs/en/best-practices`. The canonical URL is used throughout this version.
+
+The prior version cited three Anthropic sources. This version cites eight, with each citation tied to the specific principle it grounds.
 
 ---
 
