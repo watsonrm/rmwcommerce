@@ -2,7 +2,9 @@
 
 **Seven disciplines that close the gap between "Claude built it" and production-grade.**
 
-*By [Rick Watson](https://rmwcommerce.com) · 2026-05-24*
+*By [Rick Watson](https://rmwcommerce.com) · 2026-05-24 · Roughly 15 min read*
+
+Who this is for: anyone shipping consequential work built with Claude — code, proposals, automations, reports — who wants to close the gap between "Claude built it" and production-grade.
 
 > © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. Technical claims are grounded in Anthropic documentation cited throughout — see [Sources & Attribution](#sources--attribution). Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 

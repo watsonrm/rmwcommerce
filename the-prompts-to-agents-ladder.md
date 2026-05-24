@@ -2,7 +2,9 @@
 
 **When to stay with a prompt, when to package a skill, when to build an agent — and when a multi-agent system is actually warranted.**
 
-*By [Rick Watson](https://rmwcommerce.com) · 2026-05-22*
+*By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · Roughly 15 min read*
+
+Who this is for: anyone building with LLMs who needs to decide whether the right shape is a prompt, a skill, a single agent, or a multi-agent system.
 
 > © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. Quoted material is the property of its respective owners and used under fair use with attribution — see [Sources & Attribution](#sources--attribution). Quoted sources include: Andrew Ng / DeepLearning.AI, Anthropic, OpenAI, Shunyu Yao et al., Lilian Weng, Andrej Karpathy, Harrison Chase / LangChain, Ethan Mollick, Simon Willison, Yohei Nakajima, and Riley Goodside. Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 

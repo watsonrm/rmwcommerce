@@ -2,7 +2,9 @@
 
 **A practical, evidence-backed guide to reducing Claude latency and verbosity — covering prompt caching, model selection, parallel tool calls, and the patterns that slow you down. Every claim cited to primary documentation, Anthropic engineering writing, named practitioners, peer-reviewed research, or cross-vendor confirmation.**
 
-*By [Rick Watson](https://rmwcommerce.com) · 2026-05-22*
+*By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · Roughly 20 min read*
+
+Who this is for: anyone running Claude in production who wants to reduce wall-clock latency and verbose output without sacrificing quality.
 
 > © 2026 Rick Watson / RMW Commerce Consulting. This compilation, its ranking, and the original commentary are copyrighted. The underlying techniques originate from Anthropic's official Claude API and Claude Code documentation, supplemented by Anthropic engineering writing and the independent practitioner and research voices listed in [Sources & Attribution](#sources--attribution). Quoting brief excerpts with attribution is fine. Republishing the compilation in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 

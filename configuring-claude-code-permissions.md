@@ -2,7 +2,9 @@
 
 **A field guide to `.claude/settings.local.json`, cross-checked against Anthropic's primary docs and the official example settings.**
 
-*By [Rick Watson](https://rmwcommerce.com) · 2026-05-22*
+*By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · Roughly 6 min read*
+
+Who this is for: Claude Code users editing `.claude/settings.local.json` who want to know which rules actually do something versus which are cargo cult.
 
 > © 2026 Rick Watson / RMW Commerce Consulting. This compilation, its ranking, and the original commentary are copyrighted. The underlying techniques originate from Anthropic's public documentation. See [Sources](#sources). Quoting brief excerpts with attribution is fine. Republishing the compilation in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 

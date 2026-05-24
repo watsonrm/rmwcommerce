@@ -2,7 +2,9 @@
 
 **A hands-on companion to the field guide — from installation through your first working project, focused on the one skill that matters most: the approval process.**
 
-*By [Rick Watson](https://rmwcommerce.com) · 2026-05-22*
+*By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · Roughly 13 min read*
+
+Who this is for: non-developers running Claude Code for the first time who want to make it through install, permissions, and first commit without breaking anything.
 
 > © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. Quoted material is the property of its respective owners and used under fair use with attribution — see [Sources & Attribution](#sources--attribution). Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 

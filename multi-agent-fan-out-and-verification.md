@@ -2,7 +2,9 @@
 
 **How to structure Claude agent systems that scale without silently breaking — architecture, theory, and the strongest counterargument.**
 
-*By [Rick Watson](https://rmwcommerce.com) · 2026-05-22*
+*By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · Roughly 25 min read*
+
+Who this is for: engineers building or refactoring multi-agent Claude systems who want to avoid silent failures and orchestrator context overflow.
 
 > © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. This guide synthesizes patterns from Anthropic's engineering blog, GitHub's engineering blog, and published research by Lilian Weng, Shunyu Yao et al., and Walden Yan — quoted material is the property of its respective owners and used under fair use with attribution. See [Sources & Attribution](#sources--attribution). Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 

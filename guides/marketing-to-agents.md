@@ -12,7 +12,9 @@ keywords: AI agents, AI search, LLM citation, robots.txt, llms.txt, AGENTS.md, M
 
 **The authoritative playbook for making any website readable, citable, and operable across every class of AI agent: indexer bots, AI search surfaces, chat assistants, and agentic browsers. Every claim sourced. 22-item checklist impact-ordered by evidence weight.**
 
-*By [Rick Watson](https://rmwcommerce.com) · 2026-05-24*
+*By [Rick Watson](https://rmwcommerce.com) · 2026-05-24 · Roughly 45 min read*
+
+Who this is for: site owners and marketers who want their content to land in ChatGPT, Perplexity, Google AI Overviews, and Claude citations, and to stay usable by agentic browsers.
 
 > © 2026 Rick Watson / RMW Commerce Consulting. This compilation, its ranking, and the original commentary are copyrighted. The underlying techniques originate from vendor primary documentation, peer-reviewed research, and large-N industry studies. See [Sources & Attribution](#sources--attribution). Quoting brief excerpts with attribution is fine. Republishing the compilation in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
@@ -94,6 +96,23 @@ The top seven on-your-site moves, ordered by evidence weight. Each maps to an it
 | 7 | Subscribe to Bing Webmaster Tools — AI Performance | The only major surface that gives publishers per-query AI citation data. Google Search Console does not break out AI Overview clicks ([Bing Webmaster blog](https://blogs.bing.com/webmaster/February-2026/Introducing-AI-Performance-in-Bing-Webmaster-Tools-Public-Preview)) | Low | Tier 4 #22 |
 
 Most readers should complete Tier 1 of [the 22-item priority checklist](#the-22-item-priority-checklist) and the foundational move above, then stop. Everything else is amplification.
+
+---
+
+## What's in this article
+
+- [How to use this](#how-to-use-this) — install the companion skill and trigger phrases
+- [Why this matters now](#why-this-matters-now) — the composition of your site's audience changed
+- [The four classes of agent](#the-four-classes-of-agent) — indexers, AI search, chat assistants, agentic browsers
+- [Part 1 — Who's actually crawling you](#part-1--whos-actually-crawling-you) — bot-by-bot map and access rules
+- [Part 2 — Being cited in AI search](#part-2--being-cited-in-ai-search) — what drives citation in Google AI Overviews and Perplexity
+- [Part 3 — Being cited in chat assistants](#part-3--being-cited-in-chat-assistants) — ChatGPT, Claude, Copilot citation surfaces
+- [Part 4 — Being usable by agentic systems](#part-4--being-usable-by-agentic-systems) — operator-grade interactions and MCP
+- [Claude Code](#claude-code) — the developer-docs surface for coding agents
+- [Part 5 — The technical infrastructure stack](#part-5--the-technical-infrastructure-stack) — JSON-LD, sitemaps, llms.txt, AGENTS.md
+- [The 22-item priority checklist](#the-22-item-priority-checklist) — full impact-ranked list
+- [What we still don't know](#what-we-still-dont-know) — open questions and weak evidence
+- [Sources & Attribution](#sources--attribution) — primary sources and citations
 
 ---
 
