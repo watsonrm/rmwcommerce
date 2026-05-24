@@ -1,0 +1,58 @@
+{% comment %}
+  Custom head injection for github.com/watsonrm/rmwcommerce.
+
+  Emits a Schema.org Article block in <head> for any page that opts in via
+  frontmatter (`agent_friendly: true`). The block uses the page's own
+  frontmatter (title, description, date, last_modified_at, author) so each
+  guide gets its own typed identity instead of Jekyll SEO tag's generic
+  WebPage default.
+
+  Companion to the visible "Machine-readable identity" section in
+  guides/marketing-to-agents.md — agents that parse <script> tags see the
+  full schema in <head>; agents reading body text see the same data as a
+  human-readable code fence.
+{% endcomment %}
+
+{% if page.agent_friendly %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": {{ page.title | default: site.title | jsonify }},
+  "description": {{ page.description | default: site.description | jsonify }},
+  "datePublished": {{ page.date | default: page.last_modified_at | date: "%Y-%m-%dT%H:%M:%S-04:00" | jsonify }},
+  "dateModified": {{ page.last_modified_at | default: page.date | date: "%Y-%m-%dT%H:%M:%S-04:00" | jsonify }},
+  "inLanguage": "en",
+  "url": {{ page.url | absolute_url | jsonify }},
+  "mainEntityOfPage": {{ page.url | absolute_url | jsonify }},
+  "author": {
+    "@type": "Person",
+    "name": "Rick Watson",
+    "url": "https://www.rmwcommerce.com/",
+    "jobTitle": "Principal, RMW Commerce Consulting",
+    "sameAs": [
+      "https://www.linkedin.com/in/rickmwatson/",
+      "https://x.com/RMW_Commerce",
+      "https://github.com/watsonrm",
+      "https://watsonweekly.com/"
+    ]
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "RMW Commerce Consulting",
+    "url": "https://www.rmwcommerce.com/",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://images.squarespace-cdn.com/content/v1/5e924549c2923c644b9de05f/7e088230-031b-46d3-ad75-366f63a3d443/favicon.ico?format=100w"
+    }
+  },
+  "license": "https://creativecommons.org/licenses/by-nc-nd/4.0/",
+  "copyrightHolder": {
+    "@type": "Person",
+    "name": "Rick Watson"
+  },
+  "copyrightYear": 2026{% if page.keywords %},
+  "keywords": {{ page.keywords | jsonify }}{% endif %}
+}
+</script>
+{% endif %}

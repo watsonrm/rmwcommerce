@@ -1,3 +1,13 @@
+---
+title: Marketing to Agents
+description: The authoritative playbook for making any website readable, citable, and operable across every class of AI agent — indexer bots, AI search surfaces, chat assistants, and agentic browsers. Every claim sourced. 22-item checklist impact-ordered by evidence weight.
+date: 2026-05-21
+last_modified_at: 2026-05-24
+author: Rick Watson
+agent_friendly: true
+keywords: AI agents, AI search, LLM citation, robots.txt, llms.txt, AGENTS.md, MCP, JSON-LD, agentic browsers, generative engine optimization, GEO
+---
+
 # Marketing to Agents
 
 **The authoritative playbook for making any website readable, citable, and operable across every class of AI agent: indexer bots, AI search surfaces, chat assistants, and agentic browsers. Every claim sourced. 22-item checklist impact-ordered by evidence weight.**
