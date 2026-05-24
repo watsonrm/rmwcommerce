@@ -66,9 +66,9 @@ The fix had two parts.
 
 **Plan-aware framing.** Pro and Max reports no longer show dollar amounts in the TL;DR or savings cards. Subscribers see quota stretch percentage, token volume, and time instead. The underlying API-equivalent cost is still computed — the math is preserved — but the framing matches what the user actually pays. API and unknown-plan users see dollars unchanged.
 
-**Externalized pricing.** Before the fix, model prices were hardcoded constants in source. When Anthropic changes pricing, every installed copy is silently wrong until the user updates. The fix moved prices to `engine/pricing.json` with a `last_updated` field and a staleness warning threshold. The 18 tests in `test_cost_framing.py` guard both properties. The lead fixture comment states the acceptance criterion directly: a subscriber who sees an implausible dollar figure distrust the tool before getting any value from it.
+**Externalized pricing.** Before the fix, model prices were hardcoded constants in source. When Anthropic changes pricing, every installed copy is silently wrong until the user updates. The fix moved prices to `engine/pricing.json` with a `last_updated` field and a staleness warning threshold. The 18 tests in `test_cost_framing.py` guard both properties. The acceptance criterion is direct: a subscriber who sees an implausible dollar figure distrusts the tool before getting any value from it.
 
-The principle generalizes to every reporting context: when a metric lands in front of someone, you are making an implicit claim about what it means to them. The right question is not "is this number accurate?" but "does this number mean what the user thinks it means?" Anthropic's own prompt caching documentation frames the same idea: the latency cost of a cache miss is real, and users feel it even if they cannot quantify it — perceived cost is the cost that matters. ([Anthropic: Prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching))
+The principle generalizes to every reporting context: when a metric lands in front of someone, you are making an implicit claim about what it means to them. The right question is not "is this number accurate?" but "does this number mean what the user thinks it means?" Anthropic's prompt caching documentation makes a related point on the technical side: cache misses produce real latency that users feel even when they cannot quantify it. ([Anthropic: Prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)) The framing extension — that perceived cost is the cost that matters — is the article's, not theirs.
 
 **The principle:** validate framing, not just calculation. A technically correct metric that is contextually wrong is worse than no metric — it damages trust in everything else the tool says.
 
@@ -191,7 +191,7 @@ The tokenmin-scanner [detector-research workflow](https://github.com/watsonrm/to
 
 The workflow survives laptop shutdown, network outages, and weeks where the maintainer does not think about the project at all. The research continues without human involvement.
 
-[Scanner #15](https://github.com/watsonrm/tokenmin-scanner/issues/15) documents the output of one such research session: 15 candidate detectors, each grounded in a specific Anthropic source, each with a detection signal derivable from the snapshot schema. The issue is the artifact; the workflow is what keeps producing similar artifacts on schedule.
+[Scanner #15](https://github.com/watsonrm/tokenmin-scanner/issues/15) documents the output of one such research session: 15 candidate detectors. Most are grounded in Anthropic first-party documentation; a few cite vetted ecosystem sources. Each carries a detection signal derivable from public snapshot data — a handful require a minor schema extension, called out in the issue. The issue is the artifact; the workflow is what keeps producing similar artifacts on schedule.
 
 **The principle:** for any recurring task your artifact handles, ask what happens when the builder is unavailable for a week. If the answer is "nothing runs," build the automation before declaring the artifact done. Software that requires a human in the loop for routine operation is not software yet.
 
@@ -258,7 +258,7 @@ The prior version's Sources section cited `anthropic.com/engineering/claude-code
 
 The prior version cited three Anthropic sources. This version cites eight, with each citation tied to the specific principle it grounds.
 
-**Corrections from the 2026-05-24 red-team pass:**
+**Corrections from the 2026-05-24 red-team passes:**
 
 - Title restored to Rick's original spec: `Building excellent software (with Claude)` (sentence case, parenthetical). The prior version had drifted to title case with no parenthetical.
 - §2 (Dogfood): overstated Anthropic's general practice. Prior text said "Anthropic's own engineering teams follow this practice" — too broad. Replaced with the specific context: Anthropic engineering tested Claude's tool design against their internal workspace. This is one example, not a company-wide policy.
@@ -271,6 +271,12 @@ The prior version cited three Anthropic sources. This version cites eight, with 
 - §4 principle closer: tightened. Removed "tests are how you delegate memory to the system" as a standalone framing line — the section makes this case well enough without a slogan.
 - Added "When these disciplines are wrong" section before the closing section. A case study without counterargument is a sales pitch.
 - Scanner issues #9 and #15 on watsonrm/tokenmin-scanner were edited to remove personal repro details (specific plan name, exact subagent counts, tool call volumes, per-workflow lists) that had leaked into the public issue bodies. The technical pattern descriptions are preserved; only the personal specifics are removed. The article itself did not contain this data, but the linked issues did.
+
+**Second pass (same day):**
+
+- §1 grammar bug fixed: "a subscriber who sees an implausible dollar figure distrust the tool" — subject-verb agreement, now "distrusts." The phrasing was also rewritten so the claim is the article's framing rather than a quoted fixture comment.
+- §1 prompt-caching framing softened: the prior text put words in Anthropic's mouth ("Anthropic's own documentation frames the same idea... perceived cost is the cost that matters"). Anthropic's prompt caching page makes a narrower technical claim about latency. The interpretive leap is the article's; it is now attributed as such.
+- §7 scanner #15 claim corrected: prior text said "each grounded in a specific Anthropic source, each with a detection signal derivable from the snapshot schema." Both halves were overstated. Some candidates cite ecosystem (non-Anthropic) sources; a few need a minor schema extension noted in the issue itself. Rewritten to reflect what the issue actually says.
 
 ---
 
