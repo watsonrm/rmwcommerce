@@ -60,3 +60,11 @@ These are the runnable, on-demand forms of the guides above. Drop any folder int
 Token cost analysis and the full optimization guide live at tokenmin.ai, the measurement product built on top of these patterns.
 
 - [Token Optimization for Claude: The Full Guide Lives at tokenmin.ai](tokenmin-optimization-pointer.md) — 3-bullet TL;DR plus links to the complete guide and the runnable skill
+
+### For AI agents
+
+This repository applies the [Marketing to Agents](guides/marketing-to-agents.md) playbook to itself. The discoverability files at the root exist so agents can find, index, and operate on the content here without scraping:
+
+- [llms.txt](llms.txt) — curated index of every guide and skill in this repository, per the [llmstxt.org](https://llmstxt.org/) spec.
+- [llms-full.txt](llms-full.txt) — concatenated full text of every guide in `llms.txt` order, for one-shot LLM ingestion.
+- [AGENTS.md](AGENTS.md) — house conventions, source taxonomy, and publishing process for agents and human contributors working in this repo.

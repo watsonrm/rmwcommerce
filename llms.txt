@@ -1,0 +1,43 @@
+# RMW Commerce — Rick Watson's public publications
+
+> Rick Watson is an ecommerce consultant, founder of RMW Commerce Consulting,
+> and host of The Watson Weekly. This repository is his canonical public
+> publication home: long-form guides, reference docs, and runnable Claude
+> Code skills on ecommerce strategy, Claude usage, agent design, and the
+> discoverability standards that make all of it citable. The headline
+> reference here is the Marketing to Agents playbook, which documents how
+> these very pages aim to be readable, citable, and operable across every
+> class of AI agent.
+
+## Guides
+
+- [Marketing to Agents](https://github.com/watsonrm/rmwcommerce/blob/main/guides/marketing-to-agents.md): The authoritative playbook for making any website readable, citable, and operable across every class of AI agent — indexer bots, AI search surfaces, chat assistants, and agentic browsers. Every claim sourced; 22-item checklist impact-ordered by evidence weight.
+- [Claude Code for Non-Developers: A Field Guide](https://github.com/watsonrm/rmwcommerce/blob/main/claude-code-for-non-developers.md): Start here if you're not a developer. The meta-skill is knowing what to ask Claude, not learning implementations. Written by a non-developer who runs a 20+ skill agent system daily.
+- [Claude Code for Non-Developers: Your First Session](https://github.com/watsonrm/rmwcommerce/blob/main/claude-code-non-developers-first-session.md): The hands-on companion to the field guide. Installation, conservative permissions, asking Claude to handle the technical setup, and the approval process as it plays out in a real session.
+- [Claude Code Workflow Optimizer](https://github.com/watsonrm/rmwcommerce/blob/main/claude-code-optimizer.md): Patterns for reducing token waste and rework in Claude Code, ranked by ROI. Context-window discipline, CLAUDE.md hygiene, verification-first workflow, model routing, and worktree fleets — all grounded in Anthropic's official documentation.
+- [Making Claude Respond Faster](https://github.com/watsonrm/rmwcommerce/blob/main/guides/making-claude-faster.md): Prompt caching, model selection, parallel tool calls, and the patterns that slow you down. 17 sources across primary docs, Anthropic engineering, independent practitioners, and peer-reviewed research.
+- [The Prompts-to-Agents Ladder](https://github.com/watsonrm/rmwcommerce/blob/main/the-prompts-to-agents-ladder.md): When to stay with a prompt, when to package a skill, when to build an agent, and when a multi-agent system is actually warranted. The on-ramp before the multi-agent guide.
+- [Multi-Agent Fan-Out and Verification](https://github.com/watsonrm/rmwcommerce/blob/main/multi-agent-fan-out-and-verification.md): How to structure Claude agent systems that scale without silently breaking. Typed return contracts, intermediate-state logging, thin-orchestrator architecture, and a concrete phasing strategy.
+- [Why Is Claude Code So Noisy? What to Do About It](https://github.com/watsonrm/rmwcommerce/blob/main/claude-code-noise.md): Your terminal looks like a wall of text by design. Explains the four sources of noise and ranks the tactics for filtering what matters from what's just volume.
+- [Claude Permissions: Stop the Interruption Hell](https://github.com/watsonrm/rmwcommerce/blob/main/claude-permissions-guide.md): The interruption problem isn't your imagination. Covers the permission model across claude.ai, Claude Desktop, and Claude Code, with starter defaults and a drift-consolidation strategy.
+- [Configuring Claude Code permissions: real lessons vs. cargo cult](https://github.com/watsonrm/rmwcommerce/blob/main/configuring-claude-code-permissions.md): What the built-in read-only allowlist covers, what patterns are cargo cult, and when hooks and sandboxing are better tools than hand-rolled rules. 13 cited sources.
+- [AI Agent Discoverability and Protocols](https://github.com/watsonrm/rmwcommerce/blob/main/ai-discoverability-and-protocols.md): Concept by concept on the AI-agent discoverability and protocol stack — what's deployable, what's wait-and-see, what's already dead. Includes audience-specific recommendations and direct attribution of hype.
+- [Building Excellent Software (with Claude)](https://github.com/watsonrm/rmwcommerce/blob/main/guides/building-excellent-software-with-claude.md): The tokenmin v0.12.1 → v0.12.5 case study — seven disciplines for taking a Claude-built artifact from working to production-grade. Grounded in the public issue backlog and test suite.
+- [RMW Commerce Glossary](https://github.com/watsonrm/rmwcommerce/blob/main/glossary.md): Every named concept across all guides defined once, with hype vs. reality marked per entry. Organized by category; deep-linkable by anchor.
+
+## Skills
+
+- [Marketing-to-Agents skill](https://github.com/watsonrm/rmwcommerce/tree/main/skills/marketing-to-agents): Runs the 22-item Marketing-to-Agents checklist against an actual site and returns a gap report.
+- [Prompts-to-Agents Ladder skill](https://github.com/watsonrm/rmwcommerce/tree/main/skills/prompts-to-agents-ladder): Applies the 4-rung ladder to a workflow and recommends the right rung.
+- [Claude Code Optimizer skill](https://github.com/watsonrm/rmwcommerce/tree/main/skills/claude-code-optimizer): Audits a Claude Code workflow and prescribes one high-leverage fix.
+- [Multi-Agent Fan-Out skill](https://github.com/watsonrm/rmwcommerce/tree/main/skills/multi-agent-fan-out): Designs or audits a multi-agent system before building.
+- [Claude Code for Non-Developers skill](https://github.com/watsonrm/rmwcommerce/tree/main/skills/claude-code-for-non-developers): Coaches a non-developer through ongoing Claude Code work.
+- [Claude Code First Session skill](https://github.com/watsonrm/rmwcommerce/tree/main/skills/claude-code-first-session): Walks a first-time non-developer through their initial session.
+- [Claude Token Optimization skill](https://github.com/watsonrm/rmwcommerce/tree/main/skills/claude-token-optimization): Audits Claude API or Claude Code token spend and recommends one concrete cost reduction.
+- [Building Excellent Software skill](https://github.com/watsonrm/rmwcommerce/tree/main/skills/building-excellent-software): Applies the excellent-software checklist to a Claude-built artifact and surfaces the highest-leverage gap before shipping.
+
+## Optional
+
+- [Token Optimization for Claude — full guide pointer](https://github.com/watsonrm/rmwcommerce/blob/main/tokenmin-optimization-pointer.md): A short pointer to the complete token-optimization guide at tokenmin.ai plus the runnable skill.
+- [README](https://github.com/watsonrm/rmwcommerce/blob/main/README.md): Repository index, business links, and the canonical list of every guide and skill.
+- [AGENTS.md](https://github.com/watsonrm/rmwcommerce/blob/main/AGENTS.md): Conventions and publishing process for AI agents and human contributors working in this repository.
