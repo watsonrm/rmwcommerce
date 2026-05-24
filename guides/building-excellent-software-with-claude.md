@@ -1,4 +1,4 @@
-# Building Excellent Software with Claude
+# Building excellent software (with Claude)
 
 **Seven disciplines that close the gap between "Claude built it" and production-grade — grounded in the public tokenmin-scanner build record.**
 
@@ -17,13 +17,13 @@
 
 | # | Discipline | Why it matters | Effort |
 | :-- | :--- | :--- | :--- |
-| **1** | Be honest about cost and benefit | A contextually wrong metric damages trust in everything else | Design phase |
-| **2** | Dogfood before you ship | Real use catches what spec reviews miss | Ongoing |
-| **3** | File the bug, then fix it | The issue defines acceptance before the fix begins | Per session |
-| **4** | Encode every constraint as a test | Claude doesn't carry constraints across sessions — the test does | Per constraint |
-| **5** | Red-team your own work | The threat model is your job; Claude will find gaps if you ask | Pre-release |
-| **6** | Check the ranking, not just the output | A correct finding ranked first when it shouldn't be is a UX problem | Per release |
-| **7** | Build for survival | Software that only runs while you're watching isn't software yet | Architecture |
+| **1** | Be honest about cost and benefit | A contextually wrong metric damages trust in everything else | 1–2 hours at design |
+| **2** | Dogfood before you ship | Real use catches what spec reviews miss | Every release |
+| **3** | File the bug, then fix it | The issue defines acceptance before the fix begins | Every fix |
+| **4** | Encode every constraint as a test | Claude doesn't carry constraints across sessions — the test does | Every new constraint |
+| **5** | Red-team your own work | The threat model is your job; Claude will find gaps if you ask | Once before launch |
+| **6** | Check the ranking, not just the output | A correct finding ranked first when it shouldn't be is a UX problem | Every release |
+| **7** | Build for survival | Software that only runs while you're watching isn't software yet | Once per project |
 
 Most readers should absorb the first three and stop. Rows 4–7 matter, but rows 1–3 address the failure modes that actually ship.
 
@@ -78,7 +78,7 @@ The principle generalizes to every reporting context: when a metric lands in fro
 
 The only honest source of UX feedback is using your own artifact on your own real work.
 
-Anthropic's own engineering teams follow this practice. Their post on building agent tools describes testing against "our internal workspace, mirroring the complexity of our internal workflows, including real projects, documents, and messages" — not synthetic fixtures, but live internal infrastructure. ([Anthropic: Writing effective tools for agents — with agents](https://www.anthropic.com/engineering/writing-tools-for-agents))
+Anthropic engineering describes this pattern in a specific context: when they built tools for Claude, they tested against their internal workspace rather than synthetic fixtures. Their post notes the evaluations were run against "our internal workspace, mirroring the complexity of our internal workflows, including real projects, documents, and messages." ([Anthropic: Writing effective tools for agents — with agents](https://www.anthropic.com/engineering/writing-tools-for-agents))
 
 The tokenmin-scanner build record shows what this catches. One early release produced 24 lines of terminal output before the tool did anything meaningful. That number was not derived from analyzing the install script — it was observed by watching a real terminal fill up and noticing that something was wrong. The fix was a CI guard asserting that install completes in five lines or fewer. The spec review would have said "installation should be quiet." The dogfood session said "here are the 24 lines."
 
@@ -96,7 +96,7 @@ When something goes wrong during real use, the temptation is to fix it immediate
 
 Filing forces you to articulate what is actually wrong — and more importantly, what the correct behavior should be. The issue is the spec. It defines acceptance before the fix begins, which means you know when you are done. A fix without an issue is a fix without a definition of done.
 
-This also solves a Claude-specific problem. Claude does not carry context across sessions. A decision made in one session does not survive to the next without explicit encoding. The issue backlog is the durable form of your intent. Anthropic's context engineering guidance makes this explicit: agents should maintain "notes persisted to memory outside of the context window" to enable tracking across complex tasks. ([Anthropic: Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)) The GitHub issue tracker is that external memory for the humans directing the build.
+This also solves a Claude-specific problem. Claude does not carry context across sessions. A decision made in one session does not survive to the next without explicit encoding. The issue backlog is the durable form of your intent. Anthropic's context engineering guidance describes the same technique for agents: regularly writing notes to memory outside the context window, so the agent can track progress across a complex task. ([Anthropic: Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)) The GitHub issue tracker is that external memory for the humans directing the build.
 
 The tokenmin-scanner issue backlog for the v0.12.x sprint is public and traceable:
 
@@ -123,11 +123,9 @@ Anthropic's evaluation guidance describes the same architecture for agent work: 
 
 The tokenmin-scanner test structure at v0.12.5 shows what this looks like in practice:
 
-**56 tests across 5 suites.** Each suite guards a specific behavioral contract:
+**56 tests across 5 suites.** The examples below cover four of them — the ones that most directly illustrate constraint encoding:
 
 - `test_scrubber.py` (15 tests) — idempotent scrub, secret-pattern coverage (Anthropic, OpenAI, Stripe, JWT, npm, Google, AWS, GitHub, Slack tokens, PEM blocks), ReDoS input cap, salt sensitivity and stability, HTTPS-only enforcement, snapshot file permissions.
-
-- `test_uninstall.py` (5 tests) — asserts that uninstall produces exactly one line of output (`tokenmin 0.12.5 uninstalled`), that dev-tree safety prevents accidental `rm -rf` of a checkout, that idempotent re-run on an already-uninstalled system exits cleanly.
 
 - `test_cost_framing.py` (18 tests) — asserts that Pro/Max plan reports contain no dollar amounts in the TL;DR or savings cards. Subscription users see quota stretch percentage, tokens, and hours instead. API and unknown-plan users continue showing dollars. Pricing loads from `engine/pricing.json`, not from hardcoded constants.
 
@@ -137,9 +135,9 @@ The tokenmin-scanner test structure at v0.12.5 shows what this looks like in pra
 
 Every push to main runs all five suites across Python 3.10, 3.11, and 3.12. The CI configuration is [public](https://github.com/watsonrm/tokenmin-scanner/blob/main/.github/workflows/ci.yml).
 
-There is also a **synthetic-leak gate** in CI: it builds a fake `~/.claude/` directory with planted identifiers, runs the scanner against it, and fails the build if any plaintext leaks through the anonymizer. This catches anonymization regressions that are easy to introduce when adding new scraper paths and nearly impossible to catch in a code review.
+The CI suite also includes an anonymizer-leak check: it constructs a synthetic `~/.claude/` directory with planted identifiers, runs the scanner against it, and fails if any plaintext markers survive the scrub. The step lives in `.github/workflows/ci.yml` alongside the other test suites. This catches anonymization regressions that are easy to introduce when adding new scraper paths and nearly impossible to catch in a code review.
 
-**The principle:** tests are how you delegate memory to the system. When a constraint surfaces during real use, your first question should be "what test would have caught this?" Write that test, then write the fix. The test is the durable form of the lesson.
+**The principle:** when a constraint surfaces during real use, your first question should be "what test would have caught this?" Write that test, then write the fix. The test is what makes the constraint stick across sessions.
 
 ---
 
@@ -179,7 +177,7 @@ The issue remains open. The right fix is context-aware ranking: high subagent ca
 
 The same principle appears in Anthropic's evaluation guidance: avoid "overly brittle" tests that grade specific tool sequences rather than outcomes, because agents "regularly find valid approaches that eval designers didn't anticipate." ([Anthropic: Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)) A detector that is right for the median user is wrong for sophisticated users in ways that make the tool less useful for exactly the people who would benefit most.
 
-**The principle:** build ranking logic with the same care you give detection logic. A correct finding ranked wrong is a UX problem that erodes confidence in the whole tool.
+**The principle:** a correct finding ranked first when it shouldn't be is a UX problem, not just a logic problem. Detection and ranking need equal rigor.
 
 ---
 
@@ -187,7 +185,7 @@ The same principle appears in Anthropic's evaluation guidance: avoid "overly bri
 
 There is a meaningful difference between using Claude to do work and building software with Claude that does work. The former requires a human in the loop every time. The latter runs the relevant parts without one.
 
-Anthropic's multi-agent research system post describes this directly: the system was designed so agents "operate autonomously for many turns, making decisions about which directions to pursue," with the architecture decoupling computation from human availability. ([Anthropic: How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)) Their managed agents post goes further, describing a design where if a container fails mid-task, the harness catches the error and Claude resumes from the durable session log — not from scratch. ([Anthropic: Scaling Managed Agents](https://www.anthropic.com/engineering/managed-agents)) The principle is the same: software that depends on a human being present for routine operation is not software, it is an elaborate prompt.
+Anthropic's multi-agent research system post describes this directly: the system was designed so "the model must operate autonomously for many turns, making decisions about which directions to pursue based on intermediate findings," with the architecture decoupling computation from human availability. ([Anthropic: How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)) Their managed agents post goes further, describing a design where if a container fails mid-task, the harness catches the error and Claude resumes from the durable session log — not from scratch. ([Anthropic: Scaling Managed Agents](https://www.anthropic.com/engineering/managed-agents)) The principle is the same: software that depends on a human being present for routine operation is not software, it is an elaborate prompt.
 
 The tokenmin-scanner [detector-research workflow](https://github.com/watsonrm/tokenmin-scanner/blob/main/.github/workflows/detector-research.yml) illustrates the applied form. The workflow runs in GitHub Actions every Monday at 13:23 UTC. It watches Anthropic's news feed, engineering blog, Claude Code releases, and cookbook commits for new posts. It files a GitHub issue for each newly-seen item so the maintainer can triage it as a detector candidate or not. The state is committed back to the repo after each run so it does not re-file what it has already seen.
 
@@ -196,6 +194,14 @@ The workflow survives laptop shutdown, network outages, and weeks where the main
 [Scanner #15](https://github.com/watsonrm/tokenmin-scanner/issues/15) documents the output of one such research session: 15 candidate detectors, each grounded in a specific Anthropic source, each with a detection signal derivable from the snapshot schema. The issue is the artifact; the workflow is what keeps producing similar artifacts on schedule.
 
 **The principle:** for any recurring task your artifact handles, ask what happens when the builder is unavailable for a week. If the answer is "nothing runs," build the automation before declaring the artifact done. Software that requires a human in the loop for routine operation is not software yet.
+
+---
+
+## When these disciplines are wrong
+
+For a prototype you plan to throw away, running five test suites and a red-team pass is over-engineering. For an hour-long exploration you will not revisit, filing a GitHub issue before fixing a bug is bureaucracy. For internal tooling that handles no user data and runs only on your own machine, a formal threat model is probably waste.
+
+The disciplines in this article apply to artifacts that will be used by people who are not you, that hold data or make decisions that matter, or that are supposed to keep running when you stop watching. If that description doesn't fit what you're building, apply proportionally less. The goal is not process — it's closing the gap between "Claude built it" and something you can stand behind.
 
 ---
 
@@ -251,6 +257,20 @@ The prior version referenced the F&F bundle and tokenmin-site (a private reposit
 The prior version's Sources section cited `anthropic.com/engineering/claude-code-best-practices`. That URL redirects permanently (HTTP 308) to `code.claude.com/docs/en/best-practices`. The canonical URL is used throughout this version.
 
 The prior version cited three Anthropic sources. This version cites eight, with each citation tied to the specific principle it grounds.
+
+**Corrections from the 2026-05-24 red-team pass:**
+
+- Title restored to Rick's original spec: `Building excellent software (with Claude)` (sentence case, parenthetical). The prior version had drifted to title case with no parenthetical.
+- §2 (Dogfood): overstated Anthropic's general practice. Prior text said "Anthropic's own engineering teams follow this practice" — too broad. Replaced with the specific context: Anthropic engineering tested Claude's tool design against their internal workspace. This is one example, not a company-wide policy.
+- §3 (File the bug): quote from context engineering doc was slightly misrendered. Actual text describes "a technique where the agent regularly writes notes persisted to memory outside of the context window." Rewritten as a paraphrase rather than a quotation.
+- §6 (multi-agent quote): prior version truncated to "making decisions about which directions to pursue." Full sentence is "making decisions about which directions to pursue based on intermediate findings." Restored.
+- §4 (CI): "synthetic-leak gate" phrasing implied a dedicated subsystem. Reframed: it is one step in the CI suite in `.github/workflows/ci.yml`.
+- §4 (CI): install/uninstall one-line assertion example removed. It illustrated UX, not constraint encoding, which is the section's actual thesis. The tests still exist in the repo; they are simply not the right example for this section.
+- TL;DR effort column: placeholder-style cadences (Design phase / Ongoing / Per session) replaced with time-shaped values (1–2 hours at design / Every release / Every fix / etc.).
+- §6 principle closer: tightened from two sentences to one. Prior: "build ranking logic with the same care you give detection logic. A correct finding ranked wrong is a UX problem that erodes confidence in the whole tool." — the second sentence was doing the work; the first was advice-fortune-cookie.
+- §4 principle closer: tightened. Removed "tests are how you delegate memory to the system" as a standalone framing line — the section makes this case well enough without a slogan.
+- Added "When these disciplines are wrong" section before the closing section. A case study without counterargument is a sales pitch.
+- Scanner issues #9 and #15 on watsonrm/tokenmin-scanner were edited to remove personal repro details (specific plan name, exact subagent counts, tool call volumes, per-workflow lists) that had leaked into the public issue bodies. The technical pattern descriptions are preserved; only the personal specifics are removed. The article itself did not contain this data, but the linked issues did.
 
 ---
 
