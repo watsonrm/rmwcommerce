@@ -139,17 +139,17 @@ The adherence point matters for noise. A `CLAUDE.md` that's 400 lines long doesn
 
 The pruning exercise: for each line in your `CLAUDE.md`, ask "would removing this cause Claude to make mistakes?" If the answer is no, cut it. Move anything that's not universally applicable to path-scoped rules under `.claude/rules/` — those load only when Claude is working with matching files. ([source](https://code.claude.com/docs/en/memory))
 
-Also check how many MCP servers you have connected. Each MCP server's tool descriptions load into context at session start. Four connected MCP servers is a reasonable ceiling; more than that and you're paying a context tax on every session for capabilities you might not use in that session.
+Also check how many MCP servers you have connected. Each MCP server's tool descriptions load into context at session start. Four connected MCP servers is a reasonable ceiling; more than that and you're paying a context tax on every session for capabilities you might not use in that session. More is fine if you actively use them every session.
 
 ### 5. Background agents for long-running work
 
 For work that takes minutes rather than seconds, background agents remove the narration from your foreground session entirely. The work runs, you check the output when it's done, and you were never in the way.
 
-Anthropic's documentation covers background agent configuration in the subagents and agent-teams docs. ([source](https://code.claude.com/docs/en/sub-agents)) The practical trigger: if you find yourself watching Claude work for more than a few minutes without actively redirecting it, the work belongs in a background agent.
+Anthropic's documentation covers background agent configuration in the subagents and agent-teams docs. ([source](https://code.claude.com/docs/en/sub-agents)) The practical trigger: if you find yourself watching Claude work for more than a few minutes without actively redirecting it, the work belongs in a background agent. Requires a configured subagent. Skip until you've already built and run one subagent.
 
 ### 6. Output style configuration
 
-Claude Code's settings allow some verbosity tuning. The specifics are covered in the `defaultMode` and related settings docs. ([source](https://code.claude.com/docs/en/settings)) This is a marginal gain compared to context discipline and subagents — worth experimenting with once the main levers are already pulled, not as a first move.
+Claude Code's settings allow some verbosity tuning. The specifics are covered in the `defaultMode` and related settings docs. ([source](https://code.claude.com/docs/en/settings)) This is a marginal gain compared to context discipline and subagents — worth experimenting with once the main levers are already pulled, not as a first move. Skip until levers 1-4 are exhausted.
 
 ---
 

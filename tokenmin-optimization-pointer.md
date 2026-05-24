@@ -12,9 +12,9 @@
 
 Three things that move Claude token spend, in the order they pay off:
 
-- **Prompt caching.** Mark stable inputs (system prompt, tool definitions, reference docs) with `cache_control`. Cache hits bill at 0.1× standard input — Anthropic's own numbers put the savings at up to 90% on repeated workloads. This is a one-time API change, and it's the single largest lever for most setups.
-- **Model routing.** Haiku costs $1/MTok input; Opus costs $15/MTok. For mechanical tasks — file reads, reformatting, simple lookups — the cheaper model produces the same output at a fraction of the cost. Routing deliberately is the simplest cost reduction with no quality trade-off on those tasks.
-- **Context discipline.** Every token in the context window costs money on every turn. A CLAUDE.md over 200 lines, a conversation history never cleared between tasks, and the same files re-read three times in a session — these compound into a 2–4× per-session cost increase that's invisible until measured.
+- **Prompt caching.** Mark stable inputs (system prompt, tool definitions, reference docs) with `cache_control`. Cache hits bill at 0.1× standard input — Anthropic's own numbers put the savings at up to 90% on repeated workloads. This is a one-time API change, and it's the single largest lever for most setups. API users only. Skip if your traffic is sporadic (<1 call per 5 min) — cache writes cost more than reads save.
+- **Model routing.** Haiku costs $1/MTok input; Opus costs $15/MTok. For mechanical tasks — file reads, reformatting, simple lookups — the cheaper model produces the same output at a fraction of the cost. Routing deliberately is the simplest cost reduction with no quality trade-off on those tasks. Per-task discipline. Skip if you only run one workflow daily.
+- **Context discipline.** Every token in the context window costs money on every turn. A CLAUDE.md over 200 lines, a conversation history never cleared between tasks, and the same files re-read three times in a session — these compound into a 2–4× per-session cost increase that's invisible until measured. About 20 min one-time trim. Applies to anyone with a long-running Claude Code project.
 
 ## The full guide
 

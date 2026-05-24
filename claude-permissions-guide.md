@@ -239,11 +239,11 @@ These also go in `~/.claude/settings.json`. The logic is: once I've used `git di
 
 A few notes on the more permissive entries:
 
-`Bash(curl *)` — debatable. curl can hit anything. But in practice, once I trust a project, the alternative is approving every curl variant individually, which is what fills up `settings.local.json`. I've landed on allowing it globally and relying on CLAUDE.md guidance to shape what Claude actually tries to do.
+`Bash(curl *)` — debatable. curl can hit anything. But in practice, once I trust a project, the alternative is approving every curl variant individually, which is what fills up `settings.local.json`. I've landed on allowing it globally and relying on CLAUDE.md guidance to shape what Claude actually tries to do. Keep as per-call if you run code from clients or any third-party repo. Broaden only on your own personal machine.
 
-`Bash(gh *)` — the GitHub CLI. Same logic as curl. I use it regularly and trust the projects I run it in.
+`Bash(gh *)` — the GitHub CLI. Same logic as curl. I use it regularly and trust the projects I run it in. Skip if you've ever pulled an unknown PR locally.
 
-`Bash(python3 *)` — this means any Python script. I've decided that's acceptable in my setup. If you're running untrusted code or are more cautious about script execution, keep this as per-call approval.
+`Bash(python3 *)` — Skip this entry if you run untrusted scripts or have contractors on this machine. This means any Python script. I've decided that's acceptable in my setup. If you're running untrusted code or are more cautious about script execution, keep this as per-call approval.
 
 Note: as documented above, `ls`, `cat`, `head`, `tail`, `grep`, `find`, and `wc` are already in Claude Code's built-in read-only set and run without prompts by default. I include them in my allowlist anyway to make my intent explicit and to ensure they're covered in non-default permission modes.
 

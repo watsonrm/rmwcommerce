@@ -32,7 +32,7 @@ Most readers should act on the first two and stop. They handle the largest share
 
 | # | Lever | Why it matters | Effort |
 | :-- | :--- | :--- | :--- |
-| 1 | **Prompt caching** — put stable context before dynamic content, mark it with `cache_control` | Cache hits bill at 0.1× input; cache misses reprocess the entire prefix. Repeated workloads recover the write premium quickly | 1–2 hrs one-time refactor |
+| 1 | **Prompt caching** — put stable context before dynamic content, mark it with `cache_control` | Cache hits bill at 0.1× input; cache misses reprocess the entire prefix. Repeated workloads recover the write premium quickly. Skip if traffic <1 call per 5 min (negative ROI from cache writes) | 1–2 hrs one-time refactor |
 | 2 | **Right model for the task** — Haiku for mechanical work, Sonnet for daily driver, Opus only for hard reasoning | Anthropic's own latency labels: Haiku 4.5 "Fastest," Sonnet 4.6 "Fast," Opus 4.7 "Moderate." Pricing scales the same way | Per-task discipline |
 | 3 | **Parallel tool calls** — multiple `tool_use` blocks in one turn, all `tool_result` blocks in one user message | Anthropic engineering reports parallel-tool + subagent parallelism "cut research time by up to 90% for complex queries" on their internal research system | One prompt addition |
 | 4 | **Skip extended thinking on simple work** — leave it off (the default) unless the task is genuinely multi-step reasoning | Thinking tokens are billed; routine queries get no quality lift from thinking | API flag |
@@ -175,6 +175,8 @@ Claude Code manages prompt caching automatically. The system prompt, tool defini
 Practical takeaway: pick your model and connect MCP servers at the top of a session, then save `/compact` for natural breaks between tasks.
 
 ### Note on subagents
+
+*Applies to API-level builds; in Claude Code the runtime handles this for you.*
 
 Each subagent starts its own conversation with no cache hits on its first call. Subagents build their own cache across their turns, separate from the parent. Don't spawn a subagent to read two files — that cold-starts a fresh context for a task that doesn't warrant it. Reserve subagents for either (a) genuinely isolated work that would bloat your main context, or (b) parallelism you can't get from a single agent (see Section 3).
 

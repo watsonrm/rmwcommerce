@@ -108,7 +108,7 @@ Anthropic's guide names this class "workflows" — *"systems where LLMs and tool
 2. The user shouldn't have to be present for each step — the work needs to run unattended.
 3. Verification is non-trivial enough to require its own logic (the model needs to check its own work, not just return output for a human to review).
 
-If none of those is true, the right answer is a better skill, not an agent.
+If none of those is true, the right answer is a better skill, not an agent. Expect to double your testing time. An agent is 2-3× the maintenance of a skill.
 
 ---
 
@@ -181,7 +181,7 @@ The test: how many times have you done this task the same way? If the answer is 
 > [!CAUTION]
 > ### When to ignore this advice
 >
-> If the task is **high-stakes one-off** (a keynote, a board meeting, a single-take podcast taping), pre-build the skill even on first use. The "twice a year" / "fewer than five" threshold optimizes for token cost; high-stakes one-offs optimize for not forgetting the recipe at 3am the night before. My `speaking-script` and `panel-moderation` skills both started as one-offs for specific events — they earned their place by being there when I needed them, not by being run three times first.
+> If the task is **high-stakes one-off** (a keynote, a board meeting, a single-take podcast taping), pre-build the skill even on first use. The "twice a year" / "fewer than five" threshold optimizes for token cost; high-stakes one-offs optimize for not forgetting the recipe at 3am the night before. My `speaking-script` and `panel-moderation` skills both started as one-offs for specific events — they earned their place by being there when I needed them, not by being run three times first. Expect 30-60 min upfront vs. risking 30 min of fumbling at the moment.
 
 ### Failure 3: Multi-agent where a single agent would do
 

@@ -105,6 +105,8 @@ The working rule: pin **observable behavior at the surface a user can see**, not
 
 ### A taxonomy of test types worth having
 
+*Where to start: output-framing tests if your tool surfaces numbers; command-contract tests if you ship a CLI; release-feature tests if you ship to others.*
+
 **Property tests** assert invariants that hold across all inputs in the relevant space — idempotency, salt sensitivity, secret-pattern coverage across token formats. Stronger than example-based tests for code where adversarial input is plausible.
 
 **Behavioral contract tests** assert what the user sees and what survives a given operation, not how the code gets there. "This command produces exactly one line of output." "The dev-tree safety guard prevents destructive operations on a source checkout."
@@ -157,6 +159,8 @@ Anthropic's guidance on building effective agents notes that autonomous agents i
 
 Four patterns that show up in a serious security pass on any tool that handles user data:
 
+*Skip this section if your tool only runs on your own files and never accepts third-party input.*
+
 **Identifier hashing strength.** SHA-256 to anonymize predictable values — file paths, configuration keys — is not enough. An adversary who guesses that a path like `~/.ssh/known_hosts` is likely present can precompute its hash and reverse-identify it. The fix is HMAC with a random salt generated on first run and stored with restricted permissions. The salt means precomputed tables fail.
 
 **ReDoS defense.** A tool that runs regex patterns against potentially adversarial content faces exponential backtracking from a carefully crafted input string. The fix is an input size cap: truncate before the regex engine sees it. Bad lines are dropped, not raised on.
@@ -193,7 +197,7 @@ There is a meaningful difference between using Claude to do work and building so
 
 Anthropic's multi-agent research system post describes this directly: the system was designed so "the model must operate autonomously for many turns, making decisions about which directions to pursue based on intermediate findings," with the architecture decoupling computation from human availability. ([Anthropic: How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)) Their managed agents post goes further, describing a design where if a container fails mid-task, the harness catches the error and Claude resumes from the durable session log — not from scratch. ([Anthropic: Scaling Managed Agents](https://www.anthropic.com/engineering/managed-agents)) The principle is the same: software that depends on a human being present for routine operation is not software — it is an elaborate prompt.
 
-The applied form for a research or monitoring tool: a weekly GitHub Actions workflow that watches relevant sources, files issues for newly-seen items, and commits its seen-state back to the repo after each run so it does not re-file what it has already found. It survives laptop shutdown, network outages, and weeks where the maintainer does not think about the project at all. The research continues without human involvement.
+The applied form for a research or monitoring tool: a weekly GitHub Actions workflow that watches relevant sources, files issues for newly-seen items, and commits its seen-state back to the repo after each run so it does not re-file what it has already found. (Applies to research / monitoring tools that need fresh data — skip if your artifact is interactive or one-shot.) It survives laptop shutdown, network outages, and weeks where the maintainer does not think about the project at all. The research continues without human involvement.
 
 The automation does not need to be sophisticated — a cron job, a scheduled GitHub Action, a watched folder. What matters is that the answer to "what happens when the builder is unavailable for a week?" is not "nothing runs."
 

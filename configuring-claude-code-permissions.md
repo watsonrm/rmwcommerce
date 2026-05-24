@@ -15,13 +15,13 @@
 
 ## Where to spend your time
 
-| Effort | Payoff | Recommendation |
-|---|---|---|
-| MCP server wildcards (`mcp__server__*`) | Highest — kills the most prompts in a typical session | Do this first |
-| Wildcards for write-capable tools you trust | High | Do this second |
-| Removing rules already covered by the built-in read-only list | File hygiene | One audit pass |
-| Trying to constrain Bash arguments via patterns | Low and fragile | Don't bother |
-| Adding `Bash(*)` to skip prompts | Negative — defeats the safety classifier | Don't |
+| Effort | Payoff | Recommendation | Best for |
+|---|---|---|---|
+| MCP server wildcards (`mcp__server__*`) | Highest — kills the most prompts in a typical session | Do this first | solo on own machine |
+| Wildcards for write-capable tools you trust | High | Do this second | team / shared machines |
+| Removing rules already covered by the built-in read-only list | File hygiene | One audit pass | regulated or enterprise |
+| Trying to constrain Bash arguments via patterns | Low and fragile | Don't bother | agents running unattended |
+| Adding `Bash(*)` to skip prompts | Negative — defeats the safety classifier | Don't | any user using paid AI tools |
 
 ## What's real
 
@@ -68,9 +68,9 @@ These patterns are common in the wild and don't pay off:
 
 When custom rules feel like the wrong tool, here are three alternatives Anthropic documents:
 
-1. **Start from the official example configurations.** Anthropic publishes three starter files: `settings-lax.json` (permissive), `settings-strict.json` (restrictive), and `settings-bash-sandbox.json` (sandboxed). Fork the one that matches your posture. [^examples]
+1. **Start from the official example configurations.** Anthropic publishes three starter files: `settings-lax.json` (permissive), `settings-strict.json` (restrictive), and `settings-bash-sandbox.json` (sandboxed). Fork the one that matches your posture. [^examples] Permissive for solo. Restrictive for shared or team. Sandboxed for CI or contractor agents.
 2. **For URL or argument constraints, use a `PreToolUse` hook.** Hooks run before the permission prompt and can deny, allow, or force-prompt programmatically. This is the documented escape hatch for anything Bash patterns can't express reliably. [^hooks]
-3. **For OS-level enforcement, enable the sandbox.** The Bash sandbox restricts filesystem and network access at the operating-system level for every Bash subprocess. The default `autoAllowBashIfSandboxed: true` lets sandboxed commands run without prompts. This is the right answer if your threat model needs guarantees that survive a compromised agent. [^sandbox]
+3. **For OS-level enforcement, enable the sandbox.** The Bash sandbox restricts filesystem and network access at the operating-system level for every Bash subprocess. The default `autoAllowBashIfSandboxed: true` lets sandboxed commands run without prompts. This is the right answer if your threat model needs guarantees that survive a compromised agent. [^sandbox] Expect 30-min setup. Skip unless you're running unattended agents.
 
 ## Sources
 

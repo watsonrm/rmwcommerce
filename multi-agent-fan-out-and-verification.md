@@ -30,7 +30,7 @@ Most readers should implement the first two before anything else. They prevent t
 | **1** | **Typed return contracts** — every agent returns a defined schema, not freeform prose | Failures surface at the boundary instead of poisoning downstream state. This is also the primary defense against subagent decision-composition failures. The single highest-leverage change for any existing system. | 1–2 hrs per agent |
 | **2** | **Intermediate-state logging** — every run writes input, output, and log to a known path | Without this, partial failures are unrecoverable. Silent failures look like successes. This is the idempotency and debuggability foundation. | 2–3 hrs once, then copy the pattern |
 | **3** | **Thin orchestrator / fat subagents** — orchestrator plans and aggregates; subagents execute | Reduces noise in the orchestrator context. Scoped subagents are easier to test and replace. Matches Anthropic's orchestrator-workers composition pattern. | Refactor by skill |
-| **4** | **Fan-out by complexity** — match parallelism to the task, not to a fixed number | Explicit fan-out caps prevent runaway token spend on simple queries. Anthropic's system uses 1 agent for simple fact-finding, 2–4 for comparisons, 10+ for complex research. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) Use fan-out only for parallelizable reads, not for decisions that need to compose. | 1 hr (policy + prompt) |
+| **4** | **Fan-out by complexity** — match parallelism to the task, not to a fixed number | Explicit fan-out caps prevent runaway token spend on simple queries. Anthropic's system uses 1 agent for simple fact-finding, 2–4 for comparisons, 10+ for complex research. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) Use fan-out only for parallelizable reads, not for decisions that need to compose. Skip if your work is consulting / ops, not parallelizable research. | 1 hr (policy + prompt) |
 | **5** | **Action schemas for write agents** — discriminated union of legal outcomes | Prevents write agents from inventing a fourth option. Tight contracts on destructive operations. | 30 min per write agent |
 | **6** | **Full Anthropic-style 10+ subagent fan-out** — complex research with many parallel specialists | Real gains for deep research workflows: Anthropic's system cuts research time by up to 90% for complex queries using parallel tool calling. ([source](https://www.anthropic.com/engineering/multi-agent-research-system)) Most consulting/operations systems don't need this level to start. Begin with items 1–3. | Days |
 
@@ -296,19 +296,19 @@ When validation logic lives in every orchestrator, a change to the validation ru
 
 Here's a catalog of specialist types that appear across common consulting and operations workflows. Each has a clear scope, a tool allowlist, and a typed return:
 
-| Subagent type | Scope | Returns to orchestrator |
-| :--- | :--- | :--- |
-| Calendar reader | Pull events in a time window; classify by engagement | `CalendarReaderResult` with lightweight event array |
-| CRM lookup | Per-contact: activities, deals, last interaction | `CRMLookupResult` with path + summary |
-| Messaging search | Per query, top N results | `MessagingSearchResult` with path + hit count |
-| Engagement context reader | Per engagement: docs, backlog, recent decisions | `EngagementContextResult` with path + open counts |
-| Photo lookup | Per person, verified URL | `PhotoLookupResult` |
-| Web research | Per target, recent news + profile | `WebResearchResult` with path + headline |
-| Document writer | Take assembled brief → write/update doc with brand | `DocumentWriterResult` |
-| Calendar event writer | Take prep card → write/update calendar event | `CalendarWriterResult` |
-| Validator | Per artifact: check both exist + brand is correct | `ValidatorResult` |
-| Source synthesizer | One source → wiki updates | Typed result with paths touched + item counts |
-| Triage resolver | Apply routing rules to inbox | `TriageResolverResult` |
+| Subagent type | Scope | Returns to orchestrator | When to build |
+| :--- | :--- | :--- | :--- |
+| Calendar reader | Pull events in a time window; classify by engagement | `CalendarReaderResult` with lightweight event array | ≥3 orchestrators duplicate calendar reads |
+| CRM lookup | Per-contact: activities, deals, last interaction | `CRMLookupResult` with path + summary | ≥3 orchestrators duplicate CRM calls |
+| Messaging search | Per query, top N results | `MessagingSearchResult` with path + hit count | ≥3 orchestrators duplicate Slack queries |
+| Engagement context reader | Per engagement: docs, backlog, recent decisions | `EngagementContextResult` with path + open counts | you have an internal knowledge base ≥30 pages |
+| Photo lookup | Per person, verified URL | `PhotoLookupResult` | you ship recurring guest/profile prep |
+| Web research | Per target, recent news + profile | `WebResearchResult` with path + headline | you do recurring competitive or person research |
+| Document writer | Take assembled brief → write/update doc with brand | `DocumentWriterResult` | you publish standard docs to a shared Drive |
+| Calendar event writer | Take prep card → write/update calendar event | `CalendarWriterResult` | you place recurring calendar holds |
+| Validator | Per artifact: check both exist + brand is correct | `ValidatorResult` | publication has style/quality gates you keep re-checking |
+| Source synthesizer | One source → wiki updates | Typed result with paths touched + item counts | you ingest meeting recordings / inbox content |
+| Triage resolver | Apply routing rules to inbox | `TriageResolverResult` | you have a steady-state queue ≥10 items/week |
 
 ---
 
@@ -326,7 +326,7 @@ Don't rewrite everything at once. The phasing below is ordered so each step vali
 
 4. **CRM lookup** — highest-reuse read specialist. Once extracted, every orchestrator that currently does its own CRM calls delegates to this agent instead.
 
-After Phase 1, the contract and logging conventions are proven. Every subsequent agent inherits them.
+After Phase 1, the contract and logging conventions are proven. Every subsequent agent inherits them. Effort: 1-2 days per agent. Skip Phase 1 if doc formatting isn't your top bug source.
 
 ### Phase 2 — Specialist set for the highest-frequency workflow
 
@@ -336,12 +336,14 @@ After Phase 1, the contract and logging conventions are proven. Every subsequent
 8. Calendar reader
 9. Calendar event writer
 
-After Phase 2, your highest-frequency workflow (often meeting prep or daily briefing) should shrink from a single large monolithic skill to a thin orchestrator plus nine typed specialists. The orchestrator holds reference rows, not full prose.
+After Phase 2, your highest-frequency workflow (often meeting prep or daily briefing) should shrink from a single large monolithic skill to a thin orchestrator plus nine typed specialists. The orchestrator holds reference rows, not full prose. Effort: 1-2 days per agent. Skip Phase 2 if you don't have a recurring inbound queue.
 
 ### Phase 3 — Heavier synthesis workflows
 
 10. Source synthesizer — extracted from summary/synthesis loops
 11. Triage resolver — extracted from inbox routing
+
+Effort: 1-2 days per agent. Skip Phase 3 if you don't fan out to 5+ agents per task.
 
 ### Rollback safety
 

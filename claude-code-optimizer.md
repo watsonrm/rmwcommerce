@@ -148,6 +148,8 @@ Anthropic officially endorses this [worktree / worktree fleet](glossary.md#workt
 
 **When it doesn't:** You're doing one task at a time. The setup overhead exceeds the gain.
 
+Skip unless you have ≥3 active branches at once. The pattern only pays off under parallel work.
+
 **Execution:**
 
 - `git worktree add ../my-feature feature-branch`
@@ -159,7 +161,7 @@ Anthropic officially endorses this [worktree / worktree fleet](glossary.md#workt
 These two patterns are under-emphasized in most Claude Code tips content and worth knowing:
 
 - **Skills** — for recurring workflows (API testing, database migrations, security review), define a Skill rather than re-explaining the process every session. Skills load on demand without bloating `CLAUDE.md`. ([source](https://code.claude.com/docs/en/best-practices))
-- **[MCP servers](glossary.md#mcp-model-context-protocol)** — for any external service you talk to repeatedly (GitHub, Slack, databases, internal APIs), an MCP server eliminates the token cost of explaining HTTP and parsing responses. Claude calls the service natively. See [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md) for the broader protocol landscape.
+- **[MCP servers](glossary.md#mcp-model-context-protocol)** — for any external service you talk to repeatedly (GitHub, Slack, databases, internal APIs), an MCP server eliminates the token cost of explaining HTTP and parsing responses. Claude calls the service natively. See [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md) for the broader protocol landscape. Expect 2-4 hours per service to build the MCP server. Only worth it if you talk to the service multiple times per week.
 
 Both are documented in the official Claude Code docs.
 
@@ -235,7 +237,7 @@ ChatGPT Codex (chatgpt.com/codex) runs in OpenAI-managed containers. You can't t
 
 1. Rename `CLAUDE.md` → `AGENTS.md`. Treat "under 200 lines" as "well under 32 KiB combined cascade."
 2. Use Default permissions as your baseline; reserve `danger-full-access` + `never` for worktrees.
-3. Define one or two named Profiles in `config.toml` — e.g., a deep-review profile pinning higher effort and the reviewer subagent.
+3. Define one or two named Profiles in `config.toml` — e.g., a deep-review profile pinning higher effort and the reviewer subagent. Skip if you only have one Claude Code workflow.
 4. Use `/review` instead of an ad-hoc review prompt. Same idea, built-in support.
 5. `SKILL.md` skills are portable across both tools — the [agentskills.io](https://agentskills.io) standard underlies both.
 6. On ChatGPT Codex specifically, skip the context-discipline pillars and focus on verification.

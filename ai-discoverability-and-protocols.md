@@ -84,7 +84,7 @@ There's no meaningful hype around OpenAPI itself — it's been a production stan
 
 ### What to do
 
-Maintain a current, accurate spec at a stable URL. If your framework generates it automatically (FastAPI, NestJS, Spring Boot, and others all do), verify it reflects your actual API surface. If you don't have one, generating it from existing code is the right starting point — don't write it by hand.
+Maintain a current, accurate spec at a stable URL. If your framework generates it automatically (FastAPI, NestJS, Spring Boot, and others all do), verify it reflects your actual API surface. If you don't have one, generating it from existing code is the right starting point — don't write it by hand. Effort: ~1 hr if framework auto-generates the spec; skip if you don't publish a public API.
 
 Make the spec URL public and stable. Agents discovering your API need to be able to fetch the spec without authentication. If your spec requires auth to read, agents can't use it for discovery.
 
@@ -162,7 +162,7 @@ There's also a valid skeptical framing: one analyst piece describes llms.txt as 
 
 ### What to do
 
-Deploy if you have curated content and the setup cost is low. For most sites with a documentation or guide layer, that means writing a markdown index of your key content and placing it at `/llms.txt`. Don't build a complex pipeline to maintain it; a static file that gets updated when you publish major content is sufficient.
+Deploy if you have ≥5 long-form guides published already (30-min setup if so). For most sites with a documentation or guide layer, that means writing a markdown index of your key content and placing it at `/llms.txt`. Don't build a complex pipeline to maintain it; a static file that gets updated when you publish major content is sufficient.
 
 Don't over-engineer. The file is a signal, not a guarantee.
 
@@ -226,7 +226,7 @@ The other overclaim: treating MCP as a replacement for proper API design. MCP is
 
 ### What to do
 
-If you maintain a service AI agents should be able to use: build an MCP server for it. Start with read-only tools. Use the official Python or TypeScript SDK. Define tool schemas carefully — the quality of your tool descriptions (the natural language explanations in the schema) directly affects whether agents invoke your tools correctly.
+If you maintain a service AI agents should be able to use: build an MCP server for it. Start with read-only tools. Use the official Python or TypeScript SDK. Define tool schemas carefully — the quality of your tool descriptions (the natural language explanations in the schema) directly affects whether agents invoke your tools correctly. Expect 1-2 days of dev time. Only worth it if your service is queried daily by your own agents or by external integrators.
 
 If you're a Claude Code user deploying agents internally: MCP servers for your own services (CRM, calendar, databases) are the infrastructure that makes Rung 3 and Rung 4 agents practical.
 

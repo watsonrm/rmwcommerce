@@ -99,7 +99,7 @@ Don't enable `bypassPermissions` mode. This skips all permission prompts. Anthro
 
 When Claude proposes a Bash command you don't recognize, ask it to explain before you approve. This isn't weakness — it's the job. "Before running that, what does this command do and what will it change?" Claude will tell you. Approve informed; don't approve blind.
 
-You can allow specific safe commands to run without prompting every time, while everything else still prompts. A reasonable starting allowlist in your project's `.claude/settings.json`:
+You can allow specific safe commands to run without prompting every time, while everything else still prompts. A reasonable starting allowlist in your project's `.claude/settings.json` (solo operator on your own machine? See Section 6 — broaden the allowlist. The list below is for shared setups.):
 
 ```json
 {
@@ -164,7 +164,7 @@ The approval process doesn't slow you down. It's what keeps the tool working for
 
 The first project should teach you Claude Code's mechanics without exposing you to production risk.
 
-A static personal site is the safest option. A site with HTML files, maybe a CSS file, no backend. Jekyll and Eleventy (11ty) are two static site generators that Claude Code handles well. The worst that goes wrong is the site looks wrong — no data loss, no charges, no multi-user impact.
+A static personal site is the safest option. A site with HTML files, maybe a CSS file, no backend. Jekyll and Eleventy (11ty) are two static site generators that Claude Code handles well. The worst that goes wrong is the site looks wrong — no data loss, no charges, no multi-user impact. Skip if you don't need a website — the CLI script option from row 2 is the safer alternative.
 
 A personal CLI script is equally safe. A script that does one thing on your own machine: organize your downloads folder by file type, rename photos by date, convert a folder of files from one format to another. Runs only when you run it. Touches only your files.
 
@@ -172,7 +172,7 @@ A data transformation script is also good for a first project. Read a CSV, do so
 
 A personal automation that fetches your own data from a service you already pay for is a reasonable step up — but it involves API calls and environment variables. Do one of the above first if this is your first week.
 
-What not to build first: anything that touches money, anything multi-user, anything that calls a paid API in a loop without a spend cap set at the provider level. These aren't permanent exclusions — they mean "not until you've built something smaller first and understand what you're approving."
+What not to build first: anything that touches money, anything multi-user, anything that calls a paid API in a loop without a spend cap set at the provider level. These aren't permanent exclusions — they mean "not until you've built something smaller first and understand what you're approving." Revisit this list after 10+ working hours in Claude Code; the constraints loosen with experience.
 
 ---
 

@@ -135,7 +135,7 @@ Use when scope is creeping. When a straightforward request has turned into a thr
 
 These are the specific ways things go wrong for non-developers. For each one, the recovery is a question to ask Claude, not a command to memorize.
 
-**Lost work because you didn't commit.** Claude Code refactors something, it breaks, you want to go back — and there's no previous state to go back to. The fix is mechanical: ask Claude to commit after every working state. Build a habit of saying "commit this" whenever something works, before moving on.
+**Lost work because you didn't commit.** Claude Code refactors something, it breaks, you want to go back — and there's no previous state to go back to. The fix is mechanical: ask Claude to commit after every working state. Build a habit of saying "commit this" whenever something works, before moving on. Roughly 20 seconds per commit. Solo projects; team projects may need a different message convention.
 
 **Leaked an API key to a public repo.** You create a file with credentials in it, Claude Code reads from it, you push it all to GitHub. A bot finds the key within hours. Real charges follow. The fix: at the start of any new project, ask Claude to set up safety basics before you do anything else. If you think you've already committed a secret, ask Claude: "Did I just commit any secrets? If so, what do I need to do?" Claude can detect this and walk you through revocation.
 
@@ -155,7 +155,7 @@ These are the specific ways things go wrong for non-developers. For each one, th
 
 These are the decisions you can make once and not revisit.
 
-**Commit to main. Don't branch.** Branches exist for teams coordinating on the same codebase simultaneously. If you're the only person working on a project, branching adds complexity without adding value. Just commit to main. If you want to try something experimental, ask Claude to make a checkpoint commit first — then you can always get back to it.
+**Commit to main. Don't branch.** Branches exist for teams coordinating on the same codebase simultaneously. If you're the only person working on a project, branching adds complexity without adding value. Just commit to main. If you want to try something experimental, ask Claude to make a checkpoint commit first — then you can always get back to it. Skip this if you work with collaborators or contribute to a public-fork project where others rely on stable branches.
 
 **Commit often.** After every working state. Ask Claude to do it. The message just needs to describe what works: "Commit this — the CSV parser is reading files correctly." That's a commit message. Twenty seconds of friction prevents hours of recovery.
 
@@ -171,7 +171,7 @@ These are the decisions you can make once and not revisit.
 >
 > "Fix all the things" never authorizes an outbound action, no matter how obvious it looks. The cost of one wrong Slack is hours of cleanup; the cost of one extra confirm-prompt is two seconds. I learned this rule across three separate incidents — each one a different agent, each one assuming "approval" covered the next action down the line. It didn't. If you only remember one safety rule from this guide, remember this one.
 
-**Let Claude manage the technical defaults.** Don't learn `.gitignore` templates, virtualenv setup, or `package.json` configuration. Ask Claude to handle them. Your job is to review what Claude proposes, not to know how to write it yourself.
+**Let Claude manage the technical defaults.** Don't learn `.gitignore` templates, virtualenv setup, or `package.json` configuration. Ask Claude to handle them. Your job is to review what Claude proposes, not to know how to write it yourself. On a company-managed machine, ask IT before letting Claude run setup commands.
 
 ---
 

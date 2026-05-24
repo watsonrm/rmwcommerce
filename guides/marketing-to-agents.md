@@ -534,6 +534,8 @@ Google's response: WebMCP. In February 2026, Google shipped WebMCP in Chrome Can
 
 ### What an agentic browser rewards
 
+*Effort: 1 day for items 1-3, weeks for item 10 (MCP server). Skip item 10 unless agents already drive ≥5% of your traffic.*
+
 What makes a site work for an agent is what makes it work for a screen reader. The accessibility community has carried water on semantic HTML, ARIA roles, and accessible state representation for twenty years. The agent era turns that work into an economic asset.
 
 Concrete moves for site owners:
@@ -570,6 +572,8 @@ The browser-agent moves above keep an agent from getting *stuck*. They don't mak
 Most of this is invisible to humans visiting your site. That's exactly the point — agentic commerce is a parallel set of failure modes that classical UX QA never tests. A merchant whose human-side checkout has a 70% completion rate may be at 5% on agent sessions and not know it.
 
 ### How coding agents consume docs
+
+*Skip this whole section if you don't publish developer-facing docs.*
 
 Coding agents read documentation by pasting it into a context window and asking the model. The patterns that reward this consumption are consistent across Claude Code, Cursor, Cline, Aider, Windsurf, Devin, and Codex.
 
@@ -835,6 +839,8 @@ If you cannot answer "did Bing's AI Performance dashboard show more citations th
 Impact-ordered. Items 1–5 are the 80/20.
 
 ### Tier 1 — Do this first
+*Best for: all sites publishing public content.*
+
 1. Serve content as raw server-rendered HTML — headline, body copy, dates visible in the response before JS runs.
 2. Publish `Article` / `Organization` / `Person` JSON-LD on every editorial page with `datePublished`, `dateModified`, `author`, `publisher`, and `sameAs` arrays linking to Wikipedia / Wikidata / official profiles.
 3. Set `rel="canonical"` on every page; never let two URLs serve the same content without one canonicalizing to the other.
@@ -842,6 +848,8 @@ Impact-ordered. Items 1–5 are the 80/20.
 5. Publish `sitemap.xml` with truthful `<lastmod>` timestamps and reference it from `robots.txt`.
 
 ### Tier 2 — High leverage
+*Best for: editorial sites + content publishers.*
+
 6. Front-load the answer in the first 30% of every long-form page (40–75 words after the lede).
 7. Open Graph + Twitter Card meta tags on every page.
 8. ISO 8601 timestamps in JSON-LD and visible `<time datetime="…">` elements.
@@ -851,6 +859,8 @@ Impact-ordered. Items 1–5 are the 80/20.
 12. Pass WCAG 2.2 AA. This is your agentic-browser readiness check.
 
 ### Tier 3 — If you have docs or structured content
+*Best for: sites shipping developer docs or structured content.*
+
 13. `BreadcrumbList`, `FAQPage`, `HowTo` schema where applicable.
 14. Ship `.md` mirrors of every important HTML page; map `Accept: text/markdown` to the markdown.
 15. Publish `/llms.txt` (and optionally `/llms-full.txt`) if you're a docs site.
@@ -859,6 +869,8 @@ Impact-ordered. Items 1–5 are the 80/20.
 18. Run an MCP server for the high-value actions on your site (search, checkout, file ticket, schedule). Register at modelcontextprotocol.io.
 
 ### Tier 4 — Polish and measurement
+*Best for: polish — only after Tiers 1-3.*
+
 19. Hit Core Web Vitals at p75 (LCP ≤ 2.5s, INP ≤ 200ms, CLS ≤ 0.1).
 20. `X-Robots-Tag` HTTP headers on non-HTML resources (PDFs, JSON APIs).
 21. Disclose AI-assisted content per E-E-A-T guidance; image alt text on every meaningful image.
