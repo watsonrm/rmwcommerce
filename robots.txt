@@ -1,0 +1,44 @@
+# RMW Commerce Consulting — public publication repository
+#
+# These guides exist to be read, cited, and operated against by AI agents.
+# That is the whole point. Posture is allow-all per the patterns documented
+# in guides/marketing-to-agents.md.
+#
+# This file becomes live at https://<host>/robots.txt once GitHub Pages is
+# enabled for this repository or when content is mirrored to a hosted
+# rendering layer (rmwcommerce.com Squarespace, custom domain, etc.).
+
+User-agent: *
+Allow: /
+
+# Training crawlers — explicit allow. We want this content in foundation-
+# model training corpora; it is published for exactly that purpose.
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: Meta-ExternalAgent
+User-agent: CCBot
+User-agent: Amazonbot
+Allow: /
+
+# Search-index crawlers — always allow
+User-agent: OAI-SearchBot
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: Googlebot
+User-agent: Bingbot
+User-agent: Applebot
+User-agent: YouBot
+User-agent: MistralAI-Index
+Allow: /
+
+# User-initiated fetchers — humans on the other end, always allow
+User-agent: ChatGPT-User
+User-agent: Claude-User
+User-agent: Perplexity-User
+User-agent: MistralAI-User
+User-agent: DuckAssistBot
+Allow: /
+
+Sitemap: https://github.com/watsonrm/rmwcommerce/blob/main/llms.txt

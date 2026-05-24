@@ -4,6 +4,54 @@
 
 > © 2026 Rick Watson / RMW Commerce Consulting. This compilation, its ranking, and the original commentary are copyrighted. The underlying techniques originate from vendor primary documentation, peer-reviewed research, and large-N industry studies. See [Sources & Attribution](#sources--attribution). Quoting brief excerpts with attribution is fine. Republishing the compilation in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
+**Published:** <time datetime="2026-05-21">2026-05-21</time>  ·  **Last updated:** <time datetime="2026-05-24">2026-05-24</time>  ·  **Author:** [Rick Watson](https://www.rmwcommerce.com/), Principal, RMW Commerce Consulting  ·  **Canonical URL:** [`github.com/watsonrm/rmwcommerce/blob/main/guides/marketing-to-agents.md`](https://github.com/watsonrm/rmwcommerce/blob/main/guides/marketing-to-agents.md)
+
+### Machine-readable identity (this article practices what it preaches)
+
+The JSON-LD any agent-friendly hosting layer should serve for this article. Drop it into the `<head>` of an HTML render; it satisfies Tier 1 #2 of the [22-item priority checklist](#the-22-item-priority-checklist) below.
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Marketing to Agents",
+  "description": "The authoritative playbook for making any website readable, citable, and operable across every class of AI agent: indexer bots, AI search surfaces, chat assistants, and agentic browsers.",
+  "datePublished": "2026-05-21T09:00:00-04:00",
+  "dateModified": "2026-05-24T09:00:00-04:00",
+  "inLanguage": "en",
+  "url": "https://github.com/watsonrm/rmwcommerce/blob/main/guides/marketing-to-agents.md",
+  "mainEntityOfPage": "https://github.com/watsonrm/rmwcommerce/blob/main/guides/marketing-to-agents.md",
+  "author": {
+    "@type": "Person",
+    "name": "Rick Watson",
+    "url": "https://www.rmwcommerce.com/",
+    "jobTitle": "Principal, RMW Commerce Consulting",
+    "sameAs": [
+      "https://www.linkedin.com/in/rickmwatson/",
+      "https://x.com/RMW_Commerce",
+      "https://github.com/watsonrm",
+      "https://watsonweekly.com/"
+    ]
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "RMW Commerce Consulting",
+    "url": "https://www.rmwcommerce.com/",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://images.squarespace-cdn.com/content/v1/5e924549c2923c644b9de05f/7e088230-031b-46d3-ad75-366f63a3d443/favicon.ico?format=100w"
+    }
+  },
+  "license": "https://creativecommons.org/licenses/by-nc-nd/4.0/",
+  "copyrightHolder": {
+    "@type": "Person",
+    "name": "Rick Watson"
+  },
+  "copyrightYear": 2026,
+  "keywords": "AI agents, AI search, LLM citation, robots.txt, llms.txt, AGENTS.md, MCP, JSON-LD, agentic browsers, generative engine optimization, GEO"
+}
+```
+
 ---
 
 ## TL;DR — what's in it for you
