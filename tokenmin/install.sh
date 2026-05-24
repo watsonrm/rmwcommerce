@@ -310,6 +310,41 @@ if [ "${found_code}" = "0" ] && [ "${found_desktop}" = "0" ]; then
   say "  claude.ai web:  no install \xE2\x80\x94 export chats then use --source export"
 fi
 
+# ---- Claude Code plugin registration --------------------------------------
+# Without this step, typing "tokenmin" inside an interactive Claude Code session
+# is just a word; Claude treats it as a topic and asks what you want. Registering
+# the bundled .claude-plugin marketplace makes "tokenmin" a real trigger phrase
+# (the skill description routes it to a CLI run + summary). Idempotent.
+plugin_registered=0
+if [ "${found_code}" = "1" ] && command -v claude >/dev/null 2>&1; then
+  if claude plugin list 2>/dev/null | grep -qE 'tokenmin@tokenmin$'; then
+    ok "Claude Code plugin already registered"
+    plugin_registered=1
+  else
+    say "registering tokenmin as a Claude Code plugin (so 'tokenmin' triggers inline)"
+    mp_ok=0
+    if claude plugin marketplace list 2>/dev/null | grep -qE 'tokenmin$'; then
+      mp_ok=1
+    elif claude plugin marketplace add "${DEST}" >/dev/null 2>&1; then
+      mp_ok=1
+    fi
+    if [ "${mp_ok}" = "1" ] && claude plugin install "tokenmin@tokenmin" --scope user >/dev/null 2>&1; then
+      ok "Claude Code plugin installed — type 'tokenmin' inside a session to run"
+      plugin_registered=1
+    else
+      warn "couldn't auto-register Claude Code plugin; do it once by hand inside a Claude Code session:"
+      warn "  /plugin marketplace add ${DEST}"
+      warn "  /plugin install tokenmin@tokenmin"
+    fi
+  fi
+elif [ "${found_code}" = "1" ]; then
+  say ""
+  say "Claude Code is installed, but the 'claude' CLI isn't on PATH."
+  say "To enable inline 'tokenmin' inside a Claude Code session, run once:"
+  say "  /plugin marketplace add ${DEST}"
+  say "  /plugin install tokenmin@tokenmin"
+fi
+
 # ---- greet -----------------------------------------------------------------
 say ""
 ok "tokenmin ${KIND} installed."
