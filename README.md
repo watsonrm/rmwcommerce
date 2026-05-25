@@ -36,6 +36,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 | **Drowning in noise or permission prompts** | [Why Claude Code Is So Noisy](claude-code-noise.md) → [Stop the Interruption Hell](claude-permissions-guide.md) |
 | **Building skills, agents, or multi-agent systems** | [Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) → [Multi-Agent Fan-Out](multi-agent-fan-out-and-verification.md) |
 | **Shipping software with Claude, not just one-shot tasks** | [Building Excellent Software (with Claude)](guides/building-excellent-software-with-claude.md) |
+| **Writing to Google Docs or Drive from Claude / an agent** | [Operating Google Drive and Google Docs from Claude](guides/operating-google-docs-from-claude.md) |
 | **Making your own site readable by AI agents** | [Marketing to Agents](guides/marketing-to-agents.md) |
 | **Just need a definition** | [Glossary](glossary.md) |
 
@@ -59,6 +60,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 - [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) — when to stay with a prompt, when to package a skill, when to build an agent, and when a multi-agent system is actually warranted. The on-ramp before the multi-agent guide.
 - [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) — how to structure Claude agent systems that scale without silently breaking. Typed return contracts, intermediate-state logging, thin-orchestrator architecture, phasing strategy.
 - [Building Excellent Software (with Claude)](guides/building-excellent-software-with-claude.md) — the tokenmin v0.12.1 → v0.12.5 case study. Eight disciplines for taking a Claude-built artifact from working to production-grade, grounded in the public issue backlog and test suite.
+- [Operating Google Drive and Google Docs from Claude](guides/operating-google-docs-from-claude.md) — the patterns, hard limits, and anti-patterns of writing to Drive and Docs from an agent. Five workarounds for things the API simply cannot do, including the Cowork Shared Drive connector regression and the non-native file (`.docx` / PDF) gotcha that breaks most skills.
 
 **Publishing for AI agents:**
 - [Marketing to Agents](guides/marketing-to-agents.md) — the authoritative playbook for making any website readable, citable, and operable across every class of AI agent: indexer bots, AI search surfaces, chat assistants, and agentic browsers. Every claim sourced; 22-item checklist impact-ordered by evidence weight.
@@ -78,6 +80,7 @@ The on-demand companions to the guides above. Drop any folder into `~/.claude/sk
 - [claude-code-first-session](skills/claude-code-first-session/) — walk a first-time non-developer through their initial session
 - [claude-token-optimization](skills/claude-token-optimization/) — audit Claude API or Claude Code token spend and recommend one concrete cost reduction
 - [building-excellent-software](skills/building-excellent-software/) — apply the excellent-software checklist to a Claude-built artifact and surface the highest-leverage gap before shipping
+- [operating-google-docs-from-claude](skills/operating-google-docs-from-claude/) — audit a Drive/Docs automation against the 9-pattern checklist; diagnose connector-parity bugs (the "works in prompt, fails in skill" failure mode) and non-native file mishandling
 
 ### For AI agents reading this repo
 
