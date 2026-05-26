@@ -48,6 +48,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import re
 import subprocess
 import sys
@@ -104,12 +105,25 @@ def _fetch_url_content(url: str, max_chars: int) -> str:
     return body
 
 
+# Throttle + retry behavior. Anthropic Tier 1 allows 50 RPM = 1.2s between
+# calls; defaults below keep us under that comfortably. Override via env if
+# the maintainer's tier is higher.
+_THROTTLE_SECONDS = float(os.environ.get("TOKENMIN_THROTTLE_SECONDS", "1.2"))
+_MAX_RETRIES = int(os.environ.get("TOKENMIN_MAX_RETRIES", "3"))
+_RETRY_BACKOFF_BASE = float(os.environ.get("TOKENMIN_RETRY_BACKOFF_BASE", "5.0"))
+
+
 def _call_anthropic(api_key: str, model: str, system: str, user_msg: str) -> dict:
-    """POST to /v1/messages. Returns parsed JSON response.
+    """POST to /v1/messages with throttle + 429/5xx retry. Returns parsed JSON.
 
     System prompt is sent with `cache_control: ephemeral` so multi-event runs
     only pay full input rate on the first call — subsequent calls hit the
     cache for the prompt portion.
+
+    Retry policy: 429 and 5xx get exponential backoff (5s → 15s → 45s by
+    default). 4xx other than 429 fail fast (no point retrying auth errors).
+    Throttle: sleep `_THROTTLE_SECONDS` BEFORE each call to keep steady-state
+    rate under the per-minute cap, not just react to rate-limit responses.
     """
     payload = {
         "model": model,
@@ -126,30 +140,128 @@ def _call_anthropic(api_key: str, model: str, system: str, user_msg: str) -> dic
         ],
     }
     data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        ANTHROPIC_API_URL,
-        data=data,
-        headers={
-            "Content-Type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": ANTHROPIC_VERSION,
-            "User-Agent": USER_AGENT,
-        },
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.loads(r.read().decode("utf-8"))
+
+    last_exc: Exception | None = None
+    for attempt in range(_MAX_RETRIES + 1):
+        # Throttle: pace requests under the per-minute cap. The first call in
+        # a run sleeps too — cheap insurance against bursting against a cold
+        # rate-limit window.
+        time.sleep(_THROTTLE_SECONDS)
+
+        req = urllib.request.Request(
+            ANTHROPIC_API_URL,
+            data=data,
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": api_key,
+                "anthropic-version": ANTHROPIC_VERSION,
+                "User-Agent": USER_AGENT,
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return json.loads(r.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            last_exc = exc
+            # 429 and 5xx are retryable — back off and try again.
+            if exc.code == 429 or exc.code >= 500:
+                if attempt < _MAX_RETRIES:
+                    delay = _RETRY_BACKOFF_BASE * (3 ** attempt)
+                    print(
+                        f"    [retry {attempt+1}/{_MAX_RETRIES}] HTTP {exc.code} — "
+                        f"sleeping {delay:.0f}s before retry",
+                        file=sys.stderr,
+                    )
+                    time.sleep(delay)
+                    continue
+            # Non-retryable 4xx (e.g. 401, 400) — fail fast.
+            raise
+        except (urllib.error.URLError, OSError) as exc:
+            last_exc = exc
+            if attempt < _MAX_RETRIES:
+                delay = _RETRY_BACKOFF_BASE * (3 ** attempt)
+                print(
+                    f"    [retry {attempt+1}/{_MAX_RETRIES}] network error: {exc} — "
+                    f"sleeping {delay:.0f}s",
+                    file=sys.stderr,
+                )
+                time.sleep(delay)
+                continue
+            raise
+    if last_exc:
+        raise last_exc
+    raise RuntimeError("unreachable: retry loop exited without success or exception")
 
 
 def _verdict_from_response(resp: dict) -> dict:
-    """Parse the strict-JSON verdict out of the model reply. Defensively strip
-    ```json``` fences in case the model slips up.
+    """Parse the strict-JSON verdict out of the model reply.
+
+    Robustness layers:
+      1. Strip ```json``` code fences (anywhere in the text, not just at edges).
+      2. If straight json.loads fails, scan the text for the first balanced
+         {...} object and parse that. Catches "JSON object followed by trailing
+         prose" — a common failure mode that surfaced in the first live run.
+      3. If THAT fails too, surface the original parse error for diagnostics.
     """
     content_blocks = resp.get("content", [])
     text_blob = "".join(b.get("text", "") for b in content_blocks if b.get("type") == "text").strip()
-    text_blob = re.sub(r"^```(?:json)?\s*", "", text_blob)
-    text_blob = re.sub(r"\s*```$", "", text_blob)
-    return json.loads(text_blob)
+    # Strip any fenced code blocks the model might have wrapped the JSON in,
+    # even mid-text (not just at start/end).
+    text_blob = re.sub(r"```(?:json)?\s*", "", text_blob)
+    text_blob = re.sub(r"\s*```", "", text_blob)
+    text_blob = text_blob.strip()
+
+    # Fast path — clean JSON.
+    try:
+        return json.loads(text_blob)
+    except json.JSONDecodeError as primary_exc:
+        pass
+
+    # Fallback — scan for the first complete top-level JSON object.
+    extracted = _extract_first_json_object(text_blob)
+    if extracted is not None:
+        try:
+            return json.loads(extracted)
+        except json.JSONDecodeError:
+            pass
+
+    # Re-raise the original error so the caller's error log is informative.
+    raise primary_exc
+
+
+def _extract_first_json_object(s: str) -> str | None:
+    """Find the first balanced {...} object in s. Naive but adequate for
+    Claude's typical output: a JSON object optionally followed by prose, or
+    prose followed by a JSON object. Respects string quoting so braces inside
+    strings don't fool the matcher.
+    """
+    start = s.find("{")
+    if start < 0:
+        return None
+    depth = 0
+    in_str = False
+    escape = False
+    for i in range(start, len(s)):
+        c = s[i]
+        if escape:
+            escape = False
+            continue
+        if in_str:
+            if c == "\\":
+                escape = True
+            elif c == '"':
+                in_str = False
+            continue
+        if c == '"':
+            in_str = True
+        elif c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return s[start:i + 1]
+    return None
 
 
 def _usage_cost_usd(model: str, usage: dict) -> float:
