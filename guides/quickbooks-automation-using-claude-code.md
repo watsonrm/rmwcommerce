@@ -839,6 +839,8 @@ Calling `quickbooks-transaction-import` on a CSV of vendor invoices does not fil
 
 Fix: if you want to create bills, use `create_bill` (Intuit MCP / REST) or the prep-pack-and-UI-paste path. If you want bank-feed reconciliation, that lives in a separate Intuit FDP-only path most readers will never touch from an agent. The tool name is the source of the confusion; the underlying surface is unrelated to bill creation.
 
+**Operator-side enforcement.** The cleanest defense against this anti-pattern is at the skill-definition layer: every bill-related skill should carry an explicit "never call `quickbooks-transaction-import`" rule in its `## Rules` section, alongside the existing "never write to QBO" rule. The misleading name is the failure attractor; an explicit prohibition on the tool name is what stops a future model invocation from reaching for it. This is the same shape as the workspace article's "validators don't write either" rule — name the forbidden tool by exact identifier, not by category. The bills-prep skill at the working consulting firm referenced throughout this article carries this rule verbatim.
+
 ### Anti-pattern A-6 — A validator agent with QBO write tools
 
 The workspace article's "validators don't write either" rule applies identically here. A QBO drift-detector or audit agent that finds problems and also has write tools is structurally a second writer, with the same race-condition risks.
