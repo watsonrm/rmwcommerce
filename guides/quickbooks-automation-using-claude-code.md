@@ -882,28 +882,60 @@ The shape is deliberately scannable. A human reading the queue file on a Saturda
 
 The "GL category suggested" line is load-bearing. Without it, the human is deciding from scratch every month; with it, the human is reviewing one suggestion that's right 95% of the time.
 
-The mechanism: a small JSON file at `~/inbox/vendor-categories.json` mapping vendor ID → most-recent GL category and bill count.
+The mechanism: a small JSON file (canonical default `vendor_categories.json`) keyed by vendor display name. The shape that converged in real practice carries four fields beyond the obvious GL category, each earning its place:
 
 ```json
 {
-  "47": {
-    "name": "Acme Hosting Inc",
-    "category": "Web Hosting Expense",
-    "bill_count": 12,
-    "last_updated": "2026-05-26"
+  "_meta": {
+    "purpose": "Per-vendor GL category + sender-email + bill-pattern memory.",
+    "schema_version": 1,
+    "source_of_truth": "QBO vendor records are canonical; this file is the local memory the prep-pack uses to PROPOSE categorization. The human verifies on every post."
   },
-  "108": {
-    "name": "Channel Partner LLC",
-    "category": "Software Subscriptions",
-    "bill_count": 7,
-    "last_updated": "2026-05-15"
+  "vendors": {
+    "Acme Contractor LLC": {
+      "aliases": ["Acme Contractor LLC", "Acme", "Acme, LLC"],
+      "sender_emails": ["nick@example.com"],
+      "default_gl_category": "Subcontractors:ClientA",
+      "note": "Engagement-billable subcontractor; all 2026 work on ClientA engagement.",
+      "last_seen_invoice": null,
+      "last_seen_amount": null,
+      "confidence": "high"
+    },
+    "Beacon Editorial LLC": {
+      "aliases": ["Beacon Editorial LLC", "Beacon"],
+      "sender_emails": ["hendrik@example.com"],
+      "default_gl_category": "Subcontractors:ClientB",
+      "note": "Watson Weekly editorial + research lead. Recurring monthly.",
+      "last_seen_invoice": "INV-2026-014",
+      "last_seen_amount": null,
+      "confidence": "high"
+    },
+    "Cardinal Marketing LLC": {
+      "aliases": [],
+      "sender_emails": [],
+      "default_gl_category": null,
+      "note": "Outstanding balance $1,200 in 91+ bucket per AP aging 2026-05-26. GL category unconfirmed — operator to populate.",
+      "last_seen_invoice": null,
+      "last_seen_amount": 1200,
+      "confidence": "unconfirmed"
+    }
   }
 }
 ```
 
-Population: on first run, read every existing bill from QBO via the Intuit MCP (or via the QBO Bills export if you don't have production credentials yet) and back-fill the mapping. Each entry's category is the most-recent GL category that vendor's bills used.
+Five fields, each earning its place:
 
-Maintenance: on every approved queue entry, update the corresponding mapping if the human edited the suggested category.
+- **`aliases`** — vendor names drift over time ("Acme Corp" → "Acme Corp Inc" → "ACME Corp"). Matching the incoming PDF sender against an aliases list catches the case where the canonical QBO display name has shifted but the email signature hasn't. Saves the human from re-coding the vendor every time someone updates their letterhead.
+- **`sender_emails`** — the Gmail-scan join key. The prep-pack queries Gmail for new messages from any address in any vendor's `sender_emails`; matches resolve to a vendor record and a proposed GL category in one lookup.
+- **`default_gl_category`** — the load-bearing proposal. `null` when the human hasn't confirmed a category yet; the prep-pack surfaces "GL category unconfirmed" on those entries and the human populates it on first post.
+- **`last_seen_invoice` / `last_seen_amount`** — the delta-vs-prior baseline ([§7.3](#73--delta-vs-prior-month-annotation)). Updated only on post-confirm, after the human commits the bill in QBO.
+- **`confidence: high | medium | unconfirmed`** — the trust level for the proposed GL category. `high` = vendor has prior posted bills with this category. `medium` = inferred from vendor name + invoice memo but not yet confirmed by a posted bill. `unconfirmed` = no GL category proposed; the human must pick one on first post. The prep-pack surfaces low-confidence proposals more prominently in the queue entry so the human knows to scrutinize.
+
+The confidence field is the refinement most operators won't think to add up front but converge on within the first two months. Without it, every category proposal looks equally trustworthy in the queue entry, and the human ends up second-guessing the safe ones to avoid missing the risky ones. With it, the human's attention concentrates on `medium` and `unconfirmed` entries; `high` entries are one-second approvals.
+
+Population: on first run, read every existing bill from QBO via the Intuit MCP (or via the QBO Bills export if you don't have production credentials yet) and back-fill the mapping. Each entry's category is the most-recent GL category that vendor's bills used; confidence starts `high` for vendors with ≥3 prior bills in the same category, `medium` for 1–2 prior bills, `unconfirmed` for no prior bills (the AP aging surfaces the vendor exists; the category memory hasn't been built yet).
+
+Maintenance: on every approved queue entry, update the corresponding mapping if the human edited the suggested category. Promote confidence (`unconfirmed` → `medium` → `high`) as the same vendor's bills compound the same coding.
 
 The category memory survives even when the queue file is rebuilt from scratch (Gmail re-scanned, prior queue archived). The vendor-category mapping is the durable knowledge; the queue is the ephemeral working surface.
 
