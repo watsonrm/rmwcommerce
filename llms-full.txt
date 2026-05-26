@@ -2256,13 +2256,13 @@ Sources are listed by tier, from primary documentation outward. Every claim in t
 
 # The Prompts-to-Agents Ladder
 
-**You rebuilt a prompt as an agent, then the agent as a multi-agent system, and now it's slower, more expensive, and no more correct than the prompt was. That mistake — climbing the ladder without a trigger — is the single most expensive failure mode in AI engineering today. Each rung has an exact condition that justifies the climb; miss it and you've built complexity you can't debug. This is the decision table, with the anti-patterns named.**
+**You're pasting the same setup into a fresh chat for the tenth time this week — and you've never packaged it as a skill. Or you went the other way: rebuilt a prompt as an agent, then as a multi-agent system, and now it's slower, more expensive, and no more correct than the prompt was. Both are wrong-rung failures on the same ladder. Each rung has an exact condition that justifies climbing it — or staying put. Miss it and the bill arrives in one of those two shapes. This is the decision table, with all four anti-patterns named.**
 
-*By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · 15 min read · sources verified live before publication*
+*By [Rick Watson](https://rmwcommerce.com) · Published 2026-05-22 · Updated 2026-05-25 · 15 min read · sources verified live before publication*
 
-I run a production system of 20+ Claude skills and a multi-agent fleet across my consulting practice. The ladder below is what I apply to my own work before writing a single line of skill spec, and what I walk clients through before they spend money on the wrong shape. The four failure modes — prompt where a skill would do (by far the most common, and the one I see in every consulting engagement), agent where a skill would do, multi-agent where a single agent would do, and skill where a prompt would do — are the ones I have made myself and watched others repeat.
+I run a production system of 20+ Claude skills and a multi-agent fleet across my consulting practice. The ladder below is what I apply to my own work before writing a single line of skill spec, and what I walk clients through before they spend money on the wrong shape. I have made all four of the failure modes below — both directions of wrong-rung — and watched others repeat them. The one I see in every consulting engagement is the quietest one: a recurring workflow that should have been a skill three months ago and isn't.
 
-Who this is for: anyone building with LLMs who needs to decide whether the right shape is a prompt, a skill, a single agent, or a multi-agent system.
+Who this is for: anyone using LLMs who needs to decide whether the right shape is a prompt, a skill, a single agent, or a multi-agent system — whether that's deciding to finally package a workflow you've been re-typing for months, or deciding whether your next agent build is actually warranted.
 
 > © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. Quoted material is the property of its respective owners and used under fair use with attribution — see [Sources & Attribution](#sources--attribution). Quoted sources include: Andrew Ng / DeepLearning.AI, Anthropic, OpenAI, Shunyu Yao et al., Lilian Weng, Andrej Karpathy, Ethan Mollick, Simon Willison, Yohei Nakajima, and Riley Goodside. Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
