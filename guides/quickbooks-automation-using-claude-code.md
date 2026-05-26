@@ -838,43 +838,43 @@ The prep-don't-act principle (Part 4) is the conceptual frame. This section is t
 
 ### 7.1 — The queue file shape
 
-A markdown file at a known path. One section per bill. Each section is a one-screen-per-bill package: vendor matched, GL proposed, delta-vs-prior surfaced, PDF link.
+A markdown file at a known path. One H3 section per bill. Each section is a one-screen-per-bill package: vendor matched, GL proposed, delta-vs-prior surfaced, PDF link, posted-as field for the post-confirm round-trip.
 
-Concrete example of a `~/inbox/bills-queue.md` entry:
+The shape converged on in real practice (a working consulting firm's `~/wiki/07-operations/ap_queue.md`):
 
 ```markdown
-## 2026-05-26 — Acme Hosting Inc — $147.00 — Web Hosting
+## Pending bills
 
-**Vendor:** Acme Hosting Inc
-**Match:** Existing QBO vendor record (id: 47). Last bill 2026-04-26 at $147.00. ✓ amount matches prior month.
-**GL category:** `Web Hosting Expense` (matches prior 11 bills).
-**Invoice number:** ACME-2026-05-001
-**Invoice date:** 2026-05-25
-**Due date:** 2026-06-24 (Net 30 per vendor default)
-**Amount:** $147.00
-**Delta vs prior month:** $0.00 — identical to 12 prior months.
-**Source PDF:** [Gmail thread](https://mail.google.com/mail/u/0/#inbox/abc123) — attachment 1 of 1
-**State:** PENDING_REVIEW
+### 2026-05-24 — Acme Contractor LLC / Acme Contractor LLC — ClientA Phase 1 — `[VERIFY $ FROM PDF]`
 
-**Action:** Approve → paste into QBO Bills (vendor: Acme Hosting Inc, category: Web Hosting Expense, amount: $147.00, ref: ACME-2026-05-001).
+- [ ] **Vendor:** Acme Contractor LLC / Acme Contractor LLC (`nick@example.com`)
+- **Vendor in QBO:** ⚠️ **NOT in current AP aging summary.** Either no current balance (paid up) OR no vendor record yet. Verify in QBO UI: Expenses → Vendors → search "Acme" / "Acme Contractor LLC." If absent, create vendor before posting bill.
+- **GL category:** `Subcontractors:ClientA` (per [vendor memory](vendor_categories.json); engagement-billable to ClientA)
+- **Invoice #:** INV-2026-001
+- **Invoice date:** 2026-05-24 (received in Gmail)
+- **Due date:** "Pay them whenever" per Nick — schedule for end-of-month
+- **Amount:** `[VERIFY from PDF]`
+- **Delta vs prior:** `[no prior Acme invoices in AP aging snapshot 2026-05-26; first verifiable Acme bill captured by this queue]`
+- **PDF:** [Gmail thread 5/24 "ClientA Invoices" — attachment 1](https://mail.google.com/mail/u/0/#inbox/<thread-id>)
+- **Decision:** approve / approve-with-edit / reject
+- **Posted as:** _(fill: txnId + paid-via after QBO entry)_
 
 ---
 
-## 2026-05-26 — New Vendor: Beta Consulting LLC — $2,400.00 — FLAGGED
+## Recently posted (last 30 days)
 
-**Vendor:** Beta Consulting LLC
-**Match:** ⚠️ No existing QBO vendor record. Vendor record must be created in QBO before bill is posted.
-**GL category:** Suggested `Contract Labor` (no prior bills to match against; classification by vendor name + invoice memo).
-**Invoice number:** 2026-CONS-007
-**Invoice date:** 2026-05-24
-**Due date:** 2026-06-23
-**Amount:** $2,400.00
-**Delta vs prior month:** N/A (first bill from this vendor).
-**Source PDF:** [Gmail thread](https://mail.google.com/mail/u/0/#inbox/xyz789)
-**State:** NEEDS_VENDOR_CREATION
-
-**Action:** (1) Create vendor record in QBO with name "Beta Consulting LLC" and 1099-eligible flag set if applicable. (2) Approve → paste into QBO Bills (category: Contract Labor, amount: $2,400.00, ref: 2026-CONS-007).
+| Posted | Vendor | Description | Amount | GL | QBO txnId | Paid via |
+|---|---|---|---|---|---|---|
+| 2026-04-26 | Acme Hosting Inc | Hosting | $147.00 | Web Hosting Expense | 9123 | Brex ACH |
 ```
+
+Five shape choices worth flagging because they paid off in practice:
+
+1. **Markdown checkbox (`- [ ]`) on the vendor line.** The human checks the box when the bill is posted. The state of every row is visible at a glance — no parsing required, no separate `STATE:` field to keep in sync.
+2. **`[VERIFY from PDF]` in the title and on the Amount line.** The dollar amount is the highest-stakes field on the entry. Leaving it as a literal `[VERIFY from PDF]` placeholder — instead of an OCR'd guess — forces the human to open the PDF and read the number. See [§7.3.5](#735--why-the-prep-pack-stops-short-of-extracting-the-dollar-amount) for the principle.
+3. **"Vendor in QBO" line with explicit UI navigation when the vendor is missing.** Not "vendor flagged for review" but literally "Expenses → Vendors → search 'Acme' / 'Acme Contractor LLC.' If absent, create vendor before posting bill." The human's next action is on the page; there is no thinking required.
+4. **"Posted as" field on every row.** After the human posts the bill in QBO, the QBO transaction ID and the paid-via method land here. The completed row is now an audit-grade record of who got paid, when, by what method, and against which QBO entity — no separate ledger needed.
+5. **"Recently posted (last 30 days)" table at the bottom.** Rows move from the pending H3-sections to this compact table on post-confirm. Thirty days of history is enough to answer "did I pay this last month?" without scrolling; older rows archive to `_archive/ap_queue_<YYYY-MM>.md` at month-end.
 
 The shape is deliberately scannable. A human reading the queue file on a Saturday morning should be able to triage every entry in a few seconds. The "everything in one screen" rule (Part 7 §7.4) is the editorial discipline.
 
