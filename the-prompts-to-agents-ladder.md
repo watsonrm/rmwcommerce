@@ -1,6 +1,6 @@
 ---
 title: The Prompts-to-Agents Ladder
-description: You rebuilt a prompt as an agent, then the agent as a multi-agent system, and now it's slower, more expensive, and no more correct than the prompt was. That mistake — climbing the ladder without a trigger — is one of the most common AI over-engineering patterns we see. Each rung has an exact condition that justifies the climb; miss it and you've built complexity you can't debug. This is the decision table, with the anti-patterns named.
+description: You rebuilt a prompt as an agent, then the agent as a multi-agent system, and now it's slower, more expensive, and no more correct than the prompt was. That mistake — climbing the ladder without a trigger — is the single most expensive failure mode in AI engineering today. Each rung has an exact condition that justifies the climb; miss it and you've built complexity you can't debug. This is the decision table, with the anti-patterns named.
 date: 2026-05-22
 author: Rick Watson
 agent_friendly: true
@@ -9,13 +9,15 @@ keywords: when to use an agent vs prompt, prompt vs skill vs agent, multi-agent 
 
 # The Prompts-to-Agents Ladder
 
-**You rebuilt a prompt as an agent, then the agent as a multi-agent system, and now it's slower, more expensive, and no more correct than the prompt was. That mistake — climbing the ladder without a trigger — is one of the most common AI over-engineering patterns we see. Each rung has an exact condition that justifies the climb; miss it and you've built complexity you can't debug. This is the decision table, with the anti-patterns named.**
+**You rebuilt a prompt as an agent, then the agent as a multi-agent system, and now it's slower, more expensive, and no more correct than the prompt was. That mistake — climbing the ladder without a trigger — is the single most expensive failure mode in AI engineering today. Each rung has an exact condition that justifies the climb; miss it and you've built complexity you can't debug. This is the decision table, with the anti-patterns named.**
 
-*By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · Roughly 15 min read*
+*By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · 15 min read · sources verified live before publication*
+
+I run a production system of 20+ Claude skills and a multi-agent fleet across my consulting practice. The ladder below is what I apply to my own work before writing a single line of skill spec, and what I walk clients through before they spend money on the wrong shape. The three failure modes — agent where a skill would do, skill where a prompt would do, multi-agent where a single agent would do — are the ones I have personally made and watched others repeat.
 
 Who this is for: anyone building with LLMs who needs to decide whether the right shape is a prompt, a skill, a single agent, or a multi-agent system.
 
-> © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. Quoted material is the property of its respective owners and used under fair use with attribution — see [Sources & Attribution](#sources--attribution). Quoted sources include: Andrew Ng / DeepLearning.AI, Anthropic, OpenAI, Shunyu Yao et al., Lilian Weng, Andrej Karpathy, Harrison Chase / LangChain, Ethan Mollick, Simon Willison, Yohei Nakajima, and Riley Goodside. Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
+> © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. Quoted material is the property of its respective owners and used under fair use with attribution — see [Sources & Attribution](#sources--attribution). Quoted sources include: Andrew Ng / DeepLearning.AI, Anthropic, OpenAI, Shunyu Yao et al., Lilian Weng, Andrej Karpathy, Ethan Mollick, Simon Willison, Yohei Nakajima, and Riley Goodside. Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
 ---
 
@@ -23,7 +25,7 @@ Who this is for: anyone building with LLMs who needs to decide whether the right
 
 Already working at Rung 1–2 inside Claude Code? Practitioner tactics — context discipline, model routing, verification-first — are in [The Claude Code Workflow Optimizer](claude-code-optimizer.md). Already committed to Rung 4? The architecture playbook is in [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md).
 
-If you can identify the right rung on this ladder before you build, you will ship faster and waste fewer tokens than most teams building with LLMs today. Specifically:
+If you can identify the right rung on this ladder before you build, you will ship faster and waste fewer tokens than teams that skip this question. Specifically:
 
 - Avoid rebuilding a prompt as a full agent and then wondering why it's slower, harder to debug, and no more correct
 - Know the exact trigger that justifies moving from a packaged skill to an autonomous agent loop
@@ -38,38 +40,12 @@ Most readers are somewhere between Rung 1 and Rung 2. The highest-value move for
 | :-- | :--- | :--- | :--- |
 | **1** | You paste the same prompt setup more than twice | Package it as a [skill (Rung 2)](#rung-2--skill) | Reuse without the [context tax](claude-code-optimizer.md#pillar-1-context-and-configuration-discipline-highest-roi). Biggest gain, lowest effort. |
 | **2** | You have a skill but it needs multiple tool calls in sequence, with decisions between them | Graduate to an [agent (Rung 3)](#rung-3--agent) | Skills are single-invocation. Once the model needs to reason about intermediate results, you need a [loop](#rung-3--agent). |
-| **3** | You have an agent but you keep adding tools and it's getting fragile | Refine the [skill spec](#rung-2--skill) and tool allowlist before adding more tools | Complexity at Rung 3 compounds. Narrower scope is almost always the fix, not more tooling. |
+| **3** | You have an agent but you keep adding tools and it's getting fragile | Refine the [skill spec](#rung-2--skill) and tool allowlist before adding more tools | Complexity at Rung 3 compounds. Narrower scope is the fix, not more tooling. |
 | **4** | You have a working single agent and the work has clear natural fan-out | Consider [multi-agent (Rung 4)](#rung-4--multi-agent-system) | See [the companion guide](multi-agent-fan-out-and-verification.md) for the full treatment. Don't start here. |
 
 ---
 
-## How to use this
-
-The operational form of this guide is the Claude Code skill at [`skills/prompts-to-agents-ladder/`](skills/prompts-to-agents-ladder/). Install it once:
-
-```bash
-# from a clone of this repo
-cp -r skills/prompts-to-agents-ladder ~/.claude/skills/
-```
-
-Then describe your current workflow to Claude — what you're building, how you're invoking it, what's breaking or feeling over-built — and say one of these (the skill's trigger phrases):
-
-> Apply the prompts-to-agents ladder to my workflow.
-> Which rung am I on?
-> Should this be a skill or an agent?
-> Am I over-engineering this agent?
-> Do I need a multi-agent system?
-
-Claude will load the skill on demand, identify your current rung, check for over-climbing, and recommend the single highest-leverage move. The article below is the reasoning behind the ladder — read it for the *why*; the skill is the *how*.
-
----
-
-> *"Ran it against one of my own — receipt-matching across two inboxes — and it correctly talked me out of building an agent for it. So it works."*
-> — Matt Ezyk
-
----
-
-## Background: why the ladder matters
+## The four rungs
 
 There is a four-rung ladder from single [prompt (Rung 1)](glossary.md#prompt-rung-1) to [multi-agent system (Rung 4)](glossary.md#multi-agent-system-rung-4). Each rung adds capability — and each adds cost: complexity, latency, and verification debt.
 
@@ -87,7 +63,7 @@ The ladder gives you a framework for asking the right question before building: 
 
 ## Rung 1 — Prompt
 
-A prompt is a single instruction in a chat session. Stateless or near-stateless. No reuse infrastructure.
+A prompt is a single instruction in a chat session. No state. No reuse infrastructure.
 
 **What it is:** You type something, the model responds, you're done. The context lives in your head and in the chat window. There is no artifact, no trigger mechanism, no tooling beyond what the model has by default.
 
@@ -103,13 +79,13 @@ A skill is a packaged, reusable instruction set. It loads on demand. It does one
 
 **What it adds over a prompt:** Reuse, optional tool allowlists, optional scripts the skill can call, and versioning you can reason about. In Claude Code, a skill is a folder with a `SKILL.md` file — instructions, scripts, and reference docs that Claude loads when the skill is relevant. ([source](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)) Trigger phrases or slash commands route to it. Anthropic introduced this as a named pattern in October 2025 with their Agent Skills release. For Claude Code specifically, the practitioner tactics that make Rung 1–2 work well — context discipline, model routing, verification-first — are documented in [The Claude Code Workflow Optimizer](claude-code-optimizer.md).
 
-OpenAI's parallel pattern is Custom GPTs: a tailored configuration with custom instructions, external knowledge, and allowed actions — same concept, different implementation. Ethan Mollick, Wharton professor and one of the most widely read practitioners on applied AI use, described Custom GPTs as a more repeatable and shareable form of prompt packaging. ([source](https://www.oneusefulthing.org/p/almost-an-agent-what-gpts-can-do)) He was also precise about what they are not: *"GPTs aren't autonomous agents yet. I had to give feedback to the AI a few times."* Rung 2 is where a human is still present for each output. That is not a bug — it is often the right design.
+OpenAI's parallel pattern is Custom GPTs: a tailored configuration with custom instructions, external knowledge, and allowed actions — same concept, different implementation. Ethan Mollick, Wharton professor and one of the most widely read practitioners on applied AI use, described Custom GPTs as a more repeatable and shareable form of prompt packaging. ([source](https://www.oneusefulthing.org/p/almost-an-agent-what-gpts-can-do)) He was also precise about what they are not: *"GPTs aren't autonomous agents yet. I had to give feedback to the AI a few times."* Rung 2 is where a human is still present for each output. That is not a bug — it is the right design for any workflow where review is cheaper than verification.
 
 Simon Willison, who covered the Anthropic skills launch the day it shipped, noted the core architectural simplicity: Skills are Markdown files with optional scripts that compose without requiring a new protocol or agent runtime. ([source](https://simonwillison.net/2025/Oct/16/claude-skills/))
 
 **What a skill is NOT:** Autonomous. A skill runs in a user's session, not in a loop. The user invokes it, it runs, it returns. There is no decision-making between steps. If the skill needs to call a tool, it calls one tool and returns the result — it doesn't decide what to do next based on what the tool returned.
 
-**Where to stay:** A skill handles a surprising majority of useful AI workflows. The test is: does a human review each output before anything consequential happens? If yes, a skill's verification model is human review, which is often the cheapest and most reliable option. The cost of a skill is low; the verification cost of an agent is not.
+**Where to stay:** A skill handles most useful AI workflows. The test is: does a human review each output before anything consequential happens? If yes, a skill's verification model is human review, which is the cheapest and most reliable option available. The cost of a skill is low; the verification cost of an agent is not.
 
 Anthropic's guide names this class "workflows" — *"systems where LLMs and tools are orchestrated through predefined code paths."* ([source](https://www.anthropic.com/engineering/building-effective-agents)) A skill is the packaged, reusable version of a workflow.
 
@@ -133,21 +109,17 @@ An agent is a skill plus a decision-making loop plus tools plus verification log
 
 At the API level, the loop is concrete: your application sends a request with a tools array, Claude responds with `stop_reason: "tool_use"` and one or more `tool_use` blocks, your code executes the tools and returns `tool_result` blocks, and the cycle repeats until `stop_reason` is `"end_turn"`. ([source](https://platform.claude.com/docs/en/docs/agents-and-tools/tool-use/how-tool-use-works)) The model never executes anything itself — it emits a structured request and waits for the result.
 
-**What distinguishes Rung 3 from Rung 2.** Ng's series named four patterns that characterize agentic workflows: [reflection (Ng pattern 1)](glossary.md#reflection-ng-pattern-1) (the model examines its own output to find ways to improve it), [tool use (Ng pattern 2)](glossary.md#tool-use-ng-pattern-2) (calling external functions to gather information or take action), [planning (Ng pattern 3)](glossary.md#planning-ng-pattern-3) (decomposing a goal into a multi-step plan and executing it), and [multi-agent collaboration (Ng pattern 4)](glossary.md#multi-agent-collaboration-ng-pattern-4) (multiple agents dividing work and debating solutions). ([source](https://www.deeplearning.ai/the-batch/how-agents-can-improve-llm-performance/)) A skill typically exhibits only one of these — tool use. An agent exhibits all four, or at minimum reflection and planning in addition to tool use. That is the sharpest vocabulary for the Rung 2 → Rung 3 line: if your system only has tool use, you have a skill. If it has reflection or planning on top of that, you have an agent.
+**What distinguishes Rung 3 from Rung 2.** Ng's series named four patterns that characterize agentic workflows: [reflection (Ng pattern 1)](glossary.md#reflection-ng-pattern-1) (the model examines its own output to find ways to improve it), [tool use (Ng pattern 2)](glossary.md#tool-use-ng-pattern-2) (calling external functions to gather information or take action), [planning (Ng pattern 3)](glossary.md#planning-ng-pattern-3) (decomposing a goal into a multi-step plan and executing it), and [multi-agent collaboration (Ng pattern 4)](glossary.md#multi-agent-collaboration-ng-pattern-4) (multiple agents dividing work and debating solutions). ([source](https://www.deeplearning.ai/the-batch/how-agents-can-improve-llm-performance/)) A skill exhibits only one of these — tool use. An agent exhibits all four, or at minimum reflection and planning in addition to tool use. That is the sharpest vocabulary for the Rung 2 → Rung 3 line: if your system only has tool use, you have a skill. If it has reflection or planning on top of that, you have an agent.
 
-Lilian Weng's taxonomy describes the three foundational components: planning (decompose the task, decide the next step), memory (track what's happened so far), and tool use (call external systems to gather information or take action). ([source](https://lilianweng.github.io/posts/2023-06-23-agent/)) The Ng four-pattern framing adds reflection explicitly and extends multi-agent as a fourth design axis; the two taxonomies are complementary.
+Lilian Weng's taxonomy describes the three foundational components: planning (decompose the task, decide the next step), memory (track what's happened so far), and tool use (call external systems to gather information or take action). ([source](https://lilianweng.github.io/posts/2023-06-23-agent/)) The Ng four-pattern framing adds reflection explicitly and extends multi-agent as a fourth design axis; the two taxonomies are complementary. The line is sharp: when the model decides between steps rather than following a fixed path, you have crossed into agent territory.
 
-Harrison Chase, who built LangChain (the most-deployed agent framework in production), defines an agent as *"a system that uses an LLM to decide the control flow of an application."* ([source](https://www.langchain.com/blog/what-is-an-agent)) He frames the agent/workflow distinction not as a binary but as a spectrum of how much the LLM determines system behavior — consistent with Karpathy's autonomy slider, below. The framework-builder community has converged on the same boundary the academic taxonomy describes: when the model is making decisions between steps rather than following a fixed path, you have crossed into agent territory.
-
-Anthropic's framing distinguishes agents from workflows on the axis of control: agents are *"systems where LLMs dynamically direct their own processes and tool usage, maintaining control over how they accomplish tasks."* ([source](https://www.anthropic.com/engineering/building-effective-agents)) The model is in the driver's seat, not the code.
-
-**What this costs.** Anthropic's guide is direct: *"agentic systems often trade latency and cost for better task performance."* Human oversight is also more expensive — the agent is doing more between check-ins, so each check-in has more to review. OpenAI's practical guide to building agents puts the same tradeoff in its framework for deciding whether an agent is warranted: the task needs to be complex enough and long-running enough that the benefit outweighs the added cost and latency. ([source](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf))
+**What this costs.** Anthropic's guide is direct: *"agentic systems often trade latency and cost for better task performance."* ([source](https://www.anthropic.com/engineering/building-effective-agents)) Human oversight is also more expensive — the agent is doing more between check-ins, so each check-in has more to review. OpenAI's practical guide to building agents puts the same tradeoff in its framework for deciding whether an agent is warranted: the task needs to be complex enough and long-running enough that the benefit outweighs the added cost and latency. ([source](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf))
 
 **The autonomy dimension.** Andrej Karpathy introduced the concept of the [autonomy slider](glossary.md#autonomy-slider-karpathy) at YC AI Startup School in June 2025: the same agent architecture can operate at very different levels of autonomy depending on how much approval it needs from a human. ([source](https://www.youtube.com/watch?v=LCEmiRjPEtQ)) Low on the slider: the agent proposes each action and a human approves before execution. High on the slider: the human reviews only the final output. Neither is wrong — the right position depends on how reversible the actions are and how much trust the agent has earned.
 
 This is the key design variable for Rung 3 that Rung 2 doesn't have: you can tune how autonomous your agent is, and you should start it lower and move it up as it proves itself. As autonomy increases, permission tuning becomes more load-bearing — see [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md) for the strategy.
 
-**Where to stay:** One agent doing one well-defined job is enough for most workflows that genuinely need agentic behavior. The tools are clear, verification is solvable inside the agent's own loop, and a single context window can hold the relevant state.
+**Where to stay:** One agent doing one well-defined job is enough for most workflows that need agentic behavior. The tools are clear, verification is solvable inside the agent's own loop, and a single context window can hold the relevant state.
 
 **The trigger to move up:** Three conditions, any one of which justifies a multi-agent system:
 
@@ -200,6 +172,27 @@ The companion guide covers this in detail. The short version: if you don't have 
 
 ---
 
+## Apply this to your own workflow
+
+The operational form of this guide is the Claude Code skill at [`skills/prompts-to-agents-ladder/`](skills/prompts-to-agents-ladder/). Install it once:
+
+```bash
+# from a clone of this repo
+cp -r skills/prompts-to-agents-ladder ~/.claude/skills/
+```
+
+Then describe your current workflow to Claude — what you're building, how you're invoking it, what's breaking or feeling over-built — and say one of these (the skill's trigger phrases):
+
+> Apply the prompts-to-agents ladder to my workflow.
+> Which rung am I on?
+> Should this be a skill or an agent?
+> Am I over-engineering this agent?
+> Do I need a multi-agent system?
+
+Claude will load the skill on demand, identify your current rung, check for over-climbing, and recommend the single highest-leverage move.
+
+---
+
 ## Where to go next
 
 If you've worked through this ladder and concluded that a multi-agent system is genuinely the right tool — your work has fan-out, or your agents need specialization, or your context is overflowing — the architecture playbook lives in [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md). That guide covers typed return contracts, intermediate-state logging, thin-orchestrator architecture, and a concrete phasing strategy for getting there without breaking what already works.
@@ -224,7 +217,6 @@ All primary sources were verified live before publication (2026-05-22).
 - Anthropic — *Tool use with Claude: How tool use works* (2026): https://platform.claude.com/docs/en/docs/agents-and-tools/tool-use/how-tool-use-works
 - OpenAI — *A Practical Guide to Building Agents* (April 2025): https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf
 - Lilian Weng — *LLM Powered Autonomous Agents* (June 23, 2023): https://lilianweng.github.io/posts/2023-06-23-agent/
-- Harrison Chase / LangChain — *What is an AI agent?* (June 28, 2024): https://www.langchain.com/blog/what-is-an-agent
 
 **Tier 3 — Practitioner perspectives (supporting role only):**
 
@@ -234,7 +226,7 @@ All primary sources were verified live before publication (2026-05-22).
 - Yohei Nakajima — *BabyAGI* (March 2023, archived September 2024) — historical reference on early autonomous-loop experiments: https://github.com/yoheinakajima/babyagi
 - Riley Goodside — *The Art and Craft of Prompt Engineering*, The Gradient (podcast, 2023): https://thegradientpub.substack.com/p/riley-goodside-the-art-and-craft
 
-**Attribution:** The framing, ranking, decision criteria, anti-pattern analysis, and "where to stay / when to move up" structure are Rick Watson's original work. The underlying technical definitions and research — the HumanEval data (Ng), the workflow/agent distinction (Anthropic), the planning/memory/tools taxonomy (Weng), the ReAct loop and benchmark evidence (Yao et al.), the tool-use API loop description (Anthropic), the four agentic design patterns (Ng), the autonomy slider concept (Karpathy), the skills pattern (Anthropic, Willison), the practitioner framing (Mollick), the framework-builder perspective (Chase), and the prompt-engineering craft perspective (Goodside) — are the property of their respective authors and cited with attribution. BabyAGI (Nakajima) is included as a historical reference on the evolution of the autonomous-agent pattern. OpenAI introduced Custom GPTs in November 2023 as their parallel to the skills pattern (see https://openai.com/index/introducing-gpts/).
+**Attribution:** The framing, ranking, decision criteria, anti-pattern analysis, and "where to stay / when to move up" structure are Rick Watson's original work. The underlying technical definitions and research — the HumanEval data (Ng), the workflow/agent distinction (Anthropic), the planning/memory/tools taxonomy (Weng), the ReAct loop and benchmark evidence (Yao et al.), the tool-use API loop description (Anthropic), the four agentic design patterns (Ng), the autonomy slider concept (Karpathy), the skills pattern (Anthropic, Willison), the practitioner framing (Mollick), and the prompt-engineering craft perspective (Goodside) — are the property of their respective authors and cited with attribution. BabyAGI (Nakajima) is included as a historical reference on the evolution of the autonomous-agent pattern. OpenAI introduced Custom GPTs in November 2023 as their parallel to the skills pattern (see https://openai.com/index/introducing-gpts/).
 
 **Corrections from prior circulating versions:** An earlier version of this article cited a specific Riley Goodside X/Twitter post (status/1614125922332061698) — that URL now returns a 403 error from X's bot-blocking infrastructure. The citation has been replaced with the Gradient podcast interview, which contains his documented thinking on the craft of prompt engineering. The substance of the point is unchanged.
 
