@@ -960,6 +960,22 @@ Surface in the queue entry:
 
 The delta is what turns the prep-pack from data entry into actual review. The agent's job isn't to suppress the human's judgment; it's to focus the human's attention on the bills that actually need it.
 
+### 7.3.5 — Why the prep-pack stops short of extracting the dollar amount
+
+The most tempting "improvement" a builder will reach for after seeing the prep-pack work: have the agent OCR the dollar amount out of the PDF and fill in the Amount field automatically. The Amount field is the highest-value field on the entry; auto-filling it looks like the obvious win.
+
+Don't. The dollar amount is the one field that should stay a literal `[VERIFY from PDF]` placeholder. The reasoning:
+
+1. **The Amount is the irreversibility multiplier.** Every other field on the entry is recoverable cheaply if the prep-pack gets it wrong: a misclassified GL category re-codes in two clicks, a wrong invoice number gets corrected at post time, a wrong vendor surfaces in the AP aging the next day. A wrong Amount that the human approves on autopilot books the wrong number into AP — and from there propagates into cash forecasting, into the next month's variance analysis, into the tax return.
+2. **OCR and PDF text-extraction are right ~98% of the time on clean invoices and ~80% of the time on the ones that matter** (scanned receipts, hand-modified amounts, multi-page invoices with the total on a later page). The 2% / 20% failure mode is silent: the agent confidently fills in `$1,470` for a $14,700 bill and the human's eyes glide right past because the agent has filled in every other field correctly.
+3. **The whole point of the prep-pack is to focus the human's attention.** Auto-filling the Amount defeats that focus. With the literal `[VERIFY from PDF]` placeholder, the human must open the PDF and read the number — which means the human's eyes are on the actual source of truth at the moment of the decision. With an OCR'd Amount pre-filled, the human's eyes are on the queue entry, treating it as ground truth.
+
+The general principle: **the prep-pack pre-fills every field that's cheap to fix and leaves a placeholder on every field that's expensive to fix.** Vendor, GL category, invoice number, due date, delta-vs-prior — all pre-filled, all easy to correct if wrong. Amount — placeholder, forcing the human to verify against the PDF.
+
+This is the operator-side complement to Anthropic's broader irreversibility-rate finding (Part 4 §4.5). Within a single prep-pack entry, the same logic applies: pre-fill the reversible fields, leave the irreversible-when-wrong field as the human's job.
+
+The article's earlier framing of "delta annotation focuses attention" (§7.3) is the field-level analog. The Amount placeholder is the entry-level analog. Both flow from the same principle: AI prepares, human commits, the system encodes that boundary at every level of granularity it can.
+
 ### 7.4 — The one-screen-per-bill discipline
 
 Every queue entry should fit on one screen at a normal terminal / editor size. If it doesn't, the prep-pack failed at its job. The discipline:
