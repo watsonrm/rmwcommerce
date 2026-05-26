@@ -1,6 +1,6 @@
 ---
 title: The Prompts-to-Agents Ladder
-description: You're pasting the same setup into a fresh chat for the tenth time this week — and you've never packaged it as a skill. Or you went the other way: rebuilt a prompt as an agent, then as a multi-agent system, and now it's slower, more expensive, and no more correct than the prompt was. Both are wrong-rung failures on the same ladder. Each rung has an exact condition that justifies climbing it — or staying put. This is the decision table, with all four anti-patterns named.
+description: "You're pasting the same setup into a fresh chat for the tenth time this week — and you've never packaged it as a skill. Or you went the other way — rebuilt a prompt as an agent, then as a multi-agent system, and now it's slower, more expensive, and no more correct than the prompt was. Both are wrong-rung failures on the same ladder. Each rung has an exact condition that justifies climbing it — or staying put. This is the decision table, with all four anti-patterns named."
 date: 2026-05-22
 last_modified_at: 2026-05-25
 author: Rick Watson
@@ -10,7 +10,7 @@ keywords: when to package a prompt as a skill, when to use an agent vs prompt, p
 
 # The Prompts-to-Agents Ladder
 
-**You're pasting the same setup into a fresh chat for the tenth time this week — and you've never packaged it as a skill. Or you went the other way: rebuilt a prompt as an agent, then as a multi-agent system, and now it's slower, more expensive, and no more correct than the prompt was. Both are wrong-rung failures on the same ladder. Each rung has an exact condition that justifies climbing it — or staying put. Miss it and the bill arrives in one of those two shapes. This is the decision table, with all four anti-patterns named.**
+**You're pasting the same setup into a fresh chat for the tenth time this week — and you've never packaged it as a skill. Or you went the other way — rebuilt a prompt as an agent, then as a multi-agent system, and now it's slower, more expensive, and no more correct than the prompt was. Both are wrong-rung failures on the same ladder. Each rung has an exact condition that justifies climbing it — or staying put. Miss it and the bill arrives in one of those two shapes. This is the decision table, with all four anti-patterns named.**
 
 *By [Rick Watson](https://rmwcommerce.com) · Published 2026-05-22 · Updated 2026-05-25 · 15 min read · sources verified live before publication*
 

@@ -1,6 +1,6 @@
 ---
 title: "AI Agent Discoverability and Protocols: What's Real, What's Hype, What's Dead"
-description: You're staring at llms.txt, agents.json, A2A, MCP, WebMCP, AGENTS.md, openapi.yaml, and a vendor demo for whichever one shipped last week. Half are dead, a quarter are speculative, and three are load-bearing — and the surrounding commentary mostly won't tell you which is which. This is the concept-by-concept call: deploy now, watch, or skip. Hype attributed to source.
+description: "You're staring at llms.txt, agents.json, A2A, MCP, WebMCP, AGENTS.md, openapi.yaml, and a vendor demo for whichever one shipped last week. Half are dead, a quarter are speculative, and three are load-bearing — and the surrounding commentary mostly won't tell you which is which. This is the concept-by-concept call: deploy now, watch, or skip. Hype attributed to source."
 date: 2026-05-22
 author: Rick Watson
 agent_friendly: true

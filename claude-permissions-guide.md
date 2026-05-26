@@ -1,6 +1,6 @@
 ---
 title: "Claude Permissions: Stop the Interruption Hell"
-description: Every other turn, Claude stops to ask permission for something you already approved twice this session — and the prompt comes from three different permission systems depending on which environment you're in. That drift compounds for months until your flow is half waiting on dialogs. The fix is a layered allowlist: tight read-only defaults, specific broadening as trust builds, periodic consolidation into wildcards. Working starter configs for all three environments included.
+description: "Every other turn, Claude stops to ask permission for something you already approved twice this session — and the prompt comes from three different permission systems depending on which environment you're in. That drift compounds for months until your flow is half waiting on dialogs. The fix is a layered allowlist: tight read-only defaults, specific broadening as trust builds, periodic consolidation into wildcards. Working starter configs for all three environments included."
 date: 2026-05-22
 author: Rick Watson
 agent_friendly: true
