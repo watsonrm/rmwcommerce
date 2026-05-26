@@ -1,4 +1,4 @@
-# operating-google-docs-from-claude skill
+# operating-google-workspace-from-claude skill
 
 **Trigger phrases (say any of these to Claude):**
 - "audit my google docs automation"
@@ -16,7 +16,7 @@
 
 ## What this skill does
 
-When triggered, Claude works through the audit checklist from Rick Watson's [*Operating Google Drive, Docs, Sheets, and Slides from Claude*](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-docs-from-claude.md) guide, asks targeted questions about the user's setup, and produces:
+When triggered, Claude works through the audit checklist from Rick Watson's [*Operating Google Drive, Docs, Sheets, and Slides from Claude*](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md) guide, asks targeted questions about the user's setup, and produces:
 
 1. A surface-by-surface pattern adherence report (Docs / Sheets / Slides / Drive)
 2. A connector-parity diagnosis if the user has hit the "works in prompt, fails in skill" failure mode
@@ -265,7 +265,7 @@ Format:
 ### Step 8 — Where to read more
 
 Always end with:
-> Full guide: [Operating Google Drive, Docs, Sheets, and Slides from Claude](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-docs-from-claude.md)
+> Full guide: [Operating Google Drive, Docs, Sheets, and Slides from Claude](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md)
 > Bug tracker for Cowork Shared Drive issue: [anthropics/claude-code#53442](https://github.com/anthropics/claude-code/issues/53442)
 > Slides API transitions / animations issue: [issuetracker.google.com/issues/36761236](https://issuetracker.google.com/issues/36761236)
 

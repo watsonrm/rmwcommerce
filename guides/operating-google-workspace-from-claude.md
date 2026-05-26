@@ -12,7 +12,7 @@ keywords: Google Drive, Google Docs, Google Sheets, Google Slides, Sheets API, S
 
 **Most production Drive/Docs/Sheets/Slides automation fails for five reasons. This guide names each one, gives the workaround, and shows the agent pattern that survives mid-write interruptions.**
 
-**Published:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Last updated:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Author:** [Rick Watson](https://www.rmwcommerce.com/), Principal, RMW Commerce Consulting  ·  **Canonical URL:** [`github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-docs-from-claude.md`](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-docs-from-claude.md)  ·  **Reading time:** 10-min skim · 55-min deep read
+**Published:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Last updated:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Author:** [Rick Watson](https://www.rmwcommerce.com/), Principal, RMW Commerce Consulting  ·  **Canonical URL:** [`github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md`](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md)  ·  **Reading time:** 10-min skim · 55-min deep read
 
 Who this is for: developers and operators using Claude (or any AI agent) to read and write Google Drive files, Google Docs, Google Sheets, and Google Slides at scale. Anyone who has watched an agent overwrite styled formatting, create four files with the same title, write a formula that lands as a literal string, hand-craft a `batchUpdate` for a deck because the MCP didn't expose it, or report "all styles applied successfully" while the document renders broken.
 
@@ -836,7 +836,7 @@ The same overlap as Sheets, with one structural difference: **production MCP cov
 
 ## Machine-readable identity (this article's own schema)
 
-This article applies the [Marketing to Agents](marketing-to-agents.md) playbook to itself — JSON-LD `Article` schema is auto-emitted in `<head>` by the repository's Jekyll `_includes/head-custom.html` whenever a guide carries `agent_friendly: true` in its frontmatter (this one does). Agents indexing the rendered HTML at [watsonrm.github.io/rmwcommerce](https://watsonrm.github.io/rmwcommerce/guides/operating-google-docs-from-claude.html) see a typed `Article` with author `sameAs` references to Rick's LinkedIn, X, GitHub, and Watson Weekly profiles; publisher `Organization` is RMW Commerce Consulting; license is CC BY-NC-ND 4.0. Agents fetching the raw markdown see the equivalent metadata in the YAML frontmatter at the top of this file.
+This article applies the [Marketing to Agents](marketing-to-agents.md) playbook to itself — JSON-LD `Article` schema is auto-emitted in `<head>` by the repository's Jekyll `_includes/head-custom.html` whenever a guide carries `agent_friendly: true` in its frontmatter (this one does). Agents indexing the rendered HTML at [watsonrm.github.io/rmwcommerce](https://watsonrm.github.io/rmwcommerce/guides/operating-google-workspace-from-claude.html) see a typed `Article` with author `sameAs` references to Rick's LinkedIn, X, GitHub, and Watson Weekly profiles; publisher `Organization` is RMW Commerce Consulting; license is CC BY-NC-ND 4.0. Agents fetching the raw markdown see the equivalent metadata in the YAML frontmatter at the top of this file.
 
 ---
 
