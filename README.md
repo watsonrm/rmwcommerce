@@ -89,3 +89,20 @@ This repository applies the [Marketing to Agents](guides/marketing-to-agents.md)
 - [llms.txt](llms.txt) — curated index of every guide and skill, per the [llmstxt.org](https://llmstxt.org/) spec.
 - [llms-full.txt](llms-full.txt) — concatenated full text of every guide for one-shot LLM ingestion.
 - [AGENTS.md](AGENTS.md) — house conventions, source taxonomy, and publishing process for agents and human contributors working in this repo.
+
+### Article freshness automation
+
+A weekly GitHub Actions workflow (`.github/workflows/article-research.yml`) keeps the guides in `guides/` honest:
+
+- **Stage 1** (`bin/article-freshness.py`, stdlib only) extracts every cited URL from every `guides/**/*.md`, fetches each one, and diffs against `bin/.article-state.json` to detect 404s, redirects, content changes, and Last-Modified bumps.
+- **Stage 2** (`bin/article-suggest-updates.py`) — optional, requires `ANTHROPIC_API_KEY` — asks Claude per drift event whether the article's claim is still accurate, contradicted, or extended by what's currently at the URL, and writes the suggested edit into one open GitHub issue per article (label: `article-freshness`, kept open and edited in place across weeks).
+
+Runs Sundays at 14:37 UTC. Suggestions only — no auto-edits.
+
+To enable Stage 2:
+
+```
+gh secret set ANTHROPIC_API_KEY --repo watsonrm/rmwcommerce
+```
+
+Without the secret, Stage 1 still runs and files raw drift events as issues — the workflow always produces value, the secret just upgrades the output from "here's what changed" to "here's the suggested edit." Soft cost cap defaults to $1.00/run (`TOKENMIN_SYNTH_BUDGET`); default model is `claude-sonnet-4-6` (`TOKENMIN_SYNTH_MODEL`).

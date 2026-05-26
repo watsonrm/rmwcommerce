@@ -1,0 +1,118 @@
+name: article-research
+
+# Two-stage weekly article-freshness pipeline:
+#
+#   Stage 1 (bin/article-freshness.py): for every `guides/**/*.md`, extract every
+#     cited URL, fetch each one (status + Last-Modified + body hash), diff against
+#     bin/.article-state.json, write the per-article drift report to
+#     bin/.article-fresh.json. Pure stdlib — no pip install in CI.
+#   Stage 2 (bin/article-suggest-updates.py): for each article with drift, ask
+#     Claude per drift event whether the claim is still accurate / contradicted /
+#     extended, file OR update ONE issue per article (kept open, edited in place).
+#
+# Runs WEEKLY in the cloud (GitHub Actions) — survives laptop shutdown by design.
+# Same architectural pattern as the detector-research workflow in
+# watsonrm/tokenmin-scanner.
+#
+# OPTIONAL SECRET: ANTHROPIC_API_KEY — add via
+#   gh secret set ANTHROPIC_API_KEY --repo watsonrm/rmwcommerce
+#
+# When ANTHROPIC_API_KEY is set:
+#   Stage 1 writes the drift report; Stage 2 reads each cited URL, judges the
+#   claim with Claude, files structured per-article issues with suggested edits.
+#
+# When ANTHROPIC_API_KEY is NOT set:
+#   Self-healing fallback — Stage 1 runs in --legacy-file-issues mode, filing
+#   one issue per article with drift containing the raw drift events (no LLM
+#   section). Stage 2 is skipped.
+#
+# Either way, the cron produces value. Setting the secret upgrades quality
+# from "here are the events" to "here are the events plus the suggested edits."
+
+on:
+  schedule:
+    # Sundays at 14:37 UTC. Off the :00/:30 minute marks so we don't slam the
+    # cron fleet at the round-hour like everyone else. On a different day from
+    # tokenmin-scanner's detector-research (Mondays 13:23 UTC) so the cron
+    # fleet isn't competing.
+    - cron: '37 14 * * 0'
+  workflow_dispatch: {}  # manual trigger for first run + debugging
+
+permissions:
+  contents: write   # to commit the updated .article-state.json + .article-fresh.json
+  issues: write     # to file/edit article-freshness issues
+
+concurrency:
+  group: article-research
+  cancel-in-progress: false
+
+jobs:
+  scan-and-suggest:
+    runs-on: ubuntu-latest
+    # Bridge the secret-availability check into an env var so step-level `if:`
+    # conditions can read it (GitHub Actions doesn't allow `secrets.*` in `if:`).
+    env:
+      HAS_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' && 'true' || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Ensure 'article-freshness' label exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! gh label list --repo "${GITHUB_REPOSITORY}" --search article-freshness \
+              | grep -q '^article-freshness'; then
+            gh label create article-freshness \
+              --repo "${GITHUB_REPOSITORY}" \
+              --description "Auto-filed by article-research; review for citation rot or content drift" \
+              --color "FBCA04" || true
+          fi
+
+      - name: Stage 1 — article-freshness (URL liveness + drift)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          if [[ "${HAS_ANTHROPIC_KEY}" == "true" ]]; then
+            echo "ANTHROPIC_API_KEY present — Stage 1 hands off to Stage 2."
+            python3 bin/article-freshness.py
+          else
+            echo "ANTHROPIC_API_KEY not set — running Stage 1 in legacy file-per-article mode."
+            python3 bin/article-freshness.py --legacy-file-issues
+          fi
+
+      - name: Stage 2 — article-suggest-updates (Claude-judged suggestions)
+        # Skip entirely when the API key isn't configured — Stage 1 already
+        # handled filing in legacy mode.
+        if: env.HAS_ANTHROPIC_KEY == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Soft cost cap per run in USD. When cumulative API spend crosses this,
+          # the remaining drift events are recorded in the article issue as
+          # "not triaged this week (cost cap)" and deferred to the next cron.
+          TOKENMIN_SYNTH_BUDGET: "1.00"
+          # Model selector. claude-sonnet-4-6 is the default; switch to
+          # claude-haiku-4-5 for cheaper synthesis if the prompt holds up.
+          TOKENMIN_SYNTH_MODEL: "claude-sonnet-4-6"
+        run: python3 bin/article-suggest-updates.py
+
+      - name: Commit updated state (if changed)
+        run: |
+          set -euo pipefail
+          if [[ -z "$(git status --porcelain bin/.article-state.json bin/.article-fresh.json)" ]]; then
+            echo "no state changes; nothing to commit"
+            exit 0
+          fi
+          git config user.name  "rmwcommerce-article-research"
+          git config user.email "rmwcommerce-research@users.noreply.github.com"
+          git add bin/.article-state.json bin/.article-fresh.json
+          git commit -m "article-research: update state ($(date -u +%Y-%m-%d))"
+          git push
