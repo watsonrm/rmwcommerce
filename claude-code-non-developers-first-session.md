@@ -1,6 +1,15 @@
+---
+title: "Claude Code for Non-Developers: Your First Session"
+description: First hour with Claude Code, most non-developers do one of two things — auto-approve everything and break something, or refuse every prompt and never ship. Both miss the point. The approval process (reading what Claude proposes before you click yes) is the actual job, not a speed bump. This guide gets you through install, conservative permissions, and your first commit with that habit installed.
+date: 2026-05-22
+author: Rick Watson
+agent_friendly: true
+keywords: Claude Code first time, Claude Code install help, Claude Code permission prompts, auto-approve dangerous, first Claude Code session, Claude Code asks too many questions, Claude Code non-developer setup, conservative Claude Code permissions
+---
+
 # Claude Code for Non-Developers: Your First Session
 
-**A hands-on companion to the field guide — from installation through your first working project, focused on the one skill that matters most: the approval process.**
+**First hour with Claude Code, most non-developers do one of two things — auto-approve everything and break something, or refuse every prompt and never ship. Both miss the point. The approval process (reading what Claude proposes before you click yes) is the actual job, not a speed bump. This guide gets you through install, conservative permissions, and your first commit with that habit installed.**
 
 *By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · Roughly 13 min read*
 

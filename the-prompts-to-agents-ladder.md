@@ -1,6 +1,15 @@
+---
+title: The Prompts-to-Agents Ladder
+description: You rebuilt a prompt as an agent, then the agent as a multi-agent system, and now it's slower, more expensive, and no more correct than the prompt was. That mistake — climbing the ladder without a trigger — is one of the most common AI over-engineering patterns we see. Each rung has an exact condition that justifies the climb; miss it and you've built complexity you can't debug. This is the decision table, with the anti-patterns named.
+date: 2026-05-22
+author: Rick Watson
+agent_friendly: true
+keywords: when to use an agent vs prompt, prompt vs skill vs agent, multi-agent overkill, AI over-engineering, when do I need an agent, my agent is slower than my prompt, LangChain too complex for task, rebuilt prompt as agent, climbing the agent ladder
+---
+
 # The Prompts-to-Agents Ladder
 
-**When to stay with a prompt, when to package a skill, when to build an agent — and when a multi-agent system is actually warranted.**
+**You rebuilt a prompt as an agent, then the agent as a multi-agent system, and now it's slower, more expensive, and no more correct than the prompt was. That mistake — climbing the ladder without a trigger — is one of the most common AI over-engineering patterns we see. Each rung has an exact condition that justifies the climb; miss it and you've built complexity you can't debug. This is the decision table, with the anti-patterns named.**
 
 *By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · Roughly 15 min read*
 

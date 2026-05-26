@@ -1,6 +1,15 @@
+---
+title: "AI Agent Discoverability and Protocols: What's Real, What's Hype, What's Dead"
+description: You're staring at llms.txt, agents.json, A2A, MCP, WebMCP, AGENTS.md, openapi.yaml, and a vendor demo for whichever one shipped last week. Half are dead, a quarter are speculative, and three are load-bearing — and the surrounding commentary mostly won't tell you which is which. This is the concept-by-concept call: deploy now, watch, or skip. Hype attributed to source.
+date: 2026-05-22
+author: Rick Watson
+agent_friendly: true
+keywords: llms.txt dead, agents.json hype, MCP vs A2A, which AI protocol to deploy, ChatGPT plugins deprecated, openapi.yaml for agents, AGENTS.md vs llms.txt, WebMCP not ready, AI agent protocol stack, agent discoverability standards
+---
+
 # AI Agent Discoverability and Protocols: What's Real, What's Hype, What's Dead
 
-**Concept by concept on the AI-agent discoverability and protocol stack: what's deployable, what's wait-and-see, what's already dead. Includes audience-specific recommendations and direct attribution of hype.**
+**You're staring at llms.txt, agents.json, A2A, MCP, WebMCP, AGENTS.md, openapi.yaml, and a vendor demo for whichever one shipped last week. Half are dead, a quarter are speculative, and three are load-bearing — and the surrounding commentary mostly won't tell you which is which. This is the concept-by-concept call: deploy now, watch, or skip. Hype attributed to source.**
 
 *By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · Roughly 25 min read*
 

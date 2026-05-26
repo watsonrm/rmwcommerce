@@ -1,6 +1,15 @@
+---
+title: Multi-Agent Fan-Out and Verification
+description: Your multi-agent system reports "all subagents completed successfully" and the final output is wrong. Somewhere in the fan-out, a subagent returned garbage and the orchestrator propagated it across every downstream step without flagging anything. Tool success isn't task success — and at multi-agent scale, that gap compounds until partial failures become invisible. This guide names the architecture patterns that catch silent failures before they ship, with the strongest counterargument against fan-out included.
+date: 2026-05-22
+author: Rick Watson
+agent_friendly: true
+keywords: multi-agent silent failure, orchestrator context overflow, subagent returned bad output, agent reports success but wrong, Claude multi-agent debugging, fan-out propagates errors, multi-agent scale, typed return contracts, tool success not task success
+---
+
 # Multi-Agent Fan-Out and Verification
 
-**How to structure Claude agent systems that scale without silently breaking — architecture, theory, and the strongest counterargument.**
+**Your multi-agent system reports "all subagents completed successfully" and the final output is wrong. Somewhere in the fan-out, a subagent returned garbage and the orchestrator propagated it across every downstream step without flagging anything. Tool success isn't task success — and at multi-agent scale, that gap compounds until partial failures become invisible. This guide names the architecture patterns that catch silent failures before they ship, with the strongest counterargument against fan-out included.**
 
 *By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · Roughly 25 min read*
 

@@ -1,6 +1,16 @@
+---
+title: The Claude Code Workflow Optimizer
+description: Your Claude Code bill is bigger than it should be, your sessions hit context limits before lunch, and half your output is "almost right, do it again." Most of that is four habits you don't know you have — no `/compact`, no `/clear`, re-reading the same files, and running Opus on work Haiku could do. This is the ranked list of fixes, biggest ROI first. Fix the first two and stop; they produce most of the gain.
+date: 2026-05-21
+last_modified_at: 2026-05-22
+author: Rick Watson
+agent_friendly: true
+keywords: Claude Code bill too high, Claude Code slow, Claude Code context full, Claude Code keeps redoing work, Claude Code token waste, /compact vs /clear, Claude Code rework loop, CLAUDE.md too long, Opus vs Haiku cost, Claude Code best practices
+---
+
 # The Claude Code Workflow Optimizer
 
-**A curated compilation of Claude Code best practices, ranked by real-world ROI.**
+**Your Claude Code bill is bigger than it should be, your sessions hit context limits before lunch, and half your output is "almost right, do it again." Most of that is four habits you don't know you have — no `/compact`, no `/clear`, re-reading the same files, and running Opus on work Haiku could do. This is the ranked list of fixes, biggest ROI first. Fix the first two and stop; they produce most of the gain.**
 
 *By [Rick Watson](https://rmwcommerce.com) · Published 2026-05-21 · Updated 2026-05-22 · Roughly 14 min read*
 

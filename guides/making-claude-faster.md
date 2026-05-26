@@ -1,6 +1,15 @@
+---
+title: Making Claude Respond Faster
+description: Claude takes 40 seconds to answer a question that should take 5, and the answer is three paragraphs when you wanted one sentence. Both problems are fixable, and most people fix neither because the levers are buried in API docs nobody reads. Prompt caching alone makes repeated input an order of magnitude cheaper on cache hits — Anthropic's documented number is 0.1x base input cost. This guide names every lever, cites every claim, and shows which two fixes produce most of the wall-clock gain.
+date: 2026-05-22
+author: Rick Watson
+agent_friendly: true
+keywords: Claude too slow, Claude latency high, Claude verbose output, Claude takes forever, prompt caching not working, Claude Code waits too long, reduce Claude response time, Claude one-sentence answers too long, Claude API latency, parallel tool calls Claude
+---
+
 # Making Claude Respond Faster
 
-**A practical, evidence-backed guide to reducing Claude latency and verbosity — covering prompt caching, model selection, parallel tool calls, and the patterns that slow you down. Every claim cited to primary documentation, Anthropic engineering writing, named practitioners, peer-reviewed research, or cross-vendor confirmation.**
+**Claude takes 40 seconds to answer a question that should take 5, and the answer is three paragraphs when you wanted one sentence. Both problems are fixable, and most people fix neither because the levers are buried in API docs nobody reads. Prompt caching alone makes repeated input an order of magnitude cheaper on cache hits — Anthropic's documented number is 0.1x base input cost. This guide names every lever, cites every claim, and shows which two fixes produce most of the wall-clock gain.**
 
 *By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · Roughly 20 min read*
 

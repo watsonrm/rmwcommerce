@@ -1,6 +1,15 @@
+---
+title: Building excellent software (with Claude)
+description: '"Claude built it" reads like a quality stamp and isn''t. The code compiles, the tests pass, the metric calculates — and three weeks later a customer asks why your dashboard says revenue is up when their bank statement says it''s down. A technically correct, contextually wrong metric is worse than no metric. This is the seven-discipline list that closes the gap between Claude''s output and something you''d stake your name on.'
+date: 2026-05-24
+author: Rick Watson
+agent_friendly: true
+keywords: Claude built code is wrong, Claude technically correct but wrong, production-grade Claude output, dogfood Claude code, Claude metric framing wrong, ship Claude code safely, Claude code review checklist, contextually wrong metric
+---
+
 # Building excellent software (with Claude)
 
-**Seven disciplines that close the gap between "Claude built it" and production-grade.**
+**"Claude built it" reads like a quality stamp and isn't. The code compiles, the tests pass, the metric calculates — and three weeks later a customer asks why your dashboard says revenue is up when their bank statement says it's down. A technically correct, contextually wrong metric is worse than no metric. This is the seven-discipline list that closes the gap between Claude's output and something you'd stake your name on.**
 
 *By [Rick Watson](https://rmwcommerce.com) · 2026-05-24 · Roughly 15 min read*
 

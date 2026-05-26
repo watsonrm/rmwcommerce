@@ -1,6 +1,15 @@
+---
+title: "Configuring Claude Code permissions: real lessons vs. cargo cult"
+description: Half the rules in your `settings.local.json` do nothing. `Bash(ls:*)` is on the built-in auto-allowlist; adding it is decoration. `Bash(git diff:*)` doesn't help because compound commands decompose into subcommands. Most permission configs in the wild are cargo cult inherited from someone else's screenshot. Here is what actually does something, cross-checked against Anthropic's own docs.
+date: 2026-05-22
+author: Rick Watson
+agent_friendly: true
+keywords: settings.local.json cargo cult, Claude Code Bash allowlist doesn't work, permission rule does nothing, Bash pattern fragile, MCP wildcard permission, Claude Code permission compound command, Bash(ls:*) does nothing, allowlist auditing
+---
+
 # Configuring Claude Code permissions: real lessons vs. cargo cult
 
-**A field guide to `.claude/settings.local.json`, cross-checked against Anthropic's primary docs and the official example settings.**
+**Half the rules in your `settings.local.json` do nothing. `Bash(ls:*)` is on the built-in auto-allowlist; adding it is decoration. `Bash(git diff:*)` doesn't help because compound commands decompose into subcommands. Most permission configs in the wild are cargo cult inherited from someone else's screenshot. Here is what actually does something, cross-checked against Anthropic's own docs.**
 
 *By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · Roughly 6 min read*
 

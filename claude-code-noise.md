@@ -1,6 +1,15 @@
+---
+title: "Why Is Claude Code So Noisy? What to Do About It"
+description: Your terminal is a wall of text and you've started skimming — which means you'll miss the one warning that actually mattered. Claude Code is noisy because it's transparent: every tool call, every file read, every diff. Filter the wrong thing and you blind yourself to the failures that transparency was there to catch. This guide names the four sources of noise, and the two thirty-second fixes that handle most of it.
+date: 2026-05-22
+author: Rick Watson
+agent_friendly: true
+keywords: Claude Code too much output, terminal wall of text, Claude Code overwhelming, /compact /clear when, Claude Code filter output, hide tool calls Claude Code, Claude Code noise reduction, terminal output too verbose
+---
+
 # Why Is Claude Code So Noisy? What to Do About It
 
-**The terminal looks like a wall of text by design. Here's what that means, what to filter, and what not to.**
+**Your terminal is a wall of text and you've started skimming — which means you'll miss the one warning that actually mattered. Claude Code is noisy because it's transparent: every tool call, every file read, every diff. Filter the wrong thing and you blind yourself to the failures that transparency was there to catch. This guide names the four sources of noise, and the two thirty-second fixes that handle most of it.**
 
 *By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · Roughly 12 min read*
 

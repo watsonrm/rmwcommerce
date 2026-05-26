@@ -1,16 +1,16 @@
 ---
 title: Marketing to Agents
-description: The authoritative playbook for making any website readable, citable, and operable across every class of AI agent — indexer bots, AI search surfaces, chat assistants, and agentic browsers. Every claim sourced. 22-item checklist impact-ordered by evidence weight.
+description: Your traffic is starting to come from agents, not browsers, and most sites are invisible to them. ChatGPT cites a competitor instead of you because your page has no JSON-LD, no llms.txt, and a `<title>` tag the model can't parse. Indexer success isn't citation success — Perplexity can crawl you and still never quote you. This is the 22-item fix list, impact-ordered, every claim sourced.
 date: 2026-05-21
 last_modified_at: 2026-05-24
 author: Rick Watson
 agent_friendly: true
-keywords: AI agents, AI search, LLM citation, robots.txt, llms.txt, AGENTS.md, MCP, JSON-LD, agentic browsers, generative engine optimization, GEO
+keywords: AI agents, AI search, LLM citation, robots.txt, llms.txt, AGENTS.md, MCP, JSON-LD, agentic browsers, generative engine optimization, GEO, ChatGPT not citing my site, Perplexity ignores my content, AI search invisible, llms.txt not working, JSON-LD missing, agent crawler blocked, robots.txt blocks ChatGPT, my site not in AI overviews, indexer success not citation success
 ---
 
 # Marketing to Agents
 
-**The authoritative playbook for making any website readable, citable, and operable across every class of AI agent: indexer bots, AI search surfaces, chat assistants, and agentic browsers. Every claim sourced. 22-item checklist impact-ordered by evidence weight.**
+**Your traffic is starting to come from agents, not browsers, and most sites are invisible to them. ChatGPT cites a competitor instead of you because your page has no JSON-LD, no llms.txt, and a `<title>` tag the model can't parse. Indexer success isn't citation success: Perplexity can crawl you and still never quote you. This is the 22-item fix list, impact-ordered, every claim sourced.**
 
 *By [Rick Watson](https://rmwcommerce.com) · 2026-05-24 · Roughly 45 min read*
 
