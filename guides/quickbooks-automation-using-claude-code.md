@@ -722,7 +722,7 @@ The prep-pack's job is to surface the gap with literal UI navigation, not a soft
 ```
 **Vendor in QBO:** ⚠️ NOT in current AP aging summary. Either no current
 balance (paid up) OR no vendor record yet. Verify in QBO UI:
-Expenses → Vendors → search "Acme" / "Acme Contractor LLC." If absent,
+Expenses → Vendors → search "Acme Contractor" / "Acme Contractor LLC." If absent,
 create vendor before posting bill.
 ```
 
@@ -864,16 +864,16 @@ The shape converged on in real practice (a working consulting firm's `~/wiki/07-
 ```markdown
 ## Pending bills
 
-### 2026-05-24 — Acme Contractor LLC / Acme Contractor LLC — ClientA Phase 1 — `[VERIFY $ FROM PDF]`
+### 2026-05-24 — Acme Contractor LLC — ClientA Phase 1 — `[VERIFY $ FROM PDF]`
 
-- [ ] **Vendor:** Acme Contractor LLC / Acme Contractor LLC (`nick@example.com`)
-- **Vendor in QBO:** ⚠️ **NOT in current AP aging summary.** Either no current balance (paid up) OR no vendor record yet. Verify in QBO UI: Expenses → Vendors → search "Acme" / "Acme Contractor LLC." If absent, create vendor before posting bill.
+- [ ] **Vendor:** Acme Contractor LLC (`contractor@example.com`)
+- **Vendor in QBO:** ⚠️ **NOT in current AP aging summary.** Either no current balance (paid up) OR no vendor record yet. Verify in QBO UI: Expenses → Vendors → search "Acme Contractor" / "Acme Contractor LLC." If absent, create vendor before posting bill.
 - **GL category:** `Subcontractors:ClientA` (per [vendor memory](vendor_categories.json); engagement-billable to ClientA)
 - **Invoice #:** INV-2026-001
 - **Invoice date:** 2026-05-24 (received in Gmail)
-- **Due date:** "Pay them whenever" per Nick — schedule for end-of-month
+- **Due date:** "Pay them whenever" per vendor — schedule for end-of-month
 - **Amount:** `[VERIFY from PDF]`
-- **Delta vs prior:** `[no prior Acme invoices in AP aging snapshot 2026-05-26; first verifiable Acme bill captured by this queue]`
+- **Delta vs prior:** `[no prior Acme Contractor invoices in AP aging snapshot 2026-05-26; first verifiable bill captured by this queue]`
 - **PDF:** [Gmail thread 5/24 "ClientA Invoices" — attachment 1](https://mail.google.com/mail/u/0/#inbox/<thread-id>)
 - **Decision:** approve / approve-with-edit / reject
 - **Posted as:** _(fill: txnId + paid-via after QBO entry)_
@@ -891,7 +891,7 @@ Five shape choices worth flagging because they paid off in practice:
 
 1. **Markdown checkbox (`- [ ]`) on the vendor line.** The human checks the box when the bill is posted. The state of every row is visible at a glance — no parsing required, no separate `STATE:` field to keep in sync.
 2. **`[VERIFY from PDF]` in the title and on the Amount line.** The dollar amount is the highest-stakes field on the entry. Leaving it as a literal `[VERIFY from PDF]` placeholder — instead of an OCR'd guess — forces the human to open the PDF and read the number. See [§7.3.5](#735--why-the-prep-pack-stops-short-of-extracting-the-dollar-amount) for the principle.
-3. **"Vendor in QBO" line with explicit UI navigation when the vendor is missing.** Not "vendor flagged for review" but literally "Expenses → Vendors → search 'Acme' / 'Acme Contractor LLC.' If absent, create vendor before posting bill." The human's next action is on the page; there is no thinking required.
+3. **"Vendor in QBO" line with explicit UI navigation when the vendor is missing.** Not "vendor flagged for review" but literally "Expenses → Vendors → search 'Acme Contractor' / 'Acme Contractor LLC.' If absent, create vendor before posting bill." The human's next action is on the page; there is no thinking required.
 4. **"Posted as" field on every row.** After the human posts the bill in QBO, the QBO transaction ID and the paid-via method land here. The completed row is now an audit-grade record of who got paid, when, by what method, and against which QBO entity — no separate ledger needed.
 5. **"Recently posted (last 30 days)" table at the bottom.** Rows move from the pending H3-sections to this compact table on post-confirm. Thirty days of history is enough to answer "did I pay this last month?" without scrolling; older rows archive to `_archive/ap_queue_<YYYY-MM>.md` at month-end.
 
@@ -912,8 +912,8 @@ The mechanism: a small JSON file (canonical default `vendor_categories.json`) ke
   },
   "vendors": {
     "Acme Contractor LLC": {
-      "aliases": ["Acme Contractor LLC", "Acme", "Acme, LLC"],
-      "sender_emails": ["nick@example.com"],
+      "aliases": ["Acme Contractor", "Acme Contractor, LLC"],
+      "sender_emails": ["contractor@example.com"],
       "default_gl_category": "Subcontractors:ClientA",
       "note": "Engagement-billable subcontractor; all 2026 work on ClientA engagement.",
       "last_seen_invoice": null,
@@ -921,10 +921,10 @@ The mechanism: a small JSON file (canonical default `vendor_categories.json`) ke
       "confidence": "high"
     },
     "Beacon Editorial LLC": {
-      "aliases": ["Beacon Editorial LLC", "Beacon"],
-      "sender_emails": ["hendrik@example.com"],
+      "aliases": ["Beacon Editorial", "Beacon"],
+      "sender_emails": ["editor@example.com"],
       "default_gl_category": "Subcontractors:ClientB",
-      "note": "Watson Weekly editorial + research lead. Recurring monthly.",
+      "note": "Editorial + research lead. Recurring monthly.",
       "last_seen_invoice": "INV-2026-014",
       "last_seen_amount": null,
       "confidence": "high"
@@ -933,9 +933,9 @@ The mechanism: a small JSON file (canonical default `vendor_categories.json`) ke
       "aliases": [],
       "sender_emails": [],
       "default_gl_category": null,
-      "note": "Outstanding balance $1,200 in 91+ bucket per AP aging 2026-05-26. GL category unconfirmed — operator to populate.",
+      "note": "Outstanding balance in 91+ bucket per AP aging 2026-05-26. GL category unconfirmed — operator to populate.",
       "last_seen_invoice": null,
-      "last_seen_amount": 1200,
+      "last_seen_amount": null,
       "confidence": "unconfirmed"
     }
   }
