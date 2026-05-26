@@ -1063,6 +1063,31 @@ The four-phase shape for a bills-queue skill:
 
 A skill killed in phase 3 with 7 of 20 processed leaves a half-built queue file. The next dispatch reads state.json, sees `phase: queue_assembly, processed: 7`, and resumes at bill #8. Without state.json, the next dispatch either reprocesses all 20 (creating duplicate queue entries) or skips ahead without knowing where to restart (missing the 13 unprocessed bills).
 
+### 7.7.5 — The Gmail-label + 35-day-buffer idempotency pattern
+
+State.json (§7.7) handles mid-run interruptions. A separate pattern handles cross-run idempotency for the recurring monthly sweep: **applying a Gmail label to every processed thread and querying with a `-label:` exclusion on the next run**.
+
+The shape:
+
+1. **Skill scans Gmail for new invoice threads in the last 35 days from any vendor in `vendor_categories.json[*].sender_emails`, excluding any thread already labelled `ap-queued`:**
+
+   ```
+   ({from:<sender1> OR from:<sender2> ...}) has:attachment newer_than:35d -label:ap-queued
+   ```
+
+2. **For each thread that lands in the queue file, apply the `ap-queued` label** via the Gmail MCP's `label_thread`.
+
+3. **Next sweep query naturally excludes the labelled threads.** No state to read, no diff to compute; the join key is the label itself, which Gmail stores durably.
+
+Two design choices worth flagging:
+
+- **Why a 35-day window, not 30?** Calendar months are 28–31 days; vendors invoice on different days of the month; the human's review cadence drifts by a few days each cycle. A 30-day window can miss an end-of-prior-month invoice that landed early in the new month. A 35-day window catches the tail without re-scanning the entire inbox. The buffer is judgment, not science — pick a window that's slightly longer than your longest-likely review-lag.
+- **Why a Gmail label, not a local state file?** State files require careful coordination — what happens when the skill runs from two machines, or when the local state file is rebuilt? A Gmail label lives in Gmail; it's the same join key from every dispatch context. The label is also visible to the human in Gmail, which makes "did the prep-pack see this invoice?" a one-click check rather than a log dive.
+
+The idempotency property: re-running the skill at any cadence (manual `/ap-prep-pack` call, scheduled monthly sweep, ad-hoc replay after a code change) reaches the same queue-file state without producing duplicates. The label is the durable record; state.json is the in-flight breadcrumb. Together they cover both interruption-during-run and interruption-between-runs.
+
+**Cadence in practice:** the skill runs in `sweep` mode on the first business day of each month at ~09:00 ET against the previous 35 days. All recurring contractors invoice monthly; the 35-day window catches the prior month's batch even if a few invoices landed early or were delayed. Outside the monthly run, the skill auto-suggests when a new email lands from any sender in `vendor_categories.json[*].sender_emails`. Both code paths use the same label exclusion; both are idempotent against re-runs.
+
 ### 7.8 — The typed contract for a bills-queue-writer sub-agent
 
 If the prep-pack lives inside a Claude Code sub-agent, the typed input/output is the same shape as the workspace article's DriveDocWriter:
