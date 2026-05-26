@@ -1,54 +1,125 @@
 ---
-title: Operating Google Drive, Google Docs, and Google Sheets from Claude
-description: The patterns, hard limits, and anti-patterns of writing to Google Drive, Docs, and Sheets from Claude or any AI agent. Workarounds for what the APIs simply cannot do, plus the Sheets-specific surface (values vs structure split, USER_ENTERED vs RAW, developer metadata as the durable anchor). Every claim grounded in a specific failure mode.
+title: Operating Google Drive, Docs, Sheets, and Slides from Claude
+description: The patterns, hard limits, and anti-patterns of writing to Google Drive, Docs, Sheets, and Slides from Claude or any AI agent. Workarounds for what the APIs simply cannot do, plus surface-specific deep dives (Docs styling cascade; Sheets USER_ENTERED + values-vs-structure split; Slides object-ID stability + the under-served MCP surface). Every claim grounded in a specific failure mode.
 date: 2026-05-25
 last_modified_at: 2026-05-25
 author: Rick Watson
 agent_friendly: true
-keywords: Google Drive, Google Docs, Google Sheets, Sheets API, MCP, model context protocol, AI agents, Claude, automation, document automation, OAuth, Drive API, Docs API, Sheets API, valueInputOption, developer metadata
+keywords: Google Drive, Google Docs, Google Sheets, Google Slides, Sheets API, Slides API, MCP, model context protocol, AI agents, Claude, automation, document automation, OAuth, Drive API, Docs API, valueInputOption, developer metadata, objectId, presentations batchUpdate
 ---
 
-# Operating Google Drive, Google Docs, and Google Sheets from Claude
+# Operating Google Drive, Docs, Sheets, and Slides from Claude
 
-**The patterns, hard limits, and anti-patterns of writing to Google Drive, Docs, and Sheets from Claude or any AI agent. Workarounds for what the APIs simply cannot do, plus the Sheets-specific surface — values-vs-structure endpoint split, USER_ENTERED vs RAW, developer metadata as the durable anchor. Every claim grounded in a specific failure mode.**
+**Most production Drive/Docs/Sheets/Slides automation fails for five reasons. This guide names each one, gives the workaround, and shows the agent pattern that survives mid-write interruptions.**
+
+**Published:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Last updated:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Author:** [Rick Watson](https://www.rmwcommerce.com/), Principal, RMW Commerce Consulting  ·  **Canonical URL:** [`github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-docs-from-claude.md`](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-docs-from-claude.md)  ·  **Reading time:** 10-min skim · 55-min deep read
+
+Who this is for: developers and operators using Claude (or any AI agent) to read and write Google Drive files, Google Docs, Google Sheets, and Google Slides at scale. Anyone who has watched an agent overwrite styled formatting, create four files with the same title, write a formula that lands as a literal string, hand-craft a `batchUpdate` for a deck because the MCP didn't expose it, or report "all styles applied successfully" while the document renders broken.
+
+**Jump to:** [60-second map](#the-60-second-map--what-youre-actually-working-with) · [What's possible](#whats-possible--the-headline-capabilities) · [What's NOT possible](#whats-not-possible--and-the-workaround) · [Where to spend your time](#where-to-spend-your-time--docs) · [TL;DR](#tldr--the-five-non-obvious-bits) · [Sheets (Part 7)](#part-7--operating-google-sheets) · [Slides (Part 8)](#part-8--operating-google-slides) · [Full TOC](#whats-in-this-article)
+
+---
+
+## The 60-second map — what you're actually working with
+
+Four surfaces, four different mental models. The most common production bug is confusing them.
+
+| Surface | What it is | What it's good for | Addressing model |
+|---|---|---|---|
+| **Drive** | The file system | List, search, copy, move, share, manage permissions. File metadata. **Never content.** | File ID |
+| **Docs** | The document editor | Read body, write text, apply styles, insert images, manage comments. | Character index into body |
+| **Sheets** | The spreadsheet | Cells, ranges, formulas, formatting, conditional rules, charts. | A1 ranges OR zero-based GridRange |
+| **Slides** | The presentation editor | Slides, shapes, tables, images, charts, speaker notes. | String `objectId` per element |
+
+You reach Drive through `mcp__google-docs__searchDriveFiles`, the lighter `mcp__claude_ai_Google_Drive__*` family, or the [Drive REST API v3](https://developers.google.com/workspace/drive/api/reference/rest/v3) directly. Docs (~80 tools) and Sheets (~20 tools) go through `mcp__google-docs__*`. Slides has the shallowest MCP coverage — production servers expose ~7 tools, most agents end up authoring raw `presentations.batchUpdate` payloads. [Part 1](#part-1--the-toolset-and-the-mental-model) covers connector / scope / write-path trade-offs; [Part 8](#part-8--operating-google-slides) covers the Slides shape in depth.
+
+### If you read nothing else, this is the minimum viable pattern
+
+```
+1. readDocument(doc_id, format: "json")        // baseline JSON
+2. replaceDocumentWithMarkdown(doc_id, markdown)  // body write
+3. applyTextStyle / applyParagraphStyle          // brand styling (mandatory — markdown imports leave defaults)
+4. readDocument(doc_id, format: "json")        // verify the styles landed
+5. Compare expected vs actual per paragraph    // tool success ≠ task success
+```
+
+That five-step skeleton catches the largest share of real-world failure modes. The rest of this guide is the named failures it prevents, the architectural pattern that makes it survive interruptions, and the Sheets equivalent.
 
 > © 2026 Rick Watson / RMW Commerce Consulting. This compilation, its ranking, and the original commentary are copyrighted. The underlying techniques originate from the public Google Workspace APIs and Anthropic's Model Context Protocol. See [Sources & Attribution](#sources--attribution). Quoting brief excerpts with attribution is fine. Republishing the compilation in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
-**Published:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Last updated:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Author:** [Rick Watson](https://www.rmwcommerce.com/), Principal, RMW Commerce Consulting  ·  **Canonical URL:** [`github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-docs-from-claude.md`](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-docs-from-claude.md)  ·  **Reading time:** Roughly 45 minutes
+---
 
-Who this is for: developers and operators using Claude (or any AI agent) to read and write Google Drive files, Google Docs, and Google Sheets at scale. Anyone who has watched an agent overwrite styled formatting, create four files with the same title, write a formula that lands as a literal string, or report "all styles applied successfully" while the document renders broken.
+## What's possible — the headline capabilities
 
-### Machine-readable identity
-
-This article applies the [Marketing to Agents](marketing-to-agents.md) playbook to itself — JSON-LD Article schema is auto-emitted in `<head>` by the repository's Jekyll `_includes/head-custom.html` whenever a guide carries `agent_friendly: true` in its frontmatter (this one does). Agents indexing the rendered HTML at [watsonrm.github.io/rmwcommerce](https://watsonrm.github.io/rmwcommerce/guides/operating-google-docs-from-claude.html) see a typed `Article` with author `sameAs` references to Rick's LinkedIn, X, GitHub, and Watson Weekly profiles; publisher `Organization` is RMW Commerce Consulting; license is CC BY-NC-ND 4.0. Agents fetching the raw markdown see the equivalent metadata in the YAML frontmatter at the top of this file.
+| You want to... | Tool you reach for | Notes |
+|---|---|---|
+| Create a Doc from markdown content | `replaceDocumentWithMarkdown` on a newly-created file | Apply brand styling AFTER — markdown imports leave Arial / default heading sizes |
+| Update a Doc body | Same tool, existing `doc_id` | Scan for embedded human content first (smart chips, pasted images, comments) |
+| Prepend a styled section to a Doc | Read existing → assemble → full-body replace | NOT raw `insertText` at index 1 — markdown tokens land as literal characters |
+| Insert an image | Pre-resize source with `sips` → `insertImage` with `localImagePath` | API `width`/`height` parameters are unreliable; pre-resize is the constraint |
+| Read a Doc as data | `readDocument` with `format: "json"` | Walk paragraphs; inspect `textRun`, `inlineObjectElement`, `richLink`, `person` |
+| Style a Doc per brand | 5-step sequence: body sweep → cascade check → paragraph styles → text styles → inline bold | Part 2 — the only order that works |
+| Create a Sheet | `createSpreadsheet` | |
+| Write Sheet cell values | `writeSpreadsheet` with `valueInputOption=USER_ENTERED` | `RAW` lands `=SUM(...)` as a literal string starting with `=` |
+| Read Sheet values for computation | `readSpreadsheet` with `valueRenderOption=UNFORMATTED_VALUE` | `FORMATTED_VALUE` returns locale-rendered strings; round-trip risk |
+| Search / find / copy Drive files | `searchDriveFiles` or `mcp__claude_ai_Google_Drive__search_files` | Connector parity differs; test in both contexts |
+| Copy a templated file | `copyFile` (Drive `files.copy`) | The only path for docs needing page numbers or footers |
+| Convert `.docx` / `.xlsx` / `.pptx` to native | Upload via `files.create` with target mimeType (e.g. `application/vnd.google-apps.document`) | The original Office file stays untouched |
+| Read non-native file content | `download_file_content` (Drive) | `readDocument` errors on non-native; check `mimeType` before reading |
 
 ---
 
-## TL;DR — what's in it for you
+## What's NOT possible — and the workaround
 
-- The Google Workspace MCP exposes ~80 Docs tools, ~8 Drive tools, and a parallel Sheets surface. Most failure modes don't come from missing tools — they come from trusting tool success without verifying the document state.
-- Six things the Docs API genuinely cannot do, and a tested workaround for each. Five for Sheets.
-- A single-writer agent pattern that survives mid-write interruptions, prevents duplicate files, and detects style regressions before they ship.
-- The 5-step brand-styling sequence for Docs is the only order that works. Every other order leaves Arial body text or huge bold headings.
-- For Sheets: `valueInputOption=USER_ENTERED` is the load-bearing default. `RAW` lands formulas as literal strings. The two endpoint families (`spreadsheets.values.*` for content, `spreadsheets.batchUpdate` for structure) must not be confused.
+The hard limits the APIs simply do not support. Each row names a workaround. Scan this table before assuming you've found a new bug — most "the API can't do X" complaints land on a known limit.
 
-### Where to spend your time, in priority order
+| You want to... | Reality | Workaround |
+|---|---|---|
+| Create `PAGE_NUMBER` / `PAGE_COUNT` auto-text in an existing Doc | No `CreateAutoTextRequest` exists; `createFooter` makes an empty footer only | `copyFile` from a template that already has the footer baked in |
+| Resize an image via `insertImage` parameters | The width/height fields don't reliably constrain rendered size | Pre-resize the source file (`sips --resampleWidth`); cache canonical variants |
+| Edit doc-level named styles via API | `NamedStyles` is read-only | Drive UI: Format → Paragraph styles → "Update Normal text to match" |
+| Avoid the consecutive-`**Label:**` collapse on markdown import | The markdown converter collapses adjacent label lines into one paragraph, stripping bold | Blank line between every `**Label:**` row in source |
+| Edit a table in a tab-enabled Doc | `listDocumentTables`, `updateTableBorders`, `updateTableCellStyle`, `updateTableColumnWidth` fail with a field-mask error on any doc with the `tabs` field | Drive UI, or `.docx` export → edit → re-import as native Doc |
+| Insert blob images (`CellImage`) into Sheet cells | No API insert method | Apps Script `SpreadsheetApp.newCellImage()`, OR `IMAGE()` formula with a public URL |
+| Partially edit a pivot table | No fields-mask path | Rewrite the entire `pivotTable` value via `UpdateCellsRequest` |
+| Style Sheets charts comprehensively | API exposes limited chart settings | Apps Script for advanced styling, or render the chart elsewhere + `IMAGE()` |
+| Concurrent Sheets writes without races | No If-Match / ETag concurrency on values | Serialize dependent writes in one `batchUpdate` |
+| Trigger on cell edit / render Sheets sidebar UI | API has no triggers or UI surface | Apps Script (`onEdit`, `onChange`, time-driven), or external orchestration |
+| Read Shared Drive content from a skill (Cowork) | Works in direct prompt; fails in skill context | [Tracked as anthropics/claude-code#53442](https://github.com/anthropics/claude-code/issues/53442). Local-first workflow until fixed: pull file via working read path, edit locally, sync back |
+| Insert page-number footer into an existing Watson Weekly–style doc | Same root limit as PAGE_NUMBER above; can only flag and surface | Doc swap (`copyFile` template → overlay body → trash old → rename) OR one-click UI fix in the Drive editor |
+| Trust tool-call success without verification | `applyTextStyle` returns success while overwriting bold runs, leaving bullets as `textStyle: {}`, or setting `weightedFontFamily.weight: 400` even when `bold: true` was set | Read JSON, walk paragraphs, verify per-paragraph values explicitly after every style write |
 
-Highest-leverage moves first. The reader who only adopts items 1–5 closes the largest share of real-world failure modes. These 9 patterns cover **Docs** writes specifically — Sheets has its own priority table in [Part 7](#part-7--operating-google-sheets).
+---
+
+## Where to spend your time — Docs
+
+Once the map is clear, here are the patterns that close the largest share of real-world failure modes. **The reader who only adopts items 1–5 closes the largest share of real-world failure modes.** These cover **Docs** specifically — Sheets has its own priority table in [Part 7](#part-7--operating-google-sheets).
 
 | # | Pattern | Why it matters | Effort |
 |---|---|---|---|
-| 1 | **Edit existing docs in place — never recreate to "prepend"** | Recreating a doc with the same title to insert content at the top is how duplicates accumulate. Real incident: four files all named the same string in one folder, only one was the live source. | Low |
-| 2 | **Verify every style via JSON read, not tool success** | `applyTextStyle` returns success while silently overwriting bold runs, leaving bullet items as `textStyle: {}`, or setting `weightedFontFamily.weight: 400` when `bold: true` was passed. The JSON is the only ground truth. | Low |
-| 3 | **Pre-resize images at the file level (sips on macOS) before `insertImage`** | `insertImage`'s `width` / `height` parameters do not reliably constrain rendered size in Google Docs. The source file's pixel dimensions win. | Low |
-| 4 | **Cascade-check both directions after every paragraph-style write** | Two opposite failure modes exist: HEADING_1 cascades across far more paragraphs than the markdown intended (huge bold Arial body), AND a mid-write interruption leaves every paragraph as NORMAL_TEXT (every heading rendered as body). Detect both before declaring success. | Medium |
-| 5 | **Copy from template for any doc that needs a page-number footer** | The Docs API cannot create PAGE_NUMBER / PAGE_COUNT auto-text in an existing document — a long-standing limitation. The only path to a properly-footed doc is `copyFile` from a template that already carries the footer. | Medium |
-| 6 | **Treat all existing human content as load-bearing** | Range replaces and `deleteRange` calls silently overwrite pasted images, smart chips, comments, and manual edits. Inspect the JSON for `inlineObjectElement`, `richLink`, `person` before any wholesale range operation. | Medium |
-| 7 | **Brand styling sequence: body sweep → cascade check → heading paragraph styles → heading text styles → inline bold prefixes** | The only 5-step order that works. Every other order produces a visually broken doc that passes individual tool-call success checks. | Medium |
-| 8 | **Idempotency: search-before-create, body-match-before-update, date-match-before-prepend** | Rerunning a write on the same input must reach the same Drive state. This is the rule that prevents duplicate-title accumulation when an orchestrator retries. | Low |
-| 9 | **State.json breadcrumbs for resume-from-interruption** | A write killed mid-cascade strands the doc half-styled. State.json lets the next dispatch detect the interruption, run cascade-check first, and recover before compounding the damage. | High |
+| 1 | **Verify every style via JSON read, not tool success** | The single most expensive failure mode. `applyTextStyle` returns success while silently overwriting bold, leaving bullets as `textStyle: {}`, or setting wrong font weight. The JSON is the only ground truth. | Low |
+| 2 | **Brand styling sequence: body sweep → cascade check → heading paragraph styles → heading text styles → inline bold prefixes** | The only 5-step order that works. Every other order produces a visually broken doc that passes individual tool-call success checks. | Medium |
+| 3 | **Cascade-check both directions after every paragraph-style write** | Two opposite failure modes: HEADING_1 cascades across too many paragraphs (huge bold body) AND mid-write interruption leaves every paragraph as NORMAL_TEXT (no headings). Detect both before declaring success. | Medium |
+| 4 | **Pre-resize images at the file level (`sips` on macOS) before `insertImage`** | API width/height parameters don't reliably constrain rendered size. Source file pixel dimensions win. | Low |
+| 5 | **Copy from template for any doc that needs a page-number footer** | The Docs API cannot create `PAGE_NUMBER` / `PAGE_COUNT` auto-text. `copyFile` from a template that has the footer baked in is the only path. | Medium |
+| 6 | **Edit existing docs in place — never recreate to "prepend"** | Recreating a doc with the same title to insert content at top is how duplicates accumulate. Use `replaceDocumentWithMarkdown` on a stable `doc_id`. | Low |
+| 7 | **Treat all existing human content as load-bearing** | Range replaces and `deleteRange` silently overwrite pasted images, smart chips, comments, manual edits. Inspect JSON for `inlineObjectElement`, `richLink`, `person` first. | Medium |
+| 8 | **Idempotency: search-before-create, body-match-before-update, date-match-before-prepend** | Rerunning the same write must reach the same Drive state. Prevents duplicate-title accumulation when an orchestrator retries on transient errors. | Low |
+| 9 | **State.json breadcrumbs for resume-from-interruption** | A write killed mid-cascade strands the doc half-styled. State.json lets the next dispatch detect the interruption and recover before compounding damage. | High |
 
 Most readers should adopt items 1–5 and stop. Items 6–9 are amplification, mostly relevant once you're running document writes from an unattended orchestrator.
+
+---
+
+## TL;DR — the five non-obvious bits
+
+If you read nothing else, internalize these. They're the highest-leverage corrections most operators need to make to existing automation. None of them are obvious from reading Google's docs.
+
+1. **Tool success ≠ task success.** After every style write, read the doc as JSON and verify the values actually landed. Silent partial-success is the single most expensive failure mode in production.
+2. **Markdown imports leave Google Docs defaults.** A markdown write is a body write, not a style write. Brand styling is the next 30 lines of code — there is no skipping it.
+3. **For Sheets, `USER_ENTERED` is the load-bearing default.** `=SUM(A1:A10)` with `RAW` lands the literal string in the cell. Pass `USER_ENTERED` explicitly on every write.
+4. **The Docs API cannot insert PAGE_NUMBER footers into an existing doc.** Period. Page-numbered docs must come from `copyFile` of a template you built. No API path adds the footer afterward.
+5. **Same MCP server name, different products, different bugs.** A skill that works in a direct prompt can fail in skill-dispatch context. Test in both before shipping.
 
 ---
 
@@ -61,6 +132,7 @@ Most readers should adopt items 1–5 and stop. Items 6–9 are amplification, m
 - [Part 5 — Architecture: the single-writer pattern](#part-5--architecture-the-single-writer-pattern)
 - [Part 6 — How to measure whether your writes are healthy](#part-6--how-to-measure-whether-your-writes-are-healthy)
 - [Part 7 — Operating Google Sheets](#part-7--operating-google-sheets) — values-vs-structure split, A1 vs GridRange, USER_ENTERED defaults, developer metadata, Sheets-specific hard limits
+- [Part 8 — Operating Google Slides](#part-8--operating-google-slides) — object-ID addressing, the under-served MCP surface, template-copy workflow, placeholder-text gotcha, no-transitions / no-animations / no-private-images limits
 - [What we still don't know](#what-we-still-dont-know)
 
 ---
@@ -649,6 +721,99 @@ Most production automations land somewhere on the spectrum. The decision rule: i
 
 ---
 
+## Part 8 — Operating Google Slides
+
+Slides is the third Workspace surface and the most under-served by production MCP tooling. The mental model is different from both Docs and Sheets; the failure modes are different; the API surface is different.
+
+### The mental model — one batch endpoint, object-ID addressing
+
+A presentation is a tree: **Presentation → Page → PageElement**. Four page types (Slide, Master, Layout, Notes); page elements are Shape, Table, Image, Video, Line, WordArt, SheetsChart, or Group. Style inheritance flows up: slide ← layout ← master. Per the [Slides API overview](https://developers.google.com/workspace/slides/api/guides/overview), all mutation goes through one endpoint — `presentations.batchUpdate` — which accepts a list of typed `Request` objects and applies them atomically.
+
+Slides addressing is **string `objectId` per element**. Unlike Docs (start/end indices into a flat document) and unlike Sheets (`A1` ranges or `GridRange`), every page and page element has an explicit ID.
+
+> **The #1 Slides gotcha — object IDs are not stable.** Per Google's own docs: *"you cannot depend on an object ID being unchanged after a presentation is changed in the Slides UI."* If a human opens the deck in the Slides editor between your batch writes, your saved object IDs may not match anymore. The discovery patterns that survive: persist the **text content** of a shape (find shapes whose text contains "Title — {{date}}") or the **alt-text** (find shapes whose alt-text is `"primary_chart"`), and re-resolve to the current object ID before each batch.
+
+### Slides — where to spend your time
+
+| # | Pattern | Why it matters | Effort |
+|---|---|---|---|
+| L1 | **Pre-assign your own `objectId` at create time, persist content/alt-text as the lookup key** | Solves the round-trip-instability problem. Every `Create*Request` accepts an optional `objectId`. Generate stable IDs and look up by text/alt-text on each subsequent batch. | Low |
+| L2 | **Always pair `InsertText` with a preceding `DeleteText` against placeholder shapes** | Layout-inherited placeholders ship with prompt text ("Click to add title"). InsertText at index 0 prepends; you end up with `Click to add titleMy Real Title`. | Low |
+| L3 | **Bundle every related mutation into one `batchUpdate` (atomic) — never one-request-per-mutation** | Write quota is 600/min/project, 60/min/user. 50–200 requests in one batch is the documented norm and atomicity prevents half-applied decks. | Low |
+| L4 | **Always set `fields` mask on `Update*Request`** | Same rule as Sheets and Docs. Omitting the mask or passing `"*"` resets every property in the message to its default — silently wiping styling you didn't intend to touch. | Low |
+| L5 | **For template-driven decks, copy the template via Drive `files.copy`, then `ReplaceAllText` into the copy** | Google's explicit instruction: *"make a copy and use the Slides API to manipulate the copy. Don't use the Slides API to manipulate your primary 'template' copy!"* | Medium |
+
+### What's possible — Slides headline capabilities
+
+| You want to... | Request | Notes |
+|---|---|---|
+| Create a presentation | `presentations.create` | Returns the empty presentation with a single blank slide |
+| Add a slide from a layout | `CreateSlideRequest` + `placeholderIdMappings` | Pre-assign IDs to inherited placeholders so subsequent `InsertText` calls have stable targets |
+| Insert text into a shape | `InsertTextRequest` with `objectId` + `insertionIndex` | For table cells: also pass `cellLocation: {rowIndex, columnIndex}` |
+| Style text | `UpdateTextStyleRequest` with `Range` (`ALL` / `FIXED_RANGE` / `FROM_START_INDEX`) | `fields` mask required |
+| Insert an image | `CreateImageRequest` with public URL + `elementProperties` (size + transform) | URL must be publicly accessible at request time; max 50 MB, 25 megapixels; PNG/JPEG/GIF only |
+| Embed a Sheets chart | `CreateSheetsChartRequest` with `spreadsheetId`, `chartId`, `linkingMode: LINKED` | Refresh requires manual `RefreshSheetsChartRequest`; no auto-update |
+| Read/write speaker notes | `InsertText` against `slide.slideProperties.notesPage.notesProperties.speakerNotesObjectId` | Only text content is editable; formatting is not |
+| Duplicate a slide or element | `DuplicateObjectRequest` | New IDs assigned automatically; transform stays the same |
+| Reorder slides | `UpdateSlidesPositionRequest` | |
+| Tag-substitution across the deck | `ReplaceAllTextRequest` with `containsText` | Inherits formatting from the first character of the matched range — see anti-pattern below |
+| Generate slide thumbnail | `presentations.pages.getThumbnail` | Expensive read; rate-limited |
+
+### What's NOT possible — and the workaround (Slides)
+
+| Hard limit | Workaround |
+|---|---|
+| **Slide transitions** (fade, slide, dissolve) | None via API. Apply in editor UI; survives `DuplicateObject`. [Open issue tracker entry since 2016](https://issuetracker.google.com/issues/36761236). |
+| **Element animations / builds** (entrance, exit, motion path) | Same — editor only. Cannot author programmatically. |
+| **Notes formatting beyond plain text** | Notes shape accepts text body only; bold/italic/color/font in notes are not editable via API. Generate as plain text. |
+| **Notes master and handout master edits** | Read-only via API. Build in editor; survives template clones. |
+| **Listing presentations in a folder** | Slides API has no `list`. Use Drive `files.list` with `mimeType = "application/vnd.google-apps.presentation"`. |
+| **Inserting private Drive images** | Make the file public for ~30s during the request, OR mint a GCS signed URL (15-min lifetime), OR upload-then-share via Drive API. Per [the open issue](https://github.com/googleapis/google-api-python-client/issues/2215), Slides cannot fetch private Drive content even with full Drive + Slides OAuth scopes. |
+| **Auto-refresh linked Sheets chart** | Manual `RefreshSheetsChartRequest` per chart per refresh; nothing auto-fires when the source Sheet changes. |
+| **Restyling during `ReplaceAllText`** | The replace inherits formatting from the first character of the matched range. Follow with `UpdateTextStyleRequest` over the resulting range to restyle. |
+| **Custom slide backgrounds beyond color or stretched-picture fill** | `UpdatePageProperties` is limited; crop/position control for background images is missing. Use a full-bleed `CreateImageRequest` sized to the page as a workaround. |
+| **Text effects** (shadow, glow, reflection) | Not in `TextStyle`. Apps Script `SlidesApp` exposes some; otherwise apply in the editor. |
+| **Auto-fit / shrink-to-fit measurement** | Cannot read the rendered text size via API. Pre-measure client-side or use Apps Script. |
+| **Table column width / row height edits** | Long-standing gap in `SlidesApp` per [Tanaike, 2023](https://tanaikech.github.io/2023/07/01/managing-row-height-and-column-width-of-table-on-google-slides-using-google-apps-script/); REST API supports `UpdateTableColumnPropertiesRequest`. Use the REST API path. |
+
+### Production MCP coverage for Slides is shallow
+
+This matters and deserves to be named explicitly. As of mid-2026:
+
+- The production Google Workspace MCP servers (taylorwilsdon/google_workspace_mcp, matteoantoci/google-slides-mcp) expose ~7 Slides tools — `create_presentation`, `get_presentation`, `batch_update_presentation`, `get_page`, `get_page_thumbnail`, `list_presentation_comments`, `manage_presentation_comment`.
+- Compare to Docs (~14 tools, fine-grained: `insertText`, `applyTextStyle`, `applyParagraphStyle`, `insertImage`, `replaceDocumentWithMarkdown`, etc.) and Sheets (~13 tools, equally fine-grained).
+- The Slides MCP path funnels every mutation through `batch_update_presentation`, so the agent ends up authoring raw `Request` JSON. There is no `insertImage`-style convenience tool, no `applyTextStyle`, no `replaceAllText` shortcut.
+
+**Practical implication:** building decks from an agent today means either (a) authoring raw `presentations.batchUpdate` payloads directly, or (b) writing a thin local helper that exposes higher-level operations (create slide with layout, insert text into placeholder, etc.) on top of the REST API. The latter is the right shape for any operator who builds more than a handful of decks programmatically.
+
+### Slides anti-patterns
+
+**A-L1 — Trusting object IDs after a human edits the deck.** Once the editor touches the file, your stored IDs may be stale. Cover by re-resolving via text content or alt-text on each batch.
+
+**A-L2 — `InsertText` at index 0 of a placeholder without first `DeleteText`.** Placeholder prompt text ("Click to add title") stays in the cell. The resulting slide reads `Click to add titleYour Real Content`. Pair every InsertText against a placeholder with a preceding DeleteText.
+
+**A-L3 — Calling `ReplaceAllText` and expecting it to restyle.** ReplaceAllText changes the text only; formatting carries from the first character of the matched range. For a redesign, always follow with `UpdateTextStyleRequest`.
+
+**A-L4 — Posting one-request-per-mutation.** Quota is per-project (600/min) and per-user (60/min). Bundle 50–200 requests in a single `batchUpdate`; atomic semantics prevent partial-failure mess.
+
+**A-L5 — Using the Slides API to manipulate your "template" copy.** Google's explicit warning. Always `files.copy` the template into a working folder first, then mutate the copy. The template stays clean and reusable.
+
+**A-L6 — Passing `*` as the `fields` mask on Update requests.** Resets every property in the message to its default, silently wiping styling. Use the narrowest path that covers what you're writing.
+
+### Apps Script vs Slides API — where the line falls
+
+The same overlap as Sheets, with one structural difference: **production MCP coverage for Slides is so thin that for any non-trivial deck automation, the REST API is the only path** — Apps Script becomes the fallback for things the REST API genuinely cannot do.
+
+| Only Apps Script (`SlidesApp`) | Only REST API | Both |
+|---|---|---|
+| Custom menus, sidebars, on-open triggers | True batch atomicity across 100s of mutations | Create / duplicate slides |
+| Simple imperative text styling (`setFontSize`, `setForegroundColor`) | Service-account auth, headless long-running jobs | Insert / delete text, shapes, images, tables |
+| Direct iteration over slide elements without rebuilding the objectId graph | High-throughput template generation | Speaker notes text |
+| User-bound auth out of the box | Field-masked partial property updates | `ReplaceAllText`, chart embed, `DuplicateObject` |
+| Some text effects (shadow / glow / reflection) | Per-row column-width control on tables | Sheets-chart refresh |
+
+---
+
 ## What we still don't know
 
 1. **Whether and when Google will ship API support for creating PAGE_NUMBER auto-text in existing docs.** The limitation has been around for years; the workaround (template + `copyFile`) is stable, but a future API change would make a lot of footer-related code obsolete. Watch the Google Docs API changelog.
@@ -662,6 +827,16 @@ Most production automations land somewhere on the spectrum. The decision rule: i
 5. **Whether Google ships revision-locked concurrency for Sheets writes.** No If-Match / ETag mechanism exists today; concurrent `append` calls and append-after-deleteDimension races are real. A future API change would let serialized pipelines run truly parallel. Until then, the workaround is to keep dependent writes inside a single `batchUpdate` call.
 
 6. **Whether the Sheets API will expose `CellImage` blob inserts.** Today only Apps Script can anchor uploaded image blobs to specific cells; the API can only write `IMAGE()` formula URLs (which won't accept Drive-hosted URLs and won't render SVG). The asymmetry is annoying for any automation that wants to embed generated images in a Sheets dashboard.
+
+7. **Whether production MCP servers will close the Slides coverage gap.** Today Slides exposes ~7 tools versus Docs' ~80 and Sheets' ~20 in the canonical Google Workspace MCP. Building decks programmatically means authoring raw `presentations.batchUpdate` payloads — slower iteration than the Docs/Sheets surfaces. A future MCP release with fine-grained Slides tools (`insertText`, `applyTextStyle`, `replaceAllText` as first-class tools) would close the gap.
+
+8. **Whether Slides will ship API support for transitions, animations, and private-Drive image insertion.** All three are [tracked as open issues](https://issuetracker.google.com/issues/36761236), some since 2016. The workarounds (apply transitions in the editor, mint public URLs for images) are durable; an API change would obsolete a real chunk of deck-automation code.
+
+---
+
+## Machine-readable identity (this article's own schema)
+
+This article applies the [Marketing to Agents](marketing-to-agents.md) playbook to itself — JSON-LD `Article` schema is auto-emitted in `<head>` by the repository's Jekyll `_includes/head-custom.html` whenever a guide carries `agent_friendly: true` in its frontmatter (this one does). Agents indexing the rendered HTML at [watsonrm.github.io/rmwcommerce](https://watsonrm.github.io/rmwcommerce/guides/operating-google-docs-from-claude.html) see a typed `Article` with author `sameAs` references to Rick's LinkedIn, X, GitHub, and Watson Weekly profiles; publisher `Organization` is RMW Commerce Consulting; license is CC BY-NC-ND 4.0. Agents fetching the raw markdown see the equivalent metadata in the YAML frontmatter at the top of this file.
 
 ---
 
@@ -729,5 +904,22 @@ This guide synthesizes patterns and failure modes from running Google Drive + Do
 - [Apps Script CellImage class](https://developers.google.com/apps-script/reference/spreadsheet/cell-image) — the only path to blob-image-in-cell inserts (Limit S1)
 - [Tanaike: benchmark reading and writing spreadsheet using Google Apps Script](https://tanaikech.github.io/2018/10/12/benchmark-reading-and-writing-spreadsheet-using-google-apps-script/) — the ~75-column crossover between API and `setValues()` for write throughput
 - [Google Dev forum: append-after-deleteDimension race condition](https://discuss.google.dev/t/row-offsets-occur-when-append-requests-run-immediately-after-deletedimension-suggesting-the-delete-isn-t-fully-applied-yet/345218) — concrete confirmation of the no-revision-lock concurrency limit
+
+### Google Slides — primary references
+
+- [Slides API overview](https://developers.google.com/workspace/slides/api/guides/overview) — mental model: Presentation → Page → PageElement; the load-bearing warning about object ID instability after editor edits
+- [Pages, Page Elements, and Properties](https://developers.google.com/workspace/slides/api/concepts/page-elements) — the four page types (Slide / Master / Layout / Notes) and the style-inheritance chain
+- [`presentations.batchUpdate` reference](https://developers.google.com/workspace/slides/api/reference/rest/v1/presentations/batchUpdate) — canonical list of every Request type and the atomicity contract
+- [Slides API request reference](https://developers.google.com/workspace/slides/api/reference/rest/v1/presentations/request) — the ~35 typed Request shapes
+- [Text Structure and Styling](https://developers.google.com/slides/api/concepts/text) — `TextRange` semantics and the `Range` type values
+- [Editing and Styling Text guide](https://developers.google.com/workspace/slides/api/guides/styling) — `fields` mask discipline for text style updates
+- [Add images to a slide](https://developers.google.com/workspace/slides/api/guides/add-image) — public-URL requirement, size limits, and the workaround for private Drive images
+- [Adding charts to your slides](https://developers.google.com/workspace/slides/api/guides/add-chart) — LINKED vs NOT_LINKED_IMAGE and the manual `RefreshSheetsChartRequest` semantics
+- [Merge data into a presentation](https://developers.google.cn/slides/api/guides/merge) — tag-based template substitution via `ReplaceAllText`
+- [Work with speaker notes](https://developers.google.com/workspace/slides/api/guides/notes) — `speakerNotesObjectId` discovery and the "text only" limit
+- [Slides API usage limits](https://developers.google.com/workspace/slides/api/limits) — 600 writes/min/project, 60 writes/min/user, exponential-backoff guidance
+- [Open issue: expose transitions/animations via Slides API](https://issuetracker.google.com/issues/36761236) — the canonical "out of scope" reference (open since 2016)
+- [Tanaike — Slides topic index](https://tanaikech.github.io/topics/slides/) — community gotchas by Google Developer Expert Kanshi Tanaike (text manipulation, table column widths, replace-all formatting limits)
+- [taylorwilsdon/google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp) — the production MCP server; Slides exposes ~7 tools (vs ~14 Docs / ~13 Sheets), confirming the under-served MCP-coverage gap
 
 The patterns and anti-patterns documented here emerged from real production failures across 2025–2026. Each was caught the first time by a human, fixed once, and lifted into the writer agent's playbook so it cannot recur silently. The article is the public form of that playbook.
