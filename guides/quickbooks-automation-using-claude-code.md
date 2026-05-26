@@ -715,7 +715,24 @@ What the bundled MCP does NOT expose:
 
 Five missing tools, all on the same side of the books. They pair structurally: you can't file a bill without a vendor record; you can't pay a bill without filing it first; you can't credit a vendor without an existing vendor relationship.
 
-The same Tuesday-afternoon scenario from Part 4 has a Tuesday-afternoon corollary for vendor creation: a brand-new contractor sends a first invoice, the bundled MCP cannot create the vendor record, the human has to do that step in the UI before any subsequent automation can refer to the vendor by ID. The prep-pack's job is to surface the gap clearly: "This vendor doesn't exist in QBO yet — create the record before posting the bill."
+The same Tuesday-afternoon scenario from Part 4 has a Tuesday-afternoon corollary for vendor creation: a brand-new contractor sends a first invoice, the bundled MCP cannot create the vendor record, the human has to do that step in the UI before any subsequent automation can refer to the vendor by ID.
+
+The prep-pack's job is to surface the gap with literal UI navigation, not a soft flag. The shape that works in practice:
+
+```
+**Vendor in QBO:** ⚠️ NOT in current AP aging summary. Either no current
+balance (paid up) OR no vendor record yet. Verify in QBO UI:
+Expenses → Vendors → search "Acme" / "Acme Contractor LLC." If absent,
+create vendor before posting bill.
+```
+
+Three things this wording gets right that a softer "vendor flagged for review" doesn't:
+
+1. **Names the ambiguity explicitly** — "not in AP aging" doesn't mean "no vendor record"; it might mean "vendor record exists but has no current balance." Soft flags collapse those two cases; the operator who acts on a soft flag may end up creating a duplicate vendor record.
+2. **Gives the exact UI path** — Expenses → Vendors → search. The human's next action is on the page; there is no thinking required. This is the same shape as the prep-pack's broader "load the context for the decision into one screen" discipline, applied to the vendor-record case.
+3. **Names what to do if absent** — "create vendor before posting bill" makes explicit that the order matters (Vendor first, then Bill — the API enforces this via the required VendorRef, but the human posting through the UI can easily try to post the bill first and hit the error).
+
+The duplicate-vendor failure mode (Acme Corp + ACME Corp + Acme Corp Inc all in the vendor list) is one of the highest-cost failure shapes in QBO data hygiene — see [Part 8 §8.3 smell #2](#83--failure-smells). The prep-pack's job at the vendor-record gap is to prevent that failure mode from starting, not to gesture at it after the fact.
 
 ### 5.3 — Pattern: identity-write idempotency
 
