@@ -37,6 +37,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 | **Building skills, agents, or multi-agent systems** | [Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) → [Multi-Agent Fan-Out](multi-agent-fan-out-and-verification.md) |
 | **Shipping software with Claude, not just one-shot tasks** | [Building Excellent Software (with Claude)](guides/building-excellent-software-with-claude.md) |
 | **Writing to Google Docs, Sheets, Slides, Drive, Calendar, or Gmail from Claude / an agent** | [Operating Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude](guides/operating-google-workspace-from-claude.md) |
+| **Automating QuickBooks Online from Claude — reads, writes, AP gap, anti-patterns** | [QuickBooks Automation Using Claude Code](guides/quickbooks-automation-using-claude-code.md) |
 | **Making your own site readable by AI agents** | [Marketing to Agents](guides/marketing-to-agents.md) |
 | **Just need a definition** | [Glossary](glossary.md) |
 
@@ -61,6 +62,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 - [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) — how to structure Claude agent systems that scale without silently breaking. Typed return contracts, intermediate-state logging, thin-orchestrator architecture, phasing strategy.
 - [Building Excellent Software (with Claude)](guides/building-excellent-software-with-claude.md) — the tokenmin v0.12.1 → v0.12.5 case study. Eight disciplines for taking a Claude-built artifact from working to production-grade, grounded in the public issue backlog and test suite.
 - [Operating Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude](guides/operating-google-workspace-from-claude.md) — the patterns, hard limits, and anti-patterns of writing to all six Workspace surfaces from an agent. Covers PAGE_NUMBER auto-text limits, `valueInputOption=USER_ENTERED` for Sheets, Slides object-ID instability, the `sendUpdates` silent-add failure in Calendar, base64url vs base64 in Gmail, threading headers, and the single-writer agent pattern for resume-from-interruption. 60-second map → what's possible → what's NOT possible → priority + TL;DR per surface; deep dives in Parts 1–10.
+- [QuickBooks Automation Using Claude Code](guides/quickbooks-automation-using-claude-code.md) — the bundled MCP's real tool inventory (50 tools, 0 AP writes), the bill-in API gap and why it is the right design, the prep-pack architecture for AP that survives every Intuit policy change, and six anti-patterns to recognize before they corrupt your books.
 
 **Publishing for AI agents:**
 - [Marketing to Agents](guides/marketing-to-agents.md) — the authoritative playbook for making any website readable, citable, and operable across every class of AI agent: indexer bots, AI search surfaces, chat assistants, and agentic browsers. Every claim sourced; 22-item checklist impact-ordered by evidence weight.
