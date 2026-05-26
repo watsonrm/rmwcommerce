@@ -13,7 +13,7 @@ keywords: when to use an agent vs prompt, prompt vs skill vs agent, multi-agent 
 
 *By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · 15 min read · sources verified live before publication*
 
-I run a production system of 20+ Claude skills and a multi-agent fleet across my consulting practice. The ladder below is what I apply to my own work before writing a single line of skill spec, and what I walk clients through before they spend money on the wrong shape. The three failure modes — agent where a skill would do, skill where a prompt would do, multi-agent where a single agent would do — are the ones I have personally made and watched others repeat.
+I run a production system of 20+ Claude skills and a multi-agent fleet across my consulting practice. The ladder below is what I apply to my own work before writing a single line of skill spec, and what I walk clients through before they spend money on the wrong shape. The four failure modes — prompt where a skill would do (by far the most common, and the one I see in every consulting engagement), agent where a skill would do, multi-agent where a single agent would do, and skill where a prompt would do — are the ones I have made myself and watched others repeat.
 
 Who this is for: anyone building with LLMs who needs to decide whether the right shape is a prompt, a skill, a single agent, or a multi-agent system.
 
@@ -49,7 +49,7 @@ Most readers are somewhere between Rung 1 and Rung 2. The highest-value move for
 
 There is a four-rung ladder from single [prompt (Rung 1)](glossary.md#prompt-rung-1) to [multi-agent system (Rung 4)](glossary.md#multi-agent-system-rung-4). Each rung adds capability — and each adds cost: complexity, latency, and verification debt.
 
-The most common failure mode in agent engineering today is reaching for Rung 3 (autonomous agent) when Rung 2 (packaged skill) would have done the job. The second most common is reaching for Rung 4 (multi-agent system) when a single well-configured agent was sufficient. Anthropic's own guidance puts it directly: *"success in the LLM space isn't about building the most sophisticated system. It's about building the right system for your needs."* ([source](https://www.anthropic.com/engineering/building-effective-agents))
+The most common failure mode in AI use today is staying at Rung 1 when Rung 2 would have done the job — pasting the same setup into a fresh chat for months and never packaging it as a skill. The second most common, visible mainly among teams actively building agent infrastructure, is the opposite: reaching for Rung 3 (autonomous agent) when Rung 2 (packaged skill) would have sufficed, and then for Rung 4 (multi-agent system) when a single well-configured agent was sufficient. Both directions are wrong-rung failures. Anthropic's own guidance puts it directly: *"success in the LLM space isn't about building the most sophisticated system. It's about building the right system for your needs."* ([source](https://www.anthropic.com/engineering/building-effective-agents))
 
 Climbing unnecessarily compounds three costs:
 
@@ -141,13 +141,23 @@ The one thing worth saying here: **Rung 4 is not a destination to aim for.** It'
 
 ---
 
-## The over-climbing problem
+## The four failure modes
 
-Most AI engineering mistakes are not model selection errors or prompt quality errors. They're abstraction layer errors. Here are the three failure modes, in order of how often they come up.
+Most AI mistakes are not model selection errors or prompt quality errors. They're abstraction layer errors — work running on the wrong rung. Four failure modes, ordered by how often they come up in the wild:
 
-### Failure 1: Agent where a skill would do
+### Failure 1: Prompt where a skill would do
 
-This is the most common failure. The signs: the agent's loop runs one or two iterations and then returns. The "decisions" it makes between steps are trivial — things a human would resolve in seconds, or things the skill spec could have just specified. The verification step checks things that weren't actually at risk.
+This is the most common failure, by a lot. You have a setup you paste into a fresh chat multiple times a week — a rewriting style guide, a code-review checklist, a meeting-notes format, the way you like data summarized. You have never packaged it. Every invocation costs you the tokens to re-paste the context, the cognitive overhead of remembering what to include, and the consistency loss from forgetting one piece of it.
+
+What happened: the leap from "I keep doing this" to "I should package this" feels bigger than it is. It is not. A SKILL.md is a markdown file with a name, a one-paragraph description, and your prompt. No scripts required. No tool allowlist required. No multi-step workflow required. Just the file.
+
+The test: count how many times in the last month you pasted approximately the same setup text into a fresh chat. If the count is more than five and the context didn't vary materially, the skill has earned its place. The fix takes 30 minutes once. The savings compound every week after.
+
+Why this is undercounted: the cost is invisible per-incident — you don't notice the tax until you add it up. The cost of *over*-climbing is loud (a failed agent build is a thing you have to debug). The cost of *under*-climbing is quiet (a workflow that's slower and noisier than it has to be, indefinitely). Both are real; only one announces itself.
+
+### Failure 2: Agent where a skill would do
+
+The most common over-climbing failure. The signs: the agent's loop runs one or two iterations and then returns. The "decisions" it makes between steps are trivial — things a human would resolve in seconds, or things the skill spec could have just specified. The verification step checks things that weren't actually at risk.
 
 What happened: someone saw the agent architecture, liked how it sounded, and built it — without asking whether the loop was necessary. The cost is real: latency goes up, the failure surface expands, and debugging a one-iteration agent loop is harder than reading a skill's output.
 
@@ -155,9 +165,13 @@ The test: write out what the agent actually does, step by step. If you can descr
 
 There is a useful historical reference point here. In March 2023, Yohei Nakajima published BabyAGI — a task-driven autonomous agent that spawned tasks, prioritized them, and executed them in a loop. ([source](https://github.com/yoheinakajima/babyagi)) The project generated significant attention, and teams across the industry started building autonomous agent loops on the same pattern. Most of those early systems were unstable in production: the loop would drift, accumulate errors, or fail silently in ways that were hard to diagnose. The creator's own repository notes explicitly that BabyAGI is "not meant for production use." The autonomous-loop-with-LLM pattern only became reliable once typed contracts, intermediate-state logging, and verification at agent boundaries were added — which is what the multi-agent companion guide addresses.
 
-### Failure 2: Skill where a prompt would do
+### Failure 3: Multi-agent where a single agent would do
 
-Building an entire Claude Skill for a task you do twice a year, with custom scripts and a trigger phrase and a tool allowlist, is engineering for the sake of engineering. The skill takes time to build, requires maintenance, and saves you approximately nothing.
+The companion guide covers this in detail. The short version: if you don't have genuine fan-out, genuine specialization, or a context window problem, the orchestrator layer is overhead without payoff. See [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) for the cases where Rung 4 is actually warranted.
+
+### Failure 4: Skill where a prompt would do
+
+The rarest of the four, because most people don't over-package. But it happens: building an entire Claude Skill for a task you do twice a year, with custom scripts and a trigger phrase and a tool allowlist, is engineering for the sake of engineering. The skill takes time to build, requires maintenance, and saves you approximately nothing.
 
 The test: how many times have you done this task the same way? If the answer is fewer than five, stay at Rung 1. If the context varies materially each time, stay at Rung 1.
 
@@ -165,10 +179,6 @@ The test: how many times have you done this task the same way? If the answer is 
 > ### When to ignore this advice
 >
 > If the task is **high-stakes one-off** (a keynote, a board meeting, a single-take podcast taping), pre-build the skill even on first use. The "twice a year" / "fewer than five" threshold optimizes for token cost; high-stakes one-offs optimize for not forgetting the recipe at 3am the night before. My `speaking-script` and `panel-moderation` skills both started as one-offs for specific events — they earned their place by being there when I needed them, not by being run three times first. Expect 30-60 min upfront vs. risking 30 min of fumbling at the moment.
-
-### Failure 3: Multi-agent where a single agent would do
-
-The companion guide covers this in detail. The short version: if you don't have genuine fan-out, genuine specialization, or a context window problem, the orchestrator layer is overhead without payoff. See [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) for the cases where Rung 4 is actually warranted.
 
 ---
 
