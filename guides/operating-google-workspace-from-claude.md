@@ -198,6 +198,23 @@ Most automation uses path 1 for the common case and falls back to path 3 in clou
 
 The catch shared across all three: every path leaves Google Docs **defaults** on the body unless you run an explicit styling pass after the upload. Mentally, treat the body-content write as "set the body content," not as "set the body content as it should look." Looks-as-it-should is the next 30 lines of code, regardless of which path delivered the body.
 
+### Workspace plans + personal accounts: what's different
+
+This article assumes you're operating against a Google Workspace org with broad programmatic access. That isn't every reader. Material differences exist by plan tier and account type — most don't matter until they do, and then they matter completely.
+
+| Surface | What changes | Affects |
+|---|---|---|
+| **Shared Drives** | Available on every **paid** Workspace edition including Business Starter (since Sep 2024) and on Enterprise / Education Standard+. Not available on personal `@gmail.com` accounts. ([Workspace Updates, Aug 2024](https://workspaceupdates.googleblog.com/2024/08/shared-drive-access-business-starter.html)) | Any code that lists / writes Shared Drive content fails on personal accounts. The [Cowork connector regression](https://github.com/anthropics/claude-code/issues/53442) is about Shared Drives specifically — personal-account users aren't affected because the surface doesn't exist for them. |
+| **Service accounts + domain-wide delegation** | Service accounts can live in any GCP project (including personal-account-owned). But **DWD authorization requires a Workspace super admin**, and impersonation only works against managed Workspace users — never against `@gmail.com` accounts. ([Workspace Admin Help](https://support.google.com/a/answer/162106)) | Any headless / scheduled write that depends on impersonation requires a Workspace target. The cloud-secret-proxy pattern in Part 5 assumes this works. |
+| **Admin API access control** | **Every** Workspace edition's super admin can use Admin Console → Security → Access and data control → API controls → App access control to block third-party apps org-wide, restrict by scope, or mark apps as trusted / limited / blocked. The setting overrides user-level OAuth grants. ([Workspace Admin Help](https://support.google.com/a/answer/7281227)) | An app that works for the developer can fail with opaque 403s when an external user from a managed org tries to install it. Always check admin-side blocks before debugging code. |
+| **Restricted-scope OAuth verification** | External apps requesting `https://www.googleapis.com/auth/drive` (the broad "restricted" scope) for personal Google account users need Google verification plus an annual [CASA Tier 2 assessment](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification) by an approved lab. Internal Workspace apps (Internal user type, same-org users only) skip both. | Any app shipped to personal-account users with broad Drive scope hits this gate. Building for internal Workspace use only is much faster to launch. |
+| **Context-Aware Access** | Available on Enterprise Standard / Plus, Education Standard / Plus, Frontline Standard, Cloud Identity Premium, and Enterprise Essentials Plus. ([Workspace Admin Help](https://support.google.com/a/answer/9275380)) Not on Business tier or personal accounts. VPC Service Controls is a separate Google Cloud feature available alongside these tiers. | Enterprise environments can block API calls by network, device posture, or service perimeter — even with valid tokens. Calls succeed in dev, fail in prod from a non-corporate network. |
+| **Drive classification labels** | Manual labels: Business Standard / Plus, Enterprise Standard / Plus, Education Standard / Plus, Frontline (all tiers), Essentials / Enterprise Essentials. ([Workspace Admin Help](https://support.google.com/a/answer/13127870)) DLP rules that auto-apply labels: narrower — Frontline Standard / Plus, Enterprise Standard / Plus, Education Fundamentals / Standard / Plus. Not on any Business tier. | Reads / writes may interact with label-based access controls; DLP can block writes that match policy. |
+| **Audit logs and Vault** | Admin audit logging of API writes is generally available across Workspace editions since [May 2024](https://workspaceupdates.googleblog.com/2024/05/audit-logs-for-API-based-actions.html). Vault (eDiscovery / retention) is included on Business **Plus**, Enterprise (Standard / Plus / Essentials), and Education Standard+ — **not** Business Starter or Business Standard. Personal accounts have neither. | Some operators (legal-sensitive sectors) need to know their writes are auditable; some need to know they aren't. |
+| **Document tabs** | Available on all Workspace plans AND personal `@gmail.com` accounts since [October 2024](https://workspaceupdates.googleblog.com/2024/10/tabs-in-google-docs.html). The `tabs` field appears in the Docs API JSON regardless of account type. | The tab-enabled-docs MCP gotcha (next section) affects every reader, not just Workspace ones. |
+
+**What's NOT a plan-tier difference** — API quotas. The default per-user / per-project quotas (60 req/min/user on Sheets, similar elsewhere) are tied to the GCP project that owns the OAuth client, not to any Workspace SKU. Quota-increase requests go through the GCP console for any project owner — personal accounts included. Approval is at Google's discretion based on usage justification, not on what Workspace plan the user holds.
+
 ### The tab-enabled-docs MCP gotcha
 
 Google Docs added document tabs (multiple tab surfaces inside a single doc, similar to Sheets) to the production UI in 2024. Any doc created in the new editor carries a `tabs` field at the document root, and the Docs API's legacy text/table tools fail on these docs with a field-mask error along the lines of `document.tabs and legacy text-level fields cannot be specified in the same request`. As of mid-2026, the MCP-exposed tools that hit this failure include `listDocumentTables`, `updateTableBorders`, `updateTableCellStyle`, and `updateTableColumnWidth`. The body-text tools (`insertText`, `applyTextStyle`, `applyParagraphStyle`, `replaceDocumentWithMarkdown`) work fine; the failure is specific to the table-manipulation surface.
@@ -345,6 +362,8 @@ The Google Workspace MCP server typically runs locally with credentials in Keych
 3. **Mode marker on the input.** Whichever path you take, mark the doc's freshness: cloud-rendered docs are unstyled at the cascade level, and the next interactive run by the human reapplies brand styling. Mention this explicitly in the agent's return: `"created via cloud proxy; brand cascade pending interactive run"`.
 
 The asymmetry is annoying. It exists because Anthropic's claude.ai Google Workspace connector doesn't yet have a writer-side org-level deployment. Until it does, the workaround stack is the cost of running Drive automation outside the human's laptop.
+
+**Plan-tier caveat:** both workarounds above use OAuth user-token credentials. The conceptually-cleaner alternative — a service account with domain-wide delegation — is **Workspace-only**: DWD authorization requires a Workspace super admin and impersonation only works against managed Workspace users. Personal `@gmail.com` accounts cannot use this path. See [Workspace plans + personal accounts: what's different](#workspace-plans--personal-accounts-whats-different) in Part 1.
 
 ### Limit 3 — `insertImage` width / height parameters are unreliable
 
@@ -884,6 +903,18 @@ This guide synthesizes patterns and failure modes from running Google Drive + Do
 - [OAuth 2.0 scopes for Google APIs](https://developers.google.com/identity/protocols/oauth2/scopes) — full scopes catalog
 - [Google OAuth 2.0 for installed applications](https://developers.google.com/identity/protocols/oauth2/native-app) — the consent flow used by every MCP-installed helper
 - [Google Cloud Secret Manager](https://cloud.google.com/secret-manager/docs) — the canonical place for credentials in the cloud-secret-proxy pattern
+- [Restricted-scope OAuth verification (CASA assessment)](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification) — the verification gate external apps hit when requesting the broad `drive` scope
+- [Control which apps access Workspace data (Admin Help)](https://support.google.com/a/answer/7281227) — how Workspace admins block / allow / restrict third-party app API access org-wide
+- [Domain-wide delegation (Admin Help)](https://support.google.com/a/answer/162106) — how to authorize a service account to impersonate Workspace users
+
+### Workspace plan / account-type references
+
+- [Shared Drives now on Business Starter (Workspace Updates, Aug 2024)](https://workspaceupdates.googleblog.com/2024/08/shared-drive-access-business-starter.html) — the rollout that changed Shared Drives from "Business Standard+" to "every paid edition"
+- [Context-Aware Access (Admin Help)](https://support.google.com/a/answer/9275380) — which plans get it and what it controls
+- [Create classification labels (Admin Help)](https://support.google.com/a/answer/13127870) — Drive labels by plan tier
+- [Audit logs for API-based actions (Workspace Updates, May 2024)](https://workspaceupdates.googleblog.com/2024/05/audit-logs-for-API-based-actions.html) — when admin audit logs started covering API writes
+- [Google Vault product page](https://workspace.google.com/products/vault/) — Vault availability by edition
+- [Tabs in Google Docs (Workspace Updates, Oct 2024)](https://workspaceupdates.googleblog.com/2024/10/tabs-in-google-docs.html) — confirms tabs rolled out to all account types (Workspace + personal)
 
 ### Markdown ↔ Docs conversion
 
