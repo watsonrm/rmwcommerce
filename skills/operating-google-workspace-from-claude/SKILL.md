@@ -5,20 +5,26 @@
 - "audit my google sheets automation"
 - "audit my google slides automation"
 - "audit my drive automation setup"
+- "audit my google calendar automation"
+- "audit my gmail automation"
 - "operating google docs checklist"
 - "is my doc / sheet / slide automation safe"
 - "why is my drive skill failing on shared drives"
 - "my agent broke a google doc / sheet / deck, what now"
 - "USER_ENTERED vs RAW question"
 - "my slide object ids stopped working"
+- "sendUpdates not sending invites"
+- "calendar event attendees not getting email"
+- "gmail base64 encoding error"
+- "my email reply isn't threading correctly"
 
 ---
 
 ## What this skill does
 
-When triggered, Claude works through the audit checklist from Rick Watson's [*Operating Google Drive, Docs, Sheets, and Slides from Claude*](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md) guide, asks targeted questions about the user's setup, and produces:
+When triggered, Claude works through the audit checklist from Rick Watson's [*Operating Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude*](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md) guide, asks targeted questions about the user's setup, and produces:
 
-1. A surface-by-surface pattern adherence report (Docs / Sheets / Slides / Drive)
+1. A surface-by-surface pattern adherence report (Docs / Sheets / Slides / Drive / Calendar / Gmail)
 2. A connector-parity diagnosis if the user has hit the "works in prompt, fails in skill" failure mode
 3. A non-native file readiness check for Drive-touching skills (does the automation handle `.docx` / PDF / images?)
 4. Specific, prioritized fixes with effort estimates and a one-line workaround per gap
@@ -36,8 +42,10 @@ Ask the user what surface(s) the automation touches. Each has its own diagnostic
 - **Docs** (read / write document body, styling, images) → Step 1, then Step 2 (if applicable), then **Step 3 (Docs patterns)**.
 - **Sheets** (cells, ranges, formulas, formatting) → Step 1, then **Step 4 (Sheets patterns)**.
 - **Slides** (presentations, slides, shapes, images) → Step 1, then **Step 5 (Slides patterns)** — and **always surface the MCP-coverage shallowness** up front (production MCP servers expose ~7 Slides tools; most deck automation needs raw `presentations.batchUpdate` payloads).
+- **Calendar** (events, recurring series, invitations, freebusy) → Step 1, then **Step 5c (Calendar patterns)** — lead with `sendUpdates` and the read-mutate-write rule as the highest-impact gaps.
+- **Gmail** (send, draft, label, search, thread, push) → Step 1, then **Step 5d (Gmail patterns)** — lead with draft-not-send and the base64url encoding requirement.
 
-Mixed setups (e.g., an automation that writes a Doc and embeds Sheets data) run multiple flows.
+Mixed setups (e.g., an automation that creates a Calendar event AND sends a Gmail confirmation) run multiple flows.
 
 ### Step 1 — Gather the setup
 
@@ -189,6 +197,68 @@ Surface these in the gap report:
 - **ReplaceAllText reformatting** — Inherits formatting from the first character of the matched range; follow with `UpdateTextStyleRequest`.
 - **Listing presentations** — Slides API has no `list`; use Drive `files.list` with `mimeType = "application/vnd.google-apps.presentation"`.
 
+### Step 5c — Calendar pattern gap check (C1–C9)
+
+Run only if the user touches Calendar. See the article's `Where to spend your time — Calendar` priority table (Parts 9).
+
+**C1 — `sendUpdates=all` on every insert / update / delete with attendees** (highest impact)
+- "Does every `events.insert` / `events.update` / `events.delete` with attendees pass `sendUpdates=all` explicitly?" This is a query parameter, not a body field. Omitting it sends no notifications. The agent reports "event created with 5 attendees" and not one gets an invitation.
+
+**C2 — IANA timezone, never a UTC offset; recurring events MUST have timeZone**
+- "Does the automation set `start.timeZone` (or `end.timeZone`) to an IANA ID (e.g. `America/New_York`)?" Offsets like `-05:00` become wrong after DST transitions. Recurring events without `timeZone` can't be expanded reliably.
+
+**C3 — Read-mutate-write, not build-from-scratch on `events.update`**
+- "`events.update` is a full replace (per the [update reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/update)) — does the automation do `events.get` → mutate → `events.update`?" Building an update payload from scratch silently wipes attendees, conferenceData, reminders, transparency.
+
+**C4 — Series vs instance: decide up front, never loop instances to edit the series**
+- "For recurring event changes, does the automation edit the series resource directly?" Looping `events.instances` and patching each creates N exceptions, floods attendees, and slows the calendar.
+
+**C5 — `extendedProperties.private` for app state, not description**
+- "Does the automation store look-up keys in `extendedProperties.private`?" Descriptions get edited by humans and indexed by search. Private properties are hidden and queryable.
+
+**C6 — Poll `conferenceData.createRequest.status` before reporting a Meet link**
+- "Does the code poll until `status.statusCode == 'success'` before reporting the Meet link?" The initial response returns `pending` with no `hangoutLink`.
+
+**C7 — `syncToken` for change tracking, not `updatedMin`**
+- "`updatedMin` polling misses cancellations. Does the automation persist `nextSyncToken` and handle `410 GONE` as full resync?"
+
+**C8 — `singleEvents=true` on `events.list` for week-view / instance-level queries**
+- "Does the automation pass `singleEvents=true` when listing events for a date range?" Default returns the series resource; instance times and per-occurrence metadata are hidden.
+
+**C9 — ETag + `If-Match` on read-modify-write**
+- "Does the read-mutate-write loop carry the ETag as `If-Match`?" Calendar implements optimistic concurrency — skip it and concurrent writers silently overwrite each other.
+
+### Step 5d — Gmail pattern gap check (G1–G9)
+
+Run only if the user touches Gmail. See the article's `Where to spend your time — Gmail` priority table (Part 10).
+
+**G1 — Draft, don't send** (highest impact, lowest effort)
+- "Does the automation use `drafts.create` + human-review flow, or does it call `messages.send` directly?" Agent-authored mail going out without review is the worst-case failure.
+
+**G2 — `urlsafe_b64encode`, not `b64encode`, for the `raw` field**
+- "Does the MIME assembly use base64url (URL-safe alphabet)?" Standard base64's `+` / `/` break the API. Symptom: passes on plaintext tests, fails with `400 invalidArgument` on first HTML or attachment payload.
+
+**G3 — Labels addressed by ID, not display name**
+- "Does every `messages.modify` / `threads.modify` pass `labelId`?" Display names return `400 invalidArgument`. Maintain a `{name: labelId}` map from `labels.list` at startup.
+
+**G4 — For replies, set `threadId` AND `In-Reply-To` + `References` headers AND matching Subject**
+- "`threadId` only governs the sender's mailbox. Per the [threads guide](https://developers.google.com/workspace/gmail/api/guides/threads), all three conditions must hold for in-thread display on the recipient's side."
+
+**G5 — Narrowest scope: `gmail.send` (sensitive) vs `gmail.modify` / `gmail.readonly` (restricted)**
+- "Does the automation use the most restricted scope that covers its operations?" Restricted scopes trigger the App Defense Alliance / CASA annual review for external apps; starting with the wrong scope can delay ship by weeks.
+
+**G6 — Daily re-watch for Pub/Sub, not weekly**
+- "Does the push watch get renewed daily?" The hard expiration is 7 days; daily renewal gives a 6-day safety margin. Silently stops receiving after 7 days with no error.
+
+**G7 — Use `q` to filter at server, not pull-then-filter**
+- "`messages.get` costs 4× more quota than `messages.list`. Does the automation narrow with `q` before fetching full message bodies?"
+
+**G8 — Walk `payload.parts[]` recursively, not `payload.body.data`**
+- "On multipart messages, does the code walk the parts tree?" `payload.body.data` is empty on HTML / attachment-bearing messages. The body is in a leaf part.
+
+**G9 — `send` vs `insert` vs `import` — only `send` delivers to recipients**
+- "Does the automation reach for `messages.send` for outbound, not `messages.insert` or `messages.import`?" The latter two put the message in the sender's mailbox only; the recipient never gets it.
+
 ### Step 6 — Non-native file readiness check
 
 For any Drive-touching automation that takes "a file id" as input:
@@ -210,12 +280,12 @@ Format:
 ## Workspace Automation Audit — <user's setup>
 
 ### Surfaces in scope
-- [Docs / Sheets / Slides / Drive — which apply]
+- [Docs / Sheets / Slides / Drive / Calendar / Gmail — which apply]
 
 ### Connector-parity (Step 2)
 - [Verdict if relevant; skip section if not applicable]
 
-### Docs patterns (D1–D9 + production checks)
+### Docs patterns (D1–D9 + production checks, if applicable)
 - [ ] D1 JSON verification
 - [ ] D2 Brand styling sequence
 - [ ] D3 Cascade-check both directions
@@ -247,6 +317,28 @@ Format:
 - [ ] L4 fields mask on Update*
 - [ ] L5 Template-copy workflow
 
+### Calendar patterns (C1–C9, if applicable)
+- [ ] C1 sendUpdates=all
+- [ ] C2 IANA timezone
+- [ ] C3 Read-mutate-write
+- [ ] C4 Series vs instance
+- [ ] C5 extendedProperties.private for app state
+- [ ] C6 Poll conferenceData before reporting Meet link
+- [ ] C7 syncToken (not updatedMin) + 410 handling
+- [ ] C8 singleEvents=true for date-range queries
+- [ ] C9 ETag + If-Match
+
+### Gmail patterns (G1–G9, if applicable)
+- [ ] G1 Draft, don't send
+- [ ] G2 base64url (not base64) for raw field
+- [ ] G3 Labels by ID
+- [ ] G4 Full threading headers (threadId + In-Reply-To + References + Subject)
+- [ ] G5 Narrowest scope
+- [ ] G6 Daily re-watch
+- [ ] G7 q-filter at server
+- [ ] G8 Walk payload.parts[] recursively
+- [ ] G9 send vs insert vs import
+
 ### Non-native files
 - [ ] mimeType check before reading
 
@@ -265,7 +357,7 @@ Format:
 ### Step 8 — Where to read more
 
 Always end with:
-> Full guide: [Operating Google Drive, Docs, Sheets, and Slides from Claude](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md)
+> Full guide: [Operating Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md)
 > Bug tracker for Cowork Shared Drive issue: [anthropics/claude-code#53442](https://github.com/anthropics/claude-code/issues/53442)
 > Slides API transitions / animations issue: [issuetracker.google.com/issues/36761236](https://issuetracker.google.com/issues/36761236)
 
@@ -276,10 +368,9 @@ Always end with:
 - Direct read/write access to the user's Workspace. It diagnoses; the user executes.
 - Fix the Cowork connector regression — that's Anthropic's bug.
 - Recommend specific brand styling (fonts, colors). Operator-specific choices outside the article's scope.
-- Handle Gmail / Calendar specifically. Those have their own gotchas worth a separate skill.
 
 ---
 
 ## Voice
 
-Direct. Verdict-first. Specific. Cite the article's patterns by ID (D1 / D5 / S3 / L2 / Limit 3 etc.) so the user can cross-reference. If the user has hit a connector regression, say so plainly — don't make them debug their own skill code for a bug Anthropic owns. If the user is building Slides automation, lead with the MCP-coverage shallowness so they understand why their tool surface feels thinner than the Docs path.
+Direct. Verdict-first. Specific. Cite the article's patterns by ID (D1 / D5 / S3 / L2 / C1 / G2 / Limit 3 etc.) so the user can cross-reference. If the user has hit a connector regression, say so plainly — don't make them debug their own skill code for a bug Anthropic owns. If the user is building Slides automation, lead with the MCP-coverage shallowness so they understand why their tool surface feels thinner than the Docs path. For Calendar, lead with `sendUpdates=all` — it's the single most common failure mode. For Gmail, lead with draft-not-send and base64url.

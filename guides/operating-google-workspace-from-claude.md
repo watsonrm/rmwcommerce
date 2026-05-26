@@ -1,28 +1,28 @@
 ---
-title: Operating Google Drive, Docs, Sheets, and Slides from Claude
-description: The patterns, hard limits, and anti-patterns of writing to Google Drive, Docs, Sheets, and Slides from Claude or any AI agent. Workarounds for what the APIs simply cannot do, plus surface-specific deep dives (Docs styling cascade; Sheets USER_ENTERED + values-vs-structure split; Slides object-ID stability + the under-served MCP surface). Every claim grounded in a specific failure mode.
+title: Operating Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude
+description: The patterns, hard limits, and anti-patterns of writing to Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude or any AI agent. Workarounds for what the APIs simply cannot do, plus surface-specific deep dives (Docs styling cascade; Sheets USER_ENTERED + values-vs-structure split; Slides object-ID stability + the under-served MCP surface; Calendar sendUpdates silent-add failure; Gmail base64url vs base64 and the threading-headers gap). Every claim grounded in a specific failure mode.
 date: 2026-05-25
-last_modified_at: 2026-05-25
+last_modified_at: 2026-05-26
 author: Rick Watson
 agent_friendly: true
-keywords: Google Drive, Google Docs, Google Sheets, Google Slides, Sheets API, Slides API, MCP, model context protocol, AI agents, Claude, automation, document automation, OAuth, Drive API, Docs API, valueInputOption, developer metadata, objectId, presentations batchUpdate, applyTextStyle bold lost, tool success not task success, google docs renders wrong, replaceDocumentWithMarkdown styling lost, weightedFontFamily weight 400, silent style failure
+keywords: Google Drive, Google Docs, Google Sheets, Google Slides, Google Calendar, Gmail, Sheets API, Slides API, Calendar API, Gmail API, MCP, model context protocol, AI agents, Claude, automation, document automation, OAuth, Drive API, Docs API, valueInputOption, developer metadata, objectId, presentations batchUpdate, applyTextStyle bold lost, tool success not task success, google docs renders wrong, replaceDocumentWithMarkdown styling lost, weightedFontFamily weight 400, silent style failure, sendUpdates default none, base64url Gmail, threading headers In-Reply-To
 ---
 
-# Operating Google Drive, Docs, Sheets, and Slides from Claude
+# Operating Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude
 
-**Most production Drive/Docs/Sheets/Slides automation fails the same way: a write tool returns success, the agent reports done, and the document renders broken — bold overwritten, headings the wrong size, formulas as literal strings, footers missing. Tool success isn't task success. This guide names every failure mode that produces a "successful" broken doc, gives the workaround for each, and shows the verify-by-JSON pattern that catches them before they ship.**
+**Most production Workspace automation fails the same way: a write tool returns success, the agent reports done, and the output is broken — bold overwritten, headings the wrong size, formulas as literal strings, attendees silently never notified, emails rejected with `400 invalidArgument`. Tool success isn't task success. This guide names every failure mode that produces a "successful" broken result, gives the workaround for each, and shows the verification patterns that catch them before they ship.**
 
-**Published:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Last updated:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Author:** [Rick Watson](https://www.rmwcommerce.com/), Principal, RMW Commerce Consulting  ·  **Canonical URL:** [`github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md`](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md)  ·  **Reading time:** 10-min skim · 55-min deep read
+**Published:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Last updated:** <time datetime="2026-05-26">2026-05-26</time>  ·  **Author:** [Rick Watson](https://www.rmwcommerce.com/), Principal, RMW Commerce Consulting  ·  **Canonical URL:** [`github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md`](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md)  ·  **Reading time:** 10-min skim · 75-min deep read
 
-Who this is for: developers and operators using Claude (or any AI agent) to read and write Google Drive files, Google Docs, Google Sheets, and Google Slides at scale. Anyone who has watched an agent overwrite styled formatting, create four files with the same title, write a formula that lands as a literal string, hand-craft a `batchUpdate` for a deck because the MCP didn't expose it, or report "all styles applied successfully" while the document renders broken.
+Who this is for: developers and operators using Claude (or any AI agent) to read and write Google Drive files, Google Docs, Google Sheets, Google Slides, Google Calendar events, and Gmail messages at scale. Anyone who has watched an agent overwrite styled formatting, create four files with the same title, write a formula that lands as a literal string, hand-craft a `batchUpdate` for a deck because the MCP didn't expose it, add attendees silently with no invitation email, or get `400 invalidArgument` from Gmail because standard base64 isn't base64url.
 
-**Jump to:** [60-second map](#the-60-second-map--what-youre-actually-working-with) · [What's possible](#whats-possible--the-headline-capabilities) · [What's NOT possible](#whats-not-possible--and-the-workaround) · [Where to spend your time](#where-to-spend-your-time--docs) · [TL;DR](#tldr--the-five-non-obvious-bits) · [Sheets (Part 7)](#part-7--operating-google-sheets) · [Slides (Part 8)](#part-8--operating-google-slides) · [Full TOC](#whats-in-this-article)
+**Jump to:** [60-second map](#the-60-second-map--what-youre-actually-working-with) · [What's possible](#whats-possible--the-headline-capabilities) · [What's NOT possible](#whats-not-possible--and-the-workaround) · [Where to spend your time](#where-to-spend-your-time--docs) · [TL;DR](#tldr--the-five-non-obvious-bits) · [Sheets (Part 7)](#part-7--operating-google-sheets) · [Slides (Part 8)](#part-8--operating-google-slides) · [Calendar (Part 9)](#part-9--operating-google-calendar) · [Gmail (Part 10)](#part-10--operating-gmail) · [Full TOC](#whats-in-this-article)
 
 ---
 
 ## The 60-second map — what you're actually working with
 
-Four surfaces, four different mental models. The most common production bug is confusing them.
+Six surfaces, six different mental models. The most common production bug is confusing them.
 
 | Surface | What it is | What it's good for | Addressing model |
 |---|---|---|---|
@@ -30,8 +30,10 @@ Four surfaces, four different mental models. The most common production bug is c
 | **Docs** | The document editor | Read body, write text, apply styles, insert images, manage comments. | Character index into body |
 | **Sheets** | The spreadsheet | Cells, ranges, formulas, formatting, conditional rules, charts. | A1 ranges OR zero-based GridRange |
 | **Slides** | The presentation editor | Slides, shapes, tables, images, charts, speaker notes. | String `objectId` per element |
+| **Calendar** | The scheduling surface | Events, recurring series, freebusy, ACL sharing, push notifications. | `(calendarId, eventId)` OR `(calendarId, iCalUID)` |
+| **Gmail** | The mail surface | Send, draft, label, search, thread, push notifications, filter management. | `messageId` / `threadId` / `labelId` (opaque strings) |
 
-You reach Drive through `mcp__google-docs__searchDriveFiles`, the lighter `mcp__claude_ai_Google_Drive__*` family, or the [Drive REST API v3](https://developers.google.com/workspace/drive/api/reference/rest/v3) directly. Docs (~80 tools) and Sheets (~20 tools) go through `mcp__google-docs__*`. Slides has the shallowest MCP coverage — production servers expose ~7 tools, most agents end up authoring raw `presentations.batchUpdate` payloads. [Part 1](#part-1--the-toolset-and-the-mental-model) covers connector / scope / write-path trade-offs; [Part 8](#part-8--operating-google-slides) covers the Slides shape in depth.
+You reach Drive through `mcp__google-docs__searchDriveFiles`, the lighter `mcp__claude_ai_Google_Drive__*` family, or the [Drive REST API v3](https://developers.google.com/workspace/drive/api/reference/rest/v3) directly. Docs (~80 tools) and Sheets (~20 tools) go through `mcp__google-docs__*`. Slides has the shallowest MCP coverage — production servers expose ~7 tools, most agents end up authoring raw `presentations.batchUpdate` payloads. Calendar and Gmail both have MCP coverage in the canonical Google Workspace MCP but production agents regularly need REST for edge cases (sync tokens, push channels, ACL writes, MIME assembly). [Part 1](#part-1--the-toolset-and-the-mental-model) covers connector / scope / write-path trade-offs; [Part 8](#part-8--operating-google-slides) covers the Slides shape; [Part 9](#part-9--operating-google-calendar) covers Calendar; [Part 10](#part-10--operating-gmail) covers Gmail.
 
 ### If you read nothing else, this is the minimum viable pattern
 
@@ -133,6 +135,8 @@ If you read nothing else, internalize these. They're the highest-leverage correc
 - [Part 6 — How to measure whether your writes are healthy](#part-6--how-to-measure-whether-your-writes-are-healthy)
 - [Part 7 — Operating Google Sheets](#part-7--operating-google-sheets) — values-vs-structure split, A1 vs GridRange, USER_ENTERED defaults, developer metadata, Sheets-specific hard limits
 - [Part 8 — Operating Google Slides](#part-8--operating-google-slides) — object-ID addressing, the under-served MCP surface, template-copy workflow, placeholder-text gotcha, no-transitions / no-animations / no-private-images limits
+- [Part 9 — Operating Google Calendar](#part-9--operating-google-calendar) — eventId vs iCalUID addressing, sendUpdates silent-add failure, read-mutate-write discipline, recurring-event data model, async Meet links, sync tokens, ETag concurrency, push channels, ACL writes, service-account DWD
+- [Part 10 — Operating Gmail](#part-10--operating-gmail) — base64url vs base64, label addressing by ID, threading headers, MIME assembly, send vs insert vs import, scope hierarchy, push notifications + historyId, service-account DWD
 - [What we still don't know](#what-we-still-dont-know)
 
 ---
@@ -205,7 +209,7 @@ This article assumes you're operating against a Google Workspace org with broad 
 | Surface | What changes | Affects |
 |---|---|---|
 | **Shared Drives** | Available on every **paid** Workspace edition including Business Starter (since Sep 2024) and on Enterprise / Education Standard+. Not available on personal `@gmail.com` accounts. ([Workspace Updates, Aug 2024](https://workspaceupdates.googleblog.com/2024/08/shared-drive-access-business-starter.html)) | Any code that lists / writes Shared Drive content fails on personal accounts. The [Cowork connector regression](https://github.com/anthropics/claude-code/issues/53442) is about Shared Drives specifically — personal-account users aren't affected because the surface doesn't exist for them. |
-| **Service accounts + domain-wide delegation** | Service accounts can live in any GCP project (including personal-account-owned). But **DWD authorization requires a Workspace super admin**, and impersonation only works against managed Workspace users — never against `@gmail.com` accounts. ([Workspace Admin Help](https://support.google.com/a/answer/162106)) | Any headless / scheduled write that depends on impersonation requires a Workspace target. The cloud-secret-proxy pattern in Part 5 assumes this works. |
+| **Service accounts + domain-wide delegation** | Service accounts can live in any GCP project (including personal-account-owned). But **DWD authorization requires a Workspace super admin**, and impersonation only works against managed Workspace users — never against `@gmail.com` accounts. ([Workspace Admin Help](https://knowledge.workspace.google.com/admin/apps/control-api-access-with-domain-wide-delegation)) | Any headless / scheduled write that depends on impersonation requires a Workspace target. The cloud-secret-proxy pattern in Part 5 assumes this works. |
 | **Admin API access control** | **Every** Workspace edition's super admin can use Admin Console → Security → Access and data control → API controls → App access control to block third-party apps org-wide, restrict by scope, or mark apps as trusted / limited / blocked. The setting overrides user-level OAuth grants. ([Workspace Admin Help](https://support.google.com/a/answer/7281227)) | An app that works for the developer can fail with opaque 403s when an external user from a managed org tries to install it. Always check admin-side blocks before debugging code. |
 | **Restricted-scope OAuth verification** | External apps requesting `https://www.googleapis.com/auth/drive` (the broad "restricted" scope) for personal Google account users need Google verification plus an annual [CASA Tier 2 assessment](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification) by an approved lab. Internal Workspace apps (Internal user type, same-org users only) skip both. | Any app shipped to personal-account users with broad Drive scope hits this gate. Building for internal Workspace use only is much faster to launch. |
 | **Context-Aware Access** | Available on Enterprise Standard / Plus, Education Standard / Plus, Frontline Standard, Cloud Identity Premium, and Enterprise Essentials Plus. ([Workspace Admin Help](https://support.google.com/a/answer/9275380)) Not on Business tier or personal accounts. VPC Service Controls is a separate Google Cloud feature available alongside these tiers. | Enterprise environments can block API calls by network, device posture, or service perimeter — even with valid tokens. Calls succeed in dev, fail in prod from a non-corporate network. |
@@ -853,6 +857,718 @@ The same overlap as Sheets, with one structural difference: **production MCP cov
 
 ---
 
+## Part 9 — Operating Google Calendar
+
+Calendar is the fourth Workspace surface and the first one in this guide where the addressing model is genuinely tricky. Docs uses character indices, Sheets uses A1 ranges, Slides uses string `objectId`. Calendar uses **two parallel identifiers** (`eventId` vs `iCalUID`), plus a third (`recurringEventId` + `originalStartTime`) for instances of recurring events. Production bugs cluster on choosing the wrong one.
+
+### The 60-second map — Calendar
+
+A calendar is a collection of events identified by an email-shaped string (`primary` for the authenticated user, or `someone@example.com` for shared calendars). An event is owned by exactly one calendar — the organizer's. Per Google's [events & calendars concepts](https://developers.google.com/workspace/calendar/api/concepts/events-calendars), the resource hierarchy is:
+
+| Resource | What it is | Addressing model |
+|---|---|---|
+| `Calendars` | Calendar metadata (summary, default timeZone, location) | calendarId (email-shaped string) |
+| `CalendarList` | The user's subscription to calendars they didn't create | calendarId |
+| `Events` | The events themselves (single or recurring) | `(calendarId, eventId)` OR `(calendarId, iCalUID)` |
+| `Instances` | Individual occurrences of a recurring event | `(calendarId, recurringEventId, originalStartTime)` |
+| `Acl` | Per-calendar access rules | role + scope (user / group / domain) |
+| `Freebusy` | Aggregate busy intervals across multiple calendars | array of items, max 50 |
+| `Settings` | Per-user calendar settings (default timezone, working hours, etc.) | key/value pairs |
+| `Colors` | Color palette IDs for calendars and events | enum of `colorId` strings |
+| `Channels` | Push-notification subscriptions | webhook receiver |
+
+The Calendar API exposes 11 endpoints on the Events resource per the [Events reference](https://developers.google.com/workspace/calendar/api/v3/reference/events): `delete`, `get`, `import`, `insert`, `instances`, `list`, `move`, `patch`, `quickAdd`, `update`, `watch` — plus `freebusy.query` and the `calendarList.*` / `acl.*` / `calendars.*` / `settings.*` / `colors.*` / `channels.*` resources at the top level. Most MCP wrappers cover a subset — typically `list`, `get`, `insert`, `update`, `delete`, plus `freebusy` and `events.instances` for the recurring case. Anything not exposed by the wrapper (sync tokens, conferenceData polling, ACL edits, freebusy queries against >50 calendars, ETag concurrency) drops to direct REST against the [Calendar API v3 reference](https://developers.google.com/workspace/calendar/api/v3/reference).
+
+### What's possible — Calendar headline capabilities
+
+| You want to... | Tool you reach for | Notes |
+|---|---|---|
+| Create a single-time event | REST [`events.insert`](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert) | Pass `start.dateTime` + `end.dateTime` + `timeZone` (IANA ID, never a UTC offset) |
+| Create an all-day event | `events.insert` with `start.date` + `end.date` (no time, no timeZone) | The `end.date` is **exclusive** — a one-day event ending Tuesday has `end.date = Wednesday` per the [events concepts page](https://developers.google.com/workspace/calendar/api/concepts/events-calendars) |
+| Create a recurring event | `events.insert` with `recurrence: ["RRULE:FREQ=WEEKLY;BYDAY=MO;UNTIL=20261231T235900Z"]` | RRULE/RDATE/EXDATE syntax per [RFC 5545](https://www.rfc-editor.org/info/rfc5545/). Recurrence requires `timeZone` on the start so the API can expand instances |
+| Send invitation emails to attendees | Same insert/update + `sendUpdates=all` query parameter | Per the [events.insert reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert), "the default is `false`" — behaviorally equivalent to `none`, so attendees get added silently with no notification |
+| Mark an event as Free (not busy) on the organizer's calendar | `events.insert/patch` with `transparency: "transparent"` | Default is `opaque` (= shows as busy in freebusy and to other invitees). Per the [Event resource reference](https://developers.google.com/workspace/calendar/api/v3/reference/events#resource) |
+| Update one instance of a recurring event | `events.patch` on the **instance ID** returned from `events.instances` | Creates an exception. Modifies that one occurrence only |
+| Update this-and-following instances | Two calls: trim the original's `UNTIL` + insert a new recurring event from the split point | No single API call. Documented in the [recurring events guide](https://developers.google.com/workspace/calendar/api/guides/recurringevents) |
+| Add a Google Meet link | `events.insert/patch` + `conferenceData.createRequest` + query param `conferenceDataVersion=1` | Async — initial response status is `pending`; poll the event until `success` per the [create-events guide](https://developers.google.com/workspace/calendar/api/guides/create-events) |
+| Get free/busy across many calendars | REST [`freebusy.query`](https://developers.google.com/workspace/calendar/api/v3/reference/freebusy/query) | Max 50 calendars per query (`calendarExpansionMax`); returns busy intervals, you compute free |
+| Book a room or resource calendar | `events.insert` with the resource calendar email in `attendees[]` + `sendUpdates=all` | Workspace resource calendars auto-accept invitations during free windows and auto-decline on conflicts. Resource emails come from the Admin Console resource directory; treat them like any other invitee at the API layer |
+| Store structured app state on an event | `extendedProperties.private` or `extendedProperties.shared` | 44-char key cap, 1024-char value cap, 300 properties per event, 32 KB total ([extended properties guide](https://developers.google.com/workspace/calendar/api/guides/extended-properties)) |
+| Search events by app-stored key | List + `privateExtendedProperty=key=value` query parameter | Multiple repeats OR'd within a type, AND'd across types |
+| Grant another principal access to a calendar | REST [`acl.insert`](https://developers.google.com/workspace/calendar/api/v3/reference/acl/insert) | `role` ∈ `none` / `freeBusyReader` / `reader` / `writer` / `owner`; `scope.type` ∈ `default` / `user` / `group` / `domain` with `scope.value` carrying the email or domain |
+| Move an event to a different calendar | REST [`events.move`](https://developers.google.com/workspace/calendar/api/v3/reference/events/move) with `destination` | Only `eventType=default` is movable; `birthday`, `focusTime`, `fromGmail`, `outOfOffice`, `workingLocation` cannot |
+| Incrementally sync changes | List with `syncToken` from the prior response's `nextSyncToken` | Token incompatible with most filters; `410 GONE` means resync from scratch ([sync guide](https://developers.google.com/workspace/calendar/api/guides/sync)) |
+| Receive push notifications on changes | [`events.watch`](https://developers.google.com/workspace/calendar/api/guides/push) on a webhook channel | Channel expiration returned in the response; per the [push guide](https://developers.google.com/workspace/calendar/api/guides/push), renewal requires a new `watch` call with a new channel `id` |
+| Submit many Calendar calls in one HTTP round-trip | JSON batch endpoint `https://www.googleapis.com/batch/calendar/v3` per the [batch guide](https://developers.google.com/workspace/calendar/api/guides/batch) | 1000 calls per batch hard cap; each call still counts individually against quota |
+
+### What's NOT possible — and the workaround (Calendar)
+
+| You want to... | Reality | Workaround |
+|---|---|---|
+| Mix all-day and timed in one event (`start.date` + `end.dateTime`) | API rejects with `400 invalid`. Per the [concepts doc](https://developers.google.com/workspace/calendar/api/concepts/events-calendars): "The start and end of the event must both be timed or both be all-day. For example, it is not valid to specify `start.date` and `end.dateTime`." | Two separate events, or pick one shape |
+| Atomically update a recurring series AND following exceptions | The two-call split (trim `UNTIL` + insert new series) **resets any exceptions** occurring after the target instance, per the [recurring events guide](https://developers.google.com/workspace/calendar/api/guides/recurringevents) | Snapshot the exceptions via `events.instances` first, replay them onto the new series |
+| Guarantee invitation delivery even with `sendUpdates=all` | The [insert reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert) qualifies the parameter: "Note that some emails might still be sent." Calendar-side notification settings can override in both directions | For mission-critical sends, pass `sendUpdates=all` AND fire a parallel Gmail message outside the Calendar pipeline |
+| Hardcode a UTC offset in `start.dateTime` and trust it across DST | Offsets become wrong on DST transitions and political changes. Recurring events with no `timeZone` field can't be expanded reliably | Always populate `start.timeZone` with an [IANA Time Zone Database](https://www.iana.org/time-zones) ID (`America/New_York`), never `-05:00` |
+| Get a guaranteed `hangoutLink` on the create-event response | `conferenceData.createRequest` is async per the [create-events guide](https://developers.google.com/workspace/calendar/api/guides/create-events): the initial response has `status: pending` and no `hangoutLink` populated | Poll `events.get` until `conferenceData.createRequest.status.statusCode == "success"` |
+| Filter `events.list` by `q` + sync incrementally in one call | `syncToken` is incompatible with most filters per the [sync guide](https://developers.google.com/workspace/calendar/api/guides/sync); combining returns `400 invalidParameter` | Two parallel pipelines: filtered full-list reads, plus a separate unfiltered sync-token pipeline |
+| Subscribe to push notifications indefinitely without re-registration | `events.watch` channels expire; the response carries an `expiration` field as a millisecond Unix timestamp. Per the [push guide](https://developers.google.com/workspace/calendar/api/guides/push), "there's no automatic way to renew a notification channel" | Schedule a re-watch before expiration; persist + re-issue any active `syncToken` on the new channel |
+| Use an arbitrary `event.id` | `event.id` must be base32hex (lowercase `a-v` + `0-9`), 5–1024 chars, unique-per-calendar per the [Event resource reference](https://developers.google.com/workspace/calendar/api/v3/reference/events#resource); uppercase or punctuation rejects | Use `iCalUID` (RFC 5545 format) and `events.import` for cross-system event copies |
+| Refetch an event using its iCalUID directly | `events.get` requires `eventId`; iCalUID lookup is via list-with-filter only per the [Events reference](https://developers.google.com/workspace/calendar/api/v3/reference/events) | `events.list?iCalUID=...` returns the matching event (or 0 results); pull `id` from the first item |
+| Move a non-default event type between calendars | `events.move` rejects with 400 — only `eventType=default` is movable per the [move reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/move) | Delete + recreate as a new `default` event on the destination calendar (loses history) |
+| Treat `events.update` as a partial update | The [update reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/update) is explicit: "This method does not support patch semantics and always updates the entire event resource." Omitted fields reset to default and may wipe attendees, reminders, conferenceData | Read with `events.get`, mutate the returned object in place, write it back — or use `events.patch` if partial-write semantics actually apply |
+| Avoid silent overwrite on concurrent writers | Use ETag + `If-Match`. Calendar implements optimistic concurrency per the [version-resources guide](https://developers.google.com/workspace/calendar/api/guides/version-resources) | On `412 Precondition Failed`, re-read and retry |
+
+### Where to spend your time — Calendar
+
+The patterns that close the largest share of real-world Calendar failure modes. The top four are non-negotiable — every Calendar agent gets them wrong at least once.
+
+| # | Pattern | Why it matters | Symptom when missed | Effort |
+|---|---|---|---|---|
+| 1 | **Always pass `sendUpdates=all` explicitly on insert / update / delete when attendees are present** | Per the [insert reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert), "the default is `false`" — no notifications fire, the human shows up to a meeting they never knew about | Attendees get added silently; no invite email arrives; meeting "didn't go through" reports | Low |
+| 2 | **Populate `start.timeZone` with an [IANA](https://www.iana.org/time-zones) ID, never an offset; recurring events MUST have a timeZone** | Without a timeZone the API can't expand recurrences reliably. Offsets like `-05:00` become wrong on the second Sunday in March when DST kicks in | Recurring events fire at the wrong wall-clock time after DST; single events drift by an hour twice a year | Low |
+| 3 | **Read-mutate-write, never partial-update via raw object construction** | Per the [update reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/update), update replaces the full resource | Update title, attendees vanish; update time, reminders / conferenceData reset to defaults; transparency flips back to `opaque` and breaks downstream schedulers | Low |
+| 4 | **For series edits, decide series-vs-instance up front; never modify instances individually as a backdoor "edit series"** | Per the [recurring events guide](https://developers.google.com/workspace/calendar/api/guides/recurringevents): "creates lots of exceptions that clutter the calendar, slowing down access and sending a high number of change notifications" | Attendees flooded with notifications; calendar UI slows; series is locked into a fragile per-instance state that resists future edits | Medium |
+| 5 | **Use `extendedProperties.private` as the source of app state — not the description field** | Per the [extended properties guide](https://developers.google.com/workspace/calendar/api/guides/extended-properties), private properties are hidden from end users and queryable via `privateExtendedProperty`. Descriptions get edited by humans, indexed by mail-side search, and exported | App-key lookups fail when a human edits the description; app state leaks into exports and mail-side search results | Low |
+| 6 | **Poll `conferenceData.createRequest.status` after creating a Meet event before reporting the link** | The Meet link is async per the [create-events guide](https://developers.google.com/workspace/calendar/api/guides/create-events). First response says `pending` with no `hangoutLink` | Event ships with no join URL; user joins the calendar event and finds no Meet link | Low |
+| 7 | **Persist `syncToken` per calendar in durable storage; handle `410 GONE` as full-resync, not an error** | The token is the only path to "what changed since last poll" per the [sync guide](https://developers.google.com/workspace/calendar/api/guides/sync); `updatedMin` polling misses cancellations | Cancelled events never delete from local cache; sync errors crash the loop on expected 410s | Medium |
+| 8 | **Always pass `singleEvents=true` on `events.list` when expanding recurring events** | Default is `false` per the [events.list reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/list); only the series resource is returned, instance times and exceptions are hidden | "What's happening this week" returns one row per recurring series instead of N instances; per-instance metadata (rescheduled time, attendee responses) missing | Low |
+| 9 | **Use ETag + `If-Match` on every read-modify-write to avoid silent overwrites** | Calendar implements optimistic concurrency per the [version-resources guide](https://developers.google.com/workspace/calendar/api/guides/version-resources). A 412 means another writer changed the event between read and write | `events.update` silently overwrites a concurrent edit; user's change vanishes with no error returned | Medium |
+| 10 | **For >50 calendars in freebusy lookup, batch into chunks of 50; cache aggressively** | `calendarExpansionMax` is hard-capped at 50 per the [freebusy.query reference](https://developers.google.com/workspace/calendar/api/v3/reference/freebusy/query). Larger lists fail with `400 invalidParameter` | Bulk freebusy queries fail with `400`; "find a time" UI returns no candidates | Medium |
+
+Most readers should fix patterns 1–4 and stop. Items 5–10 matter once agents are managing series, app-key state, or real-time calendar sync.
+
+### TL;DR — five non-obvious Calendar bits
+
+1. **`sendUpdates` default is `false` (= `none` behavior).** Per the [insert reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert), the literal documented default is the string `false`, which fires no notifications — equivalent to passing `none`. Every insert / update with attendees that doesn't pass `sendUpdates=all` adds them silently. The most common reason an agent-created meeting "didn't go through."
+2. **Recurring events need an explicit `timeZone`.** The API needs an IANA timezone to expand the recurrence rule. A field that looks optional is load-bearing.
+3. **`events.update` is a full replace.** The [update reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/update) is explicit: omitting `attendees` or `conferenceData` wipes them. Read first, mutate, write the full object back — or use `events.patch`.
+4. **The Meet link is async.** `conferenceData.createRequest` returns `status: pending` on the initial response. Poll until `success` before reporting the link.
+5. **Use ETag + `If-Match` on read-modify-write.** Calendar implements optimistic concurrency per the [version-resources guide](https://developers.google.com/workspace/calendar/api/guides/version-resources). Skip the ETag and concurrent writers silently overwrite each other — no error, no warning, the second write wins.
+
+### Deep dive — recurrence, time zones, and the four ways to break a series
+
+Recurrence is where Calendar production bugs concentrate. The data model has four interacting pieces, and every common failure mode comes from confusing two of them.
+
+**The four pieces:**
+
+1. **The series event** — has a `recurrence` field (an array of RRULE / RDATE / EXDATE strings per [RFC 5545](https://www.rfc-editor.org/info/rfc5545/)), one `id`, one `iCalUID`. The `start.dateTime` is the FIRST occurrence; everything else is computed from the RRULE.
+2. **Instances** — `events.instances(calendarId, eventId)` returns occurrences expanded from the RRULE. Each instance has `recurringEventId` (pointing back at the series) and `originalStartTime` (the time per the RRULE, distinct from `start.dateTime` if the instance was rescheduled).
+3. **Exceptions** — an instance modified individually. Same `recurringEventId`, but lives as its own resource with its own `id`. Sending `status: "cancelled"` on an instance cancels just that occurrence.
+4. **EXDATE** — an exclusion date inside the series's `recurrence` array. The series itself knows "skip 2026-06-15"; the user sees that date as not-an-occurrence at all. Different from cancelling an exception — EXDATE never produced an instance in the first place.
+
+**The four ways to break a series:**
+
+**Break #1 — modifying instances individually to "edit the series."** Looping `events.instances` and calling `events.patch` on each produces N exceptions, each cluttering the calendar and firing change notifications. Per the [recurring events guide](https://developers.google.com/workspace/calendar/api/guides/recurringevents): "creates lots of exceptions that clutter the calendar, slowing down access and sending a high number of change notifications." Edit the series event (the one with `recurrence` set); the change propagates to all non-exception instances.
+
+**Break #2 — `events.update` on the series wipes existing exceptions.** Update payload omits the `recurrence` field, the API treats the omission as "remove recurrence" (per the [update reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/update): "always updates the entire event resource"), and the series collapses to a single event. Read-mutate-write the entire resource.
+
+**Break #3 — splitting at an instance to do "this and following."** No single API call exists. Two steps: (a) update the original series's RRULE `UNTIL` (or `COUNT`) to stop before the target instance, (b) `events.insert` a new series starting from the target instance. Per the [recurring events guide](https://developers.google.com/workspace/calendar/api/guides/recurringevents), this operation resets any exceptions occurring after the split. Pre-snapshot via `events.instances` and replay the exceptions onto the new series.
+
+**Break #4 — no `timeZone` on the series.** RRULE expansion needs a timezone to know when "weekly on Monday 10am" actually fires. Set `start.timeZone` to an IANA Time Zone Database ID per [IANA](https://www.iana.org/time-zones) (`America/New_York`, never `EST`, never `-05:00`). The [events concepts page](https://developers.google.com/workspace/calendar/api/concepts/events-calendars) documents the `timeZone` field shape and the [recurring events guide](https://developers.google.com/workspace/calendar/api/guides/recurringevents) documents the expansion requirement.
+
+### Deep dive — the read-mutate-write loop, in code
+
+`events.update` is a full replace. The defensible pattern is `events.get` → mutate → `events.update`, with the ETag carried as `If-Match` to catch concurrent writes. All Python snippets in this part use `urllib.request` + a Bearer token so they work without an SDK; substitute the SDK call shape if preferred.
+
+```python
+import json, urllib.request
+
+def update_event(token, cal_id, event_id, mutate):
+    base = f"https://www.googleapis.com/calendar/v3/calendars/{cal_id}/events/{event_id}"
+    # 1. Read the full event; the response carries an ETag the API uses for concurrency
+    req = urllib.request.Request(base, headers={"Authorization": f"Bearer {token}"})
+    with urllib.request.urlopen(req) as r:
+        etag = r.headers["ETag"]               # opaque per-resource-version string
+        event = json.loads(r.read())
+    mutate(event)                              # caller-supplied in-place mutation
+    body = json.dumps(event).encode()
+    # 2. Write back with If-Match so a concurrent writer's change triggers 412 instead of silent overwrite
+    req = urllib.request.Request(base, data=body, method="PUT",
+        headers={"Authorization": f"Bearer {token}",
+                 "Content-Type": "application/json",
+                 "If-Match": etag})
+    try:
+        with urllib.request.urlopen(req) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        if e.code == 412:                      # another writer beat us; caller retries from get
+            raise ConcurrentWriteError()
+        raise
+```
+
+The `If-Match` header is the only durable defense against the "two agents mutate the same event simultaneously, the second silently wins" failure. On 412, re-read and retry; don't blind-overwrite.
+
+### Deep dive — sendUpdates, attendees, and the silent-add failure mode
+
+`sendUpdates` is a query parameter, not a body field. It governs whether attendees get notification email when an insert / update / delete includes them. Per the [insert reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert), three legal enum values plus an omitted-parameter default:
+
+| Value | Behavior |
+|---|---|
+| `all` | Notifications fire to every guest |
+| `externalOnly` | "Notifications are sent to non-Google Calendar guests only" (i.e. guests who don't use Google Calendar — typically external mail providers like Outlook / Yahoo). Guests at other Workspace orgs who do use Google Calendar are NOT notified |
+| `none` | No notifications fire at all |
+| _(omitted)_ | The [insert reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert) documents the default as `false` — a string carryover from the deprecated `sendNotifications` boolean parameter `sendUpdates` replaced. Behavior is identical to `none` — no notifications fire |
+
+**Omitting the parameter sends no notifications.** Per the doc, "the default is `false`." Code that doesn't pass the parameter explicitly does not send invitations. The agent reports "event created with 5 attendees," the API returns 200, and not one of the five gets an email.
+
+The caveat the docs add: "Note that some emails might still be sent." Workspace orgs with calendar-side settings (default-notification policies, recipient-side filters) can override the parameter in both directions. For mission-critical "this person has to see the invite" cases, the durable defense is belt-and-braces: pass `sendUpdates=all` AND fire a parallel Gmail message with the event details outside the Calendar pipeline.
+
+A symmetric trap exists on `delete` and on `update` of an existing event. Both honor `sendUpdates` the same way. Cancelling a meeting without `sendUpdates=all` removes it from the organizer's calendar and from invitee responses, but doesn't notify them. They show up to an empty room.
+
+### Deep dive — transparency, busy/free, and how an event appears in freebusy
+
+Every event has a `transparency` field with two legal values per the [Event resource reference](https://developers.google.com/workspace/calendar/api/v3/reference/events#resource):
+
+- `opaque` (default) — the event blocks time on the organizer's calendar; `freebusy.query` returns it as busy
+- `transparent` — the event is on the calendar but does NOT block time; `freebusy.query` skips it
+
+Two production patterns hinge on this field.
+
+**Pattern A — marking a personal block as Free.** Hold-time blocks, focus-time placeholders, internal context windows. Inserting with `transparency: "transparent"` keeps the event visible on the organizer's calendar but invisible to schedulers looking for open time.
+
+**Pattern B — reverting a previously-busy event to Free, or vice versa.** A patch payload that doesn't include `transparency` leaves the existing value alone (patch is field-mask aware). An `events.update` payload that omits `transparency` resets it to the default `opaque` per the [update reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/update). The read-mutate-write rule (see the code block above) applies here too: an update that intended to change the title and forgot to carry `transparency` forward flips the event from Free to Busy and breaks every downstream scheduler that was treating it as available time.
+
+A related trap is the `eventType` field. Events typed `outOfOffice`, `focusTime`, and `workingLocation` carry their own visibility semantics independent of `transparency` — `outOfOffice` events block invitations during the window per the [Event resource reference](https://developers.google.com/workspace/calendar/api/v3/reference/events#resource). Treat the type and the transparency as orthogonal but interacting: a `default` event with `transparency: "transparent"` is the generic "block on calendar, don't show as busy" shape; a typed event has additional side effects.
+
+### Deep dive — conferenceData, the async Meet link, and the polling loop
+
+Per the [create-events guide](https://developers.google.com/workspace/calendar/api/guides/create-events), creating a Google Meet link is not synchronous. Three required pieces: a client-generated `requestId`, the `conferenceSolutionKey.type: "hangoutsMeet"`, and the `conferenceDataVersion=1` query parameter. The polling pattern:
+
+```python
+import json, time, uuid, urllib.request
+
+def create_event_with_meet(token, cal_id, body):
+    body["conferenceData"] = {"createRequest": {
+        "requestId": str(uuid.uuid4()),             # idempotency key; persist before send so retries reuse it
+        "conferenceSolutionKey": {"type": "hangoutsMeet"}}}
+    url = (f"https://www.googleapis.com/calendar/v3/calendars/{cal_id}/events"
+           f"?conferenceDataVersion=1&sendUpdates=all")   # version=1 required or conferenceData is silently dropped
+    req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+    with urllib.request.urlopen(req) as r:
+        event = json.loads(r.read())                # initial response: status="pending", no hangoutLink yet
+    # Poll until success — exponential backoff, ~60s ceiling. Meet creation usually resolves in <5s
+    delay = 1.0
+    for _ in range(8):
+        status = event.get("conferenceData", {}).get("createRequest", {}).get("status", {}).get("statusCode")
+        if status == "success": return event        # hangoutLink + entryPoints now populated
+        if status == "failure": raise MeetCreateError(event)
+        time.sleep(delay); delay = min(delay * 2, 30)
+        get = urllib.request.Request(
+            f"https://www.googleapis.com/calendar/v3/calendars/{cal_id}/events/{event['id']}",
+            headers={"Authorization": f"Bearer {token}"})
+        with urllib.request.urlopen(get) as r:
+            event = json.loads(r.read())
+    raise MeetCreateTimeout(event)                  # bail rather than report a half-created event
+```
+
+The `requestId` is the idempotency key. If the request transiently fails and a retry sends the same `requestId`, the API recognizes the duplicate and doesn't create a second conference. Different `requestId` = different conference. Generate it client-side, persist it before sending the insert request, reuse on retry.
+
+The failure modes:
+
+- **Reporting success on the initial response.** The 200 is real, but the conference is not done. The event ships with no Meet link.
+- **Forgetting `conferenceDataVersion=1`.** Without the query parameter, the API silently ignores `conferenceData` in the request body. The event creates fine, but with no conference attached.
+- **Mutating an event with a conference attached without re-passing `conferenceDataVersion=1`.** Same silent-strip behavior — the conference field is treated as "not supported" by the version-0 client and dropped from the update.
+
+### Deep dive — sync tokens vs timeMin / updatedMin, and the 410 dance
+
+For "what changed since last poll," there are two patterns and only one of them is correct.
+
+**The wrong pattern: `updatedMin` polling.** Filter `events.list` by `updatedMin >= <last poll timestamp>`. Looks reasonable, fails in two ways: (a) deleted events disappear from the response — no way to detect a cancellation; (b) the clock-skew boundary requires hand-rolled deduplication.
+
+**The right pattern: `syncToken`.** Per the [sync guide](https://developers.google.com/workspace/calendar/api/guides/sync), the loop is initial-full-sync → persist token → poll-with-token → handle 410 → walk pages carefully:
+
+```python
+import json, urllib.request, urllib.parse
+
+def incremental_sync(token, cal_id, store):
+    params = {"singleEvents": "true", "showDeleted": "true"}
+    sync_token = store.get(cal_id)                   # None on first ever sync for this calendar
+    if sync_token: params["syncToken"] = sync_token
+    page_token, changes = None, []
+    while True:
+        if page_token: params["pageToken"] = page_token
+        url = (f"https://www.googleapis.com/calendar/v3/calendars/{cal_id}/events"
+               f"?{urllib.parse.urlencode(params)}")
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+        try:
+            with urllib.request.urlopen(req) as r: page = json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code == 410:                        # token expired (ACL changed, server rotated, etc.)
+                store.pop(cal_id, None); return incremental_sync(token, cal_id, store)  # fall back to full sync
+            raise
+        changes.extend(page.get("items", []))        # cancelled events arrive with status="cancelled" as tombstones
+        page_token = page.get("nextPageToken")
+        if not page_token:
+            store[cal_id] = page["nextSyncToken"]    # only the LAST page carries nextSyncToken
+            return changes
+```
+
+The two gotchas the loop above handles:
+
+- **`syncToken` is incompatible with most filters.** The [sync guide](https://developers.google.com/workspace/calendar/api/guides/sync) notes the restriction without enumerating; the full per-parameter list lives on the [events.list reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/list). `singleEvents` and `showDeleted` are sync-compatible; `q`, `timeMin`/`timeMax` after the initial sync, `iCalUID`, `privateExtendedProperty`, and `updatedMin` are not. For filtered incremental sync, run two parallel pipelines (filtered full reads + unfiltered sync) and reconcile.
+- **`410 GONE` means full resync, not an error.** Sync tokens expire — per the guide: "Sometimes sync tokens are invalidated by the server, for various reasons including token expiration or changes in related ACLs." On 410, drop the persisted token and redo the initial full sync.
+
+Pagination interacts subtly: intermediate pages have `nextPageToken` but no `nextSyncToken`. Only the last page of a multi-page sync carries the `nextSyncToken`. Code that grabs `nextSyncToken` off the first page silently misses changes on subsequent pages.
+
+### Deep dive — expanding recurring events with `singleEvents`
+
+`events.list` returns the series resource by default; per the [events.list reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/list), `singleEvents=true` expands the recurrence into individual instances. The difference is observable on every "what's on the calendar this week" query.
+
+```python
+import json, urllib.request, urllib.parse
+
+def list_instances(token, cal_id, time_min, time_max):
+    params = urllib.parse.urlencode({
+        "timeMin": time_min, "timeMax": time_max,
+        "singleEvents": "true",                  # expand RRULE into one resource per occurrence
+        "orderBy": "startTime"})                 # only legal with singleEvents=true; otherwise 400
+    url = f"https://www.googleapis.com/calendar/v3/calendars/{cal_id}/events?{params}"
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+    with urllib.request.urlopen(req) as r:
+        return [e for e in json.loads(r.read())["items"]
+                if e.get("status") != "cancelled"]   # filter tombstones; pass-through if caller wants them
+```
+
+Two interactions worth flagging. First, `orderBy: "startTime"` is only legal with `singleEvents=true` — call it without and the API returns `400`. Second, when sync-token incremental syncs return cancelled-instance tombstones (status `"cancelled"`), they appear alongside live instances; the consumer must filter or pass them through to the local-state delete path.
+
+### Deep dive — `events.move` vs delete-and-recreate
+
+Calendar exposes a first-class `events.move` operation. Per the [move reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/move), it changes the event's organizer (and therefore the calendar that owns it) without losing the event ID, history, or attendee responses. The signature: `POST /calendars/{calendarId}/events/{eventId}/move?destination={destinationCalendarId}`.
+
+The constraints:
+
+- Only `eventType=default` events are movable. `birthday`, `focusTime`, `fromGmail`, `outOfOffice`, and `workingLocation` events reject with 400 — explicitly enumerated in the [move reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/move).
+- The source and destination calendars must both be writable by the authenticated user.
+- For recurring events, `events.move` operates on the **series** — instances follow. Don't move instances individually.
+
+Delete-and-recreate is the wrong shape when `events.move` would work. The recreate loses the event ID (any external systems holding it point at a tombstone), loses attendee response state (everyone re-receives an invitation), and re-fires notifications. Reach for `events.move` first; fall back to delete-and-recreate only when `eventType` blocks it.
+
+### Deep dive — freeBusy for room booking and resource calendars
+
+Workspace resource calendars (rooms, equipment) live in the Admin Console resource directory and are addressable by email like any other calendar. The booking pattern is two-step: check availability via `freebusy.query`, then invite the resource via `events.insert` with the resource email in `attendees[]`. Resources auto-accept invitations during free windows and auto-decline on conflicts.
+
+The constraints worth naming:
+
+- `freebusy.query` has the same 50-calendar cap as user-calendar lookups per the [freebusy.query reference](https://developers.google.com/workspace/calendar/api/v3/reference/freebusy/query); chunk into batches if querying many rooms.
+- Resources surface their `responseStatus` in the event's `attendees[]` array after the invite — `accepted` means booked, `declined` means a conflict the resource auto-rejected (the API returns 200 in both cases).
+- Resource ACLs determine who can book; if the authenticated user lacks `writer` on the resource calendar's ACL, the invitation arrives but the auto-accept is suppressed.
+
+### Deep dive — push channels, verification handshake, and the X-Goog headers
+
+`events.watch` registers a push channel; per the [push guide](https://developers.google.com/workspace/calendar/api/guides/push), Google immediately confirms the registration with a sync notification, then begins delivering change notifications. Three headers carry the meaning:
+
+- `X-Goog-Resource-State`: `sync` on the initial verification message, then `exists` (or `not_exists`) on subsequent changes.
+- `X-Goog-Channel-Id`: the channel ID the caller chose at `watch` time.
+- `X-Goog-Channel-Token`: an opaque caller-chosen string from the `watch` request body. Use it as a shared secret — reject any inbound webhook whose token doesn't match what was registered. Google does not validate the token itself; it just echoes whatever the caller provided.
+- `X-Goog-Message-Number`: `1` on the sync message, monotonically increasing thereafter.
+
+The verification handshake is "Google sends a request to the webhook URL with `X-Goog-Resource-State: sync` and expects an HTTP 200 response; if the URL returns non-2xx or times out, the channel is not active." The receiver pattern: on `sync`, store the channel as active and ack 200; on subsequent events, verify the `X-Goog-Channel-Token` matches the registered secret before dispatching.
+
+### Deep dive — shared calendars and ACL writes
+
+Per the [ACL resource reference](https://developers.google.com/workspace/calendar/api/v3/reference/acl), each calendar has an ACL list governing who can read or write it. The five roles (`none` / `freeBusyReader` / `reader` / `writer` / `owner`) and four scope types (`default` / `user` / `group` / `domain`) cover the full sharing model. Common operator pattern: grant another user `writer` so an agent acting as that user can add events to a shared team calendar.
+
+```python
+import json, urllib.request
+
+def grant_writer(token, cal_id, user_email):
+    rule = {"role": "writer", "scope": {"type": "user", "value": user_email}}
+    url = f"https://www.googleapis.com/calendar/v3/calendars/{cal_id}/acl"
+    req = urllib.request.Request(url, data=json.dumps(rule).encode(), method="POST",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+    with urllib.request.urlopen(req) as r:
+        return json.loads(r.read())          # returned rule has an opaque id; persist to support later revoke
+```
+
+Two operational notes. The `id` field on the returned ACL rule is the only durable handle for `acl.delete` later; persist it if the agent ever revokes its own grant. And `acl.insert` with `scope.type: "default"` (public) fires a Workspace admin warning if your org's external-sharing policy is restrictive — most agents should never use `default` scope.
+
+### Deep dive — service-account auth and domain-wide delegation (Calendar)
+
+The article's snippets above assume OAuth-user auth — the agent runs with a user's access token. For production multi-user agents (one process acting on behalf of many Workspace users), the better pattern is a **service account with domain-wide delegation**: a single SA impersonates each user via the `subject` parameter, no per-user OAuth flow.
+
+When to choose which:
+
+- **OAuth-user** — single-user agents, desktop / interactive tools, personal `@gmail.com` accounts (DWD is Workspace-only), any context where the user explicitly consents on their own device.
+- **Service account + DWD** — headless multi-user agents inside a Workspace org, scheduled background jobs that act as different users, server-side automations where per-user OAuth would be infeasible.
+
+The setup per Google's [service-account guide](https://developers.google.com/identity/protocols/oauth2/service-account) and the [Workspace DWD admin guide](https://knowledge.workspace.google.com/admin/apps/control-api-access-with-domain-wide-delegation):
+
+1. Create a service account in GCP. Note the **numeric Client ID** (not the email — using the email triggers `unauthorized_client`).
+2. As a Workspace super admin (required role), open Admin Console → Security → Access and data control → API Controls → Domain-wide delegation.
+3. Add the SA's numeric Client ID with the exact OAuth scopes the agent will request (e.g. `https://www.googleapis.com/auth/calendar`). Propagation can take up to 24 hours per Google's guidance.
+4. In code, build a credential with `subject=<user-to-impersonate>`. The SA's token then carries that user's identity.
+
+The most common gotcha: **the SA is configured but the OAuth Client ID was never authorized in the Admin Console**, or it was authorized with the SA's email instead of the numeric Client ID. Symptom: every API call returns `unauthorized_client`. The fix is always in the Admin Console, not the code. Also worth flagging: DWD does not work for `@gmail.com` consumer accounts — it's a Workspace-only mechanism per the admin guide.
+
+### Calendar anti-patterns
+
+**A-C1 — Inserting attendees without `sendUpdates=all`.** Covered above. The single most common failure mode. If the `events.insert` call doesn't pass the parameter explicitly, attendees get added silently and no invitation fires.
+
+**A-C2 — Hardcoded UTC offsets in `dateTime`.** `2026-06-15T10:00:00-05:00` looks fine on June 15 but in NY at that date DST is in effect (UTC-4) — so the value lands as 11am local, not 10am. Use `start.dateTime: "2026-06-15T10:00:00"` + `start.timeZone: "America/New_York"` instead. IANA IDs are the canonical names per the [IANA Time Zone Database](https://www.iana.org/time-zones).
+
+**A-C3 — Iterating `events.instances` to do a bulk series edit.** Edit the series itself, let the instance changes propagate. Looping instances generates one exception per occurrence, slows down the calendar, and floods attendees with change notifications.
+
+**A-C4 — Treating `events.update` like patch.** The update verb replaces the entire resource per the [update reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/update). Construct the payload from a fresh `events.get`, mutate the field, write the full object back. Code that builds an update body from scratch silently wipes fields it forgot to populate — including `transparency`, which flips Free events to Busy and breaks downstream schedulers.
+
+**A-C5 — Reporting success on the initial conferenceData response.** The Meet link is async. The `pending` state is not done. Poll until `status.statusCode == "success"` before declaring the event ready.
+
+**A-C6 — `updatedMin` polling instead of `syncToken` for change tracking.** Misses cancellations entirely. Use `syncToken` or accept that you don't actually know what changed.
+
+**A-C7 — Forgetting `singleEvents=true` on `events.list` when expanding recurring events.** Per the [events.list reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/list), the default returns the series resource only; instance times and per-occurrence metadata are hidden. Symptom: a "what's happening this week" query returns one row per recurring meeting (the series) instead of N rows (the instances). Always pass `singleEvents=true` when the agent needs instance-level data, and remember `orderBy: "startTime"` requires it.
+
+**A-C8 — Not handling `status: "cancelled"` tombstones on incremental sync.** Sync responses with `showDeleted=true` (and `singleEvents=true` for recurring instance cancellations) carry deleted events as tombstones with `status: "cancelled"`. Code that doesn't check `status` either crashes reading missing fields on the tombstone, or — worse — silently treats cancelled events as live and leaves them in the local cache. Branch on `status` first; route tombstones to the local delete path.
+
+**A-C9 — Storing identifier state in event titles or descriptions to look up app records.** Humans rename events, breaking the lookup. Search indexes descriptions. Exports include them. Use `extendedProperties.private` for app-key state and query via `privateExtendedProperty=key=value` per the [extended properties guide](https://developers.google.com/workspace/calendar/api/guides/extended-properties).
+
+---
+
+## Part 10 — Operating Gmail
+
+Gmail is the fifth Workspace surface and the one where the largest gap exists between the casual API and the production API. The casual path (`messages.send` with a hand-constructed `raw` field) works for plaintext one-shot sends. Anything with HTML, attachments, threading, inline images, or "make this look like a reply" needs the production path — multipart MIME assembly per [RFC 2822](https://www.rfc-editor.org/info/rfc2822/) (which the Gmail docs cite by name; [RFC 5322](https://www.rfc-editor.org/info/rfc5322/) obsoletes 2822 with the same headers), base64url-not-base64 encoding, and label-ID-not-display-name addressing. Production bugs cluster in the gap.
+
+### The 60-second map — Gmail
+
+Gmail's data model is a tree of mailboxes, each containing messages grouped into threads, with labels applied to either layer. Drafts are a parallel structure that becomes a message on send.
+
+| Resource | What it is | Addressing model |
+|---|---|---|
+| `Messages` | Individual emails (sent or received) | `messageId` (opaque string) |
+| `Threads` | Groups of messages that hang together in the Gmail UI | `threadId` (opaque string) |
+| `Drafts` | Unsent message + threadId references | `draftId` (opaque string) |
+| `Labels` | The way Gmail organizes everything | `labelId` (`INBOX` / `SENT` / ... for system; opaque per-mailbox string for user labels) |
+| `History` | Append-only log of mailbox changes | `historyId` (monotonic uint64) |
+| `Attachments` | Binary blobs attached to messages | `attachmentId` (per-message-scoped) |
+
+The Gmail API surface ([Gmail API v1 REST reference](https://developers.google.com/workspace/gmail/api/reference/rest)) exposes the full Users / Messages / Threads / Drafts / Labels / History / Attachments tree plus `users.settings.sendAs`, `users.settings.filters`, and `users.settings.forwardingAddresses` for mailbox-configuration management. MCP wrappers typically cover roughly a dozen high-level operations — `search_threads`, `get_thread`, `create_draft`, `list_drafts`, `list_labels`, `create_label`, `delete_label`, `update_label`, `label_message`, `label_thread`, `unlabel_*`. **One omission worth naming up front: many production agent-facing connectors deliberately omit a direct `messages.send` tool** — the human-in-the-loop pattern is `drafts.create` → human reviews → human sends. Send-capable automation needs an OAuth scope that grants send — `gmail.send` is the narrowest sufficient scope per the [scopes reference](https://developers.google.com/workspace/gmail/api/auth/scopes); `gmail.compose`, `gmail.modify`, or `mail.google.com/` also qualify — plus REST against the [messages.send reference](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/send).
+
+### What's possible — Gmail headline capabilities
+
+| You want to... | Tool you reach for | Notes |
+|---|---|---|
+| Send a plaintext email | REST [`messages.send`](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/send) with `raw` = base64url(MIME) | Requires `gmail.send` scope. Per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending), the raw field is base64url-encoded RFC 2822 |
+| Draft an email for human review | REST [`drafts.create`](https://developers.google.com/workspace/gmail/api/reference/rest) | Same MIME shape as send. The recommended agent default for outbound |
+| Send the draft (after human review) | `drafts.send(draftId)` | Same quota cost as `messages.send` per the [quota reference](https://developers.google.com/workspace/gmail/api/reference/quota) |
+| Update an existing draft (e.g. add an attachment) | REST [`drafts.update`](https://developers.google.com/workspace/gmail/api/reference/rest) | **Full replace** — same shape as `events.update`. Omitted fields wipe; build the new MIME payload from scratch including everything that should persist |
+| Search messages or threads | `messages.list` (or `threads.list`) with `q` operator string | Same syntax as the Gmail web UI: `from:`, `subject:`, `is:unread`, `has:attachment`, `newer_than:7d` ([advanced search reference](https://support.google.com/mail/answer/7190)) |
+| Read a thread with all messages | `threads.get` | Returns array of messages; bodies are base64url-encoded |
+| Apply a label to a message or thread | REST `messages.modify` / `threads.modify` | Pass `labelId`, NOT the display name. System label IDs are documented in the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels) |
+| List all labels (to map name → ID) | REST `labels.list` | Cache the mapping — labels rarely change but every modify needs a labelId |
+| Create / rename / delete a user label | `labels.create` / `labels.update` / `labels.delete` | Cannot create labels with reserved system names per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels) |
+| Reply in-thread | Compose with matching `Subject` + `In-Reply-To` + `References` headers, set `threadId` on the resource | Conditions per the [threads guide](https://developers.google.com/workspace/gmail/api/guides/threads); miss any and the reply will likely land as a new thread on the recipient's side |
+| Send an HTML email | Multipart MIME: `text/plain` + `text/html` alternative parts | Both parts required for client compat; HTML-only sends often penalized by spam filters. MIME shape per [RFC 2822](https://www.rfc-editor.org/info/rfc2822/) (Gmail docs' cited spec; [RFC 5322](https://www.rfc-editor.org/info/rfc5322/) is the current obsoleting standard) |
+| Send with attachments | Multipart MIME: alternative parts wrapped in a `multipart/mixed` outer | Per the consumer Gmail [attachment size limits help](https://support.google.com/mail/answer/6584), personal accounts cap attachments at 25 MB; Workspace caps are admin-configurable. Base64 overhead (~37%) further reduces the practical binary-attachment ceiling — for the 25 MB consumer cap, that means a raw-binary ceiling of roughly 18 MB |
+| Send from an alias address (`replies@company.com`, support inbox, etc.) | Pre-create the alias via `users.settings.sendAs.create` + verify; then set `From: <alias>` at MIME assembly time | Per the [send-as reference](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.settings.sendAs), `sendAs.create` requires verification before the alias is usable. The `From` header must match a configured + verified `sendAsEmail`; mismatch returns `400` at send time |
+| Manage user-level filters | REST [`users.settings.filters`](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.settings.filters) with criteria + action | `create` / `delete` / `get` / `list`; criteria supports `from`/`to`/`subject`/`query`/`hasAttachment`/`size`; action supports `addLabelIds`/`removeLabelIds`/`forward` |
+| Manage forwarding addresses | REST [`users.settings.forwardingAddresses`](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.settings.forwardingAddresses) | `create` / `delete` / `get` / `list`; new forwarding addresses require verification before they can be used as a filter `forward` target |
+| Set up push notifications on inbox changes | `users.watch` + Cloud Pub/Sub topic per the [push guide](https://developers.google.com/workspace/gmail/api/guides/push) | Watch expires after 7 days — re-watch daily or stop receiving events |
+| Process changes since last notification | `history.list(startHistoryId=<from push event>)` | History retains a limited window (Google doesn't publicize the exact length); `historyNotFound` errors mean the consumer fell too far behind and must full-resync |
+| Get attachment bytes | `messages.attachments.get(messageId, attachmentId)` | Returns base64url-encoded `data` field per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending)'s base64URL encoding statement (which applies symmetrically on read); decode before writing to disk |
+| Batch reads of many messages | HTTP JSON batch endpoint per the [batch guide](https://developers.google.com/workspace/gmail/api/guides/batch) | Limit 100 calls per batch; "sending batches larger than 50 requests is not recommended" |
+
+### What's NOT possible — and the workaround (Gmail)
+
+| You want to... | Reality | Workaround |
+|---|---|---|
+| Send a large attachment past the account's size cap | API rejects once the encoded payload exceeds the account's per-message cap. Per the consumer [attachment size limits help](https://support.google.com/mail/answer/6584), personal Gmail caps at 25 MB per message; Workspace caps are admin-configurable. Base64 overhead (~37%) reduces the practical binary-attachment ceiling further — ~18 MB raw binary for the 25 MB consumer cap | Drive-share the file, link it in the body; or use the Workspace SMTP relay for higher caps |
+| Reply in-thread by passing only `threadId` on the resource | Per the [threads guide](https://developers.google.com/workspace/gmail/api/guides/threads), three conditions must all hold: `threadId` on the resource, `References` + `In-Reply-To` headers per [RFC 2822](https://www.rfc-editor.org/info/rfc2822/) (the spec the Gmail docs cite by name), and a matching `Subject` | Set `threadId` AND populate `In-Reply-To`/`References` AND keep `Subject` matching (with or without `Re:` prefix) |
+| Apply a user label by display name | Labels are addressed by ID per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels). Display names are mutable; IDs are stable. Passing a display name returns `400 invalidArgument` | `labels.list` once at app startup, build a name→ID map, pass IDs at write time |
+| Apply a label to a draft | Per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels): "You can't apply labels to draft messages" | Send the draft, then apply the label to the resulting message (or rely on the system `DRAFT` label) |
+| Base64-encode the MIME with standard `base64` | Per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending), the `raw` field requires base64url (URL-safe alphabet: `-` / `_` instead of `+` / `/`, optional `=` padding stripped). Standard base64 fails because its `+` / `/` characters are not in the URL-safe alphabet; encoding any non-trivial payload produces these characters and the API rejects with `400 invalidArgument`. The symmetric decode-side trap exists on reads (see [googleapis/google-api-ruby-client #145](https://github.com/googleapis/google-api-ruby-client/issues/145) — community-observed decoding bug on `messages.get` with `format=raw`) | Always `base64.urlsafe_b64encode()` (Python) / `Buffer.toString('base64url')` (Node) |
+| Exceed Workspace daily-send caps from a regular Gmail account | Daily-send caps are enforced at the account level per the [Workspace sending limits documentation](https://knowledge.workspace.google.com/admin/gmail/gmail-sending-limits-in-google-workspace). Exceeding triggers a temporary lockout | SMTP relay for transactional volume; user-bound API for human-paced sends |
+| Use `q` filters with sync via `historyId` | `history.list` only accepts `startHistoryId` — no `q` overlay. History is "everything that changed" | Two pipelines: poll history for change detection, hit `messages.get` for each, filter at read |
+| Use full boolean nesting in `q` | Per the [advanced search reference](https://support.google.com/mail/answer/7190), `q` supports implicit AND (space), brace-grouped OR (`{from:a from:b}`), and prefix-negation (`-from:c`). No general parens or nesting | Run multiple queries client-side and union results, or accept the limited grammar |
+| Edit a sent message after sending | Sent messages are immutable; there is no `messages.update` in the [Gmail API v1 reference](https://developers.google.com/workspace/gmail/api/reference/rest) | Send a follow-up correction or use Workspace admin recall (not API-driven) |
+| Subscribe to push notifications indefinitely without re-registration | `watch` expires; per the [push guide](https://developers.google.com/workspace/gmail/api/guides/push): "You must call the watch at least once every 7 days or you'll stop receiving updates" | Cron-schedule daily re-watch; persist `historyId` from the last event so the new watch picks up where the old one left off |
+| Read message bodies in bulk without N round-trips | `messages.list` returns IDs only. Each `messages.get` is a separate call per the [quota reference](https://developers.google.com/workspace/gmail/api/reference/quota) | Use `format: "metadata"` to avoid pulling full body when only headers are needed; batch via the [JSON batch endpoint](https://developers.google.com/workspace/gmail/api/guides/batch) |
+| Get a guaranteed delivery receipt | Gmail does not expose RFC 8098 Message Disposition Notifications or per-recipient delivery state in the public API | None — accept that "send succeeded" only means "the message left the API"; bounces arrive as inbound messages (see the bounce-handling deep dive below) |
+
+### Where to spend your time — Gmail
+
+| # | Pattern | Why it matters | Symptom when missed | Effort |
+|---|---|---|---|---|
+| 1 | **Draft, don't send: agents create drafts via `drafts.create`, humans review and click send** | Inverts the worst-case failure — an agent-authored email going out before review | Agent ships outbound directly; review step missing; reputational and recall risk | Low |
+| 2 | **Use `urlsafe_b64encode`, not `b64encode`, for the `raw` field** | Per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending), the `raw` field requires base64url. Standard base64's `+` / `/` characters return `400 invalidArgument` when present in encoded output | Sends pass tests on plaintext payloads, fail with `400 invalidArgument` on first HTML / binary message in production | Low |
+| 3 | **Address labels by ID, not display name; cache the name→ID map at app startup** | Per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels), display names are mutable while IDs are stable | First label rename breaks every modify path that hardcoded the name; `400 invalidArgument` returns | Low |
+| 4 | **For threaded replies, set BOTH `threadId` on the resource AND `In-Reply-To` / `References` headers AND matching Subject** | Per the [threads guide](https://developers.google.com/workspace/gmail/api/guides/threads), `threadId` only governs the sender's mailbox; recipient mailboxes rely on the RFC 2822 headers | Reply lands in-thread on the sender's Gmail, appears as a new thread on the recipient's — looks broken from outside | Low |
+| 5 | **Pick the narrowest scope: `gmail.send` (sensitive) vs `gmail.modify` / `gmail.readonly` (restricted)** | Per the [Gmail OAuth scopes reference](https://developers.google.com/workspace/gmail/api/auth/scopes), restricted scopes trigger Google's [restricted-scope verification](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification) — an annual security assessment via the App Defense Alliance / CASA framework | App stuck in OAuth-consent-screen verification for weeks; restricted scope used where Sensitive would have shipped | Medium |
+| 6 | **Treat `messages.send` as a 100-quota-unit operation; budget against the [per-user 6,000 units/minute cap](https://developers.google.com/workspace/gmail/api/reference/quota)** | 60 sends/minute/user is the practical ceiling before throttling | `429 rateLimitExceeded` returns under burst; user-facing send latency spikes | Low |
+| 7 | **Re-watch every Pub/Sub subscription daily, not weekly** | Per the [push guide](https://developers.google.com/workspace/gmail/api/guides/push), the hard expiration is 7 days; renewing daily gives a 6-day safety margin | Notifications silently stop after 7 days; no error event, just silence; monitoring agent goes blind | Medium |
+| 8 | **Use the `q` parameter to narrow `messages.list` at the server, not pull-then-filter client-side** | Per the [quota reference](https://developers.google.com/workspace/gmail/api/reference/quota), `messages.list` is 5 quota units; `messages.get` is 20. A `q` filter that drops 80% of messages at list-time saves 4× quota on the read leg | Quota burn 4× larger than necessary; throttling kicks in on routine monitoring | Low |
+| 9 | **For attachments, decode `messages.attachments.get` results with base64url, not base64** | Same gotcha as encoding. The returned `data` field is base64url per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending) | Binary attachments decode to corrupted bytes; PDFs unreadable, images broken | Low |
+| 10 | **Walk `payload.parts[]` recursively on multipart messages — don't read `payload.body.data` directly** | Multipart `messages.get` puts the body inside `payload.parts[]`, not `payload.body.data`. Single-part text messages put it in `payload.body.data` | Empty body returned; attachments missing from agent's view; HTML mail looks like a blank message | Low |
+
+Most readers should implement items 1–4 first. Items 5–10 matter once agents are doing bulk send, monitoring inboxes, or processing attachments.
+
+### TL;DR — five non-obvious Gmail bits
+
+1. **Base64 ≠ base64url.** The `raw` field on `messages.send` and the `data` field on `messages.attachments.get` are base64url-encoded per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending) — URL-safe alphabet, no `+` or `/`. Standard base64 fails on payloads containing characters that map to those symbols.
+2. **Labels are addressed by ID, not display name.** System labels look like `INBOX`. User labels are opaque per-mailbox strings. The display name is not a valid `labelId` per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels).
+3. **Threading needs three things.** Per the [threads guide](https://developers.google.com/workspace/gmail/api/guides/threads), an in-thread reply requires `threadId` on the resource, matching `Subject`, and `In-Reply-To` + `References` headers (per RFC 2822, which the threads guide cites by name). The first governs the sender's mailbox; the headers govern recipient-side threading.
+4. **Watch expires every 7 days.** Push notifications via Pub/Sub silently stop receiving after a week without re-registration per the [push guide](https://developers.google.com/workspace/gmail/api/guides/push). Renew daily.
+5. **Multipart messages put the body in `payload.parts[]`, not `payload.body.data`.** Code that always reads `payload.body.data` returns empty bodies on any HTML / attachment-bearing message. Walk the parts tree recursively; the body is in a leaf with `mimeType: "text/plain"` or `"text/html"`.
+
+### Deep dive — multipart MIME assembly, HTML + plain-text + attachment
+
+The `raw` field on `messages.send` is a base64URL-encoded RFC 2822 message per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending) (which states verbatim "The Gmail API requires MIME email messages compliant with RFC 2822"; [RFC 5322](https://www.rfc-editor.org/info/rfc5322/) is the obsoleting current spec, same headers). The casual plaintext case fits in five lines:
+
+```python
+import base64
+from email.mime.text import MIMEText
+
+msg = MIMEText("hello")
+msg["To"] = "alice@example.com"
+msg["Subject"] = "test"
+raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+# gmail.users().messages().send(userId="me", body={"raw": raw}).execute()
+```
+
+The production case — HTML + plain-text fallback + attachment — needs the full multipart tree. Outer `multipart/mixed` wraps `multipart/alternative` (the body) and one or more attachment parts:
+
+```python
+import base64, mimetypes
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+
+def build_message(to, subject, plain, html, attachment_path):
+    outer = MIMEMultipart("mixed")                    # outer container holds body + attachments
+    outer["To"], outer["From"], outer["Subject"] = to, "me@example.com", subject
+    body = MIMEMultipart("alternative")               # inner alternative: plain first, html second
+    body.attach(MIMEText(plain, "plain"))             # plain MUST come first per RFC 2046 — clients pick the last viewable part
+    body.attach(MIMEText(html, "html"))
+    outer.attach(body)
+    ctype, _ = mimetypes.guess_type(attachment_path)  # set Content-Type from filename or default to octet-stream
+    maintype, subtype = (ctype or "application/octet-stream").split("/", 1)
+    with open(attachment_path, "rb") as f:
+        part = MIMEBase(maintype, subtype); part.set_payload(f.read())
+    encoders.encode_base64(part)                      # base64-encode the binary payload (standard base64 inside the MIME — only the outer raw is base64url)
+    part.add_header("Content-Disposition", "attachment", filename=attachment_path.rsplit("/", 1)[-1])
+    outer.attach(part)
+    return {"raw": base64.urlsafe_b64encode(outer.as_bytes()).decode()}   # outer wrap is base64url for the Gmail API
+```
+
+Three places this breaks in production.
+
+**Trap 1 — Standard base64 instead of urlsafe for the outer `raw` field.** `base64.b64encode` produces `+` and `/` in its output. Both are reserved characters in URL-safe base64 per [RFC 4648 §5](https://www.rfc-editor.org/info/rfc4648/). Any non-trivial payload produces these characters in the encoded output, and the Gmail API rejects with `400 Bad Request: Invalid value for ByteString`. Simple ASCII-only test inputs may encode without producing `+` or `/` and pass; production payloads (HTML, binary attachments, longer text) will not. Always `base64.urlsafe_b64encode` (Python) / `Buffer.from(...).toString('base64url')` (Node). The Node symptom is the same — request rejected with `400 invalidArgument` — but the message wording is "Invalid base64url encoding" rather than the Python client's "Invalid value for ByteString." The symmetric trap on reads — calling `Base64.decode64` instead of `Base64.urlsafe_decode64` on the `raw` field returned by `messages.get(format=raw)` — is documented community-side in [googleapis/google-api-ruby-client #145](https://github.com/googleapis/google-api-ruby-client/issues/145) (community-observed).
+
+**Trap 2 — HTML-only sends without a text/plain alternative.** Modern spam filters penalize HTML-only messages. The defensible shape is `multipart/alternative` with `text/plain` first and `text/html` second, per [RFC 2046](https://www.rfc-editor.org/info/rfc2046/).
+
+**Trap 3 — Inline images vs attached images.** An inline image (rendering in the body) needs a `Content-ID` header on the image part AND a matching `cid:<content-id>` reference in the HTML body, per [RFC 2046 §4](https://www.rfc-editor.org/info/rfc2046/) and [RFC 2392](https://www.rfc-editor.org/info/rfc2392/). An attached image is just another `multipart/mixed` part. The two are not interchangeable. Inline-image emails missing `Content-ID` render as broken thumbnails. Use `MIMEImage` with an explicit `Content-ID` for inline; a plain attachment part for attached.
+
+Per the consumer [attachment size limits help](https://support.google.com/mail/answer/6584), personal Gmail caps attachment size at 25 MB per message; Workspace caps are admin-configurable. Base64 MIME overhead is ~37%, so the practical binary-attachment ceiling is roughly 18 MB raw binary for the 25 MB consumer cap. Larger files should be Drive-shared with a link in the body — Gmail's web UI does this automatically; API senders must do it explicitly.
+
+### Deep dive — threading, In-Reply-To, and the recipient-side reality
+
+Per the [threads guide](https://developers.google.com/workspace/gmail/api/guides/threads), conditions for a reply to land in-thread on **the recipient's side**:
+
+1. The `threadId` on the sent message resource matches the recipient's thread (governs the sender's mailbox only).
+2. The `In-Reply-To` header contains the `Message-ID` of the parent message ([RFC 2822 §3.6.4](https://www.rfc-editor.org/info/rfc2822/), the spec the Gmail docs cite; same field exists in [RFC 5322](https://www.rfc-editor.org/info/rfc5322/)).
+3. The `References` header contains the chain of `Message-ID` values back to the thread root.
+4. The `Subject` header matches the parent (Gmail tolerates `Re:` / `Fwd:` / translated prefixes; it does NOT tolerate substantive subject changes).
+
+The non-obvious one is that **the `threadId` only affects the sender's mailbox**. With `threadId` set but `In-Reply-To` / `References` missing, the sent message lands in-thread on the sender's Gmail but appears as a new thread on the recipient's. Same gotcha documented community-side in [googleapis/google-api-nodejs-client #1938](https://github.com/googleapis/google-api-nodejs-client/issues/1938) (community-observed).
+
+The full threaded-reply payload pulls the parent's `Message-ID` and the existing `References` chain from a fresh `messages.get`, then appends the parent ID:
+
+```python
+import base64, urllib.request, json
+from email.mime.text import MIMEText
+
+def build_reply(token, user_id, parent_message_id, reply_body):
+    # 1. Fetch the parent message headers to source Message-ID + References + Subject
+    url = (f"https://gmail.googleapis.com/gmail/v1/users/{user_id}"
+           f"/messages/{parent_message_id}?format=metadata"
+           "&metadataHeaders=Message-ID&metadataHeaders=References&metadataHeaders=Subject")
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+    with urllib.request.urlopen(req) as r: parent = json.loads(r.read())
+    headers = {h["name"]: h["value"] for h in parent["payload"]["headers"]}
+    parent_id = headers["Message-ID"]                    # literal header name; some servers send Message-Id with lowercase d
+    refs = headers.get("References", "") + " " + parent_id      # chain back to root; whitespace separator per RFC 2822
+    # 2. Build the reply MIME with the threading headers populated
+    msg = MIMEText(reply_body)
+    msg["Subject"] = headers["Subject"] if headers["Subject"].startswith("Re:") else "Re: " + headers["Subject"]
+    msg["In-Reply-To"] = parent_id                       # the load-bearing header for recipient-side threading
+    msg["References"] = refs.strip()
+    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+    return {"raw": raw, "threadId": parent["threadId"]}  # threadId governs the sender's mailbox; headers govern the recipient's
+```
+
+The literal header name returned in `payload.headers` is `Message-ID` (some mail servers emit `Message-Id`; treat the lookup as case-insensitive). The threadId is on the parent message resource.
+
+### Deep dive — send-as aliases and the From header
+
+Sending "from" an alias address (e.g. `replies@company.com` aliased to a real account) needs two pieces. First, the alias must exist as a `sendAs` resource on the user's settings, created via `users.settings.sendAs.create` and verified per the [send-as reference](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.settings.sendAs). Verification fires a confirmation email to the alias address and blocks send until accepted. Second, the MIME `From` header at send time must exactly match a configured + verified `sendAsEmail` — mismatch returns `400` at send.
+
+The pattern works in three steps: `sendAs.create` once (admin op), wait for `verificationStatus == "accepted"`, then set `msg["From"] = "<alias-address>"` at MIME assembly. The `displayName` on the `sendAs` resource is what renders in the recipient's "From" column; it's settable independently from the underlying address.
+
+### Deep dive — filters and forwarding management
+
+Gmail's user-level filters live under `users.settings.filters`; forwarding addresses live under `users.settings.forwardingAddresses`. Both are per-user resources, queried/mutated by the authenticated user (or a SA with DWD impersonating that user).
+
+Filter shape per the [filters reference](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.settings.filters): `criteria` selects the messages, `action` decides what happens. Criteria fields include `from`, `to`, `subject`, `query` (the same `q` syntax as `messages.list`), `hasAttachment`, `size`, `sizeComparison`. Action fields include `addLabelIds`, `removeLabelIds`, `forward` (the forwarding-address email — which must be pre-created and verified). Operators building inbox-automation tools commonly use filters to auto-label inbound by sender domain, or to forward specific categories to a triage inbox.
+
+Forwarding addresses per the [forwardingAddresses reference](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.settings.forwardingAddresses) follow the same create-then-verify pattern as send-as aliases. `create` fires a verification email; `verificationStatus` flips from `pending` to `accepted` once the recipient confirms. Filters can only `forward` to addresses already in `accepted` state — referring to a `pending` address in a filter returns `400`.
+
+### Deep dive — `messages.send` vs `messages.insert` vs `messages.import`
+
+Three Gmail methods place a message into a mailbox; only one actually delivers to recipients. Picking the wrong one breaks migration and archival agents.
+
+| Method | What it does | When to reach for it |
+|---|---|---|
+| `messages.send` | Standard outbound delivery: the API processes the MIME, signs / routes / delivers via SMTP | Any normal "send an email" path; this is the only one that delivers to external recipients |
+| `messages.insert` | Per the [insert reference](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/insert): "directly inserts a message into only this user's mailbox similar to `IMAP APPEND`, bypassing most scanning and classification. **Does not send a message.**" | Archival imports where the message is already a record of something that happened; restoring from a backup; building a local mailbox snapshot |
+| `messages.import` | Per the [import reference](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/import): "Imports a message into only this user's mailbox, with standard email delivery scanning and classification similar to receiving via SMTP." Also does not send — only the importing user sees it | Migration agents bringing mail from another provider, where spam/inbox classification needs to run as if the message had arrived via SMTP |
+
+The trap: an agent meant to deliver outbound mail that reaches for `import` or `insert` puts the message in the sender's own mailbox and **never delivers it to the recipient**. The sender sees the message in Sent (or wherever it was inserted) and the recipient never gets it. Reach for `send` unless explicitly building an archival or migration path.
+
+### Deep dive — bounce handling and the MAILER-DAEMON pattern
+
+Gmail does not expose RFC 8098 Message Disposition Notifications or per-recipient delivery state — "send succeeded" only means "the message left the API." When a recipient's mailbox is full, the domain is dead, or the address doesn't exist, the bounce arrives as **a new inbound message** from `MAILER-DAEMON@googlemail.com` (or the equivalent at the bouncing provider). Agents that need to know about delivery failures have to parse the bounce themselves.
+
+The detection pattern: monitor the inbox via `users.watch` + `history.list`, and on each new message check the `From:` header for `MAILER-DAEMON` and the `X-Failed-Recipients:` header for the original recipient. The `Auto-Submitted: auto-replied` header is a common ([RFC 3834](https://www.rfc-editor.org/info/rfc3834/)) signal that the message is automated and not from a human, useful for auto-classifying bounces vs vacation responders. The bounce body itself usually contains a `Diagnostic-Code:` header from the bouncing server with an SMTP-style reason code (`550 5.1.1` = address doesn't exist, `552 5.2.2` = mailbox full, etc.).
+
+The minimum-viable bounce handler reads the `X-Failed-Recipients:` header, looks up the originally-sent message by `Message-ID` (carried in the bounce's `References:` chain), and marks the local delivery state as `bounced`. Don't rely on Subject heuristics alone — `Subject: Mail Delivery Subsystem` is conventional but providers vary.
+
+### Deep dive — system labels vs user labels, and the addressing rule
+
+Gmail's label model has two tiers per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels):
+
+**System labels** — reserved IDs, all uppercase, fixed set per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels): `INBOX`, `SENT`, `DRAFT`, `TRASH`, `SPAM`, `IMPORTANT`, `STARRED`, `UNREAD`, plus the category labels (`CATEGORY_PERSONAL`, `CATEGORY_SOCIAL`, `CATEGORY_PROMOTIONS`, `CATEGORY_UPDATES`, `CATEGORY_FORUMS`). These cannot be created, renamed, or deleted. Some apply automatically (`SENT`, `DRAFT`); others are user-applicable (`INBOX`, `STARRED`, `IMPORTANT`).
+
+**User labels** — created via `labels.create`, returned with opaque IDs. The display name is mutable; the ID is stable. Folders are user labels too — Gmail conflates folder and label semantics via the `messageListVisibility` and `labelListVisibility` fields on the label resource.
+
+**The addressing rule: pass labelId, never displayName.** `messages.modify(messageId, addLabelIds=["INBOX"])` works. `messages.modify(messageId, addLabelIds=["Inbox"])` returns `400 invalidArgument` (case-sensitive). `messages.modify(messageId, addLabelIds=["my-followups"])` returns 400 regardless of casing — the API has no name-to-ID lookup, the lookup is the caller's job.
+
+The production pattern: `labels.list` once at startup, build a `{name: labelId}` map, pass `labelId` at modify time. Refresh the map on any label-create / label-update / label-delete performed in the same process.
+
+Two more subtle bits:
+
+- `threads.modify` applies the label to every existing message in the thread but per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels), "newly added messages won't inherit previously applied labels" — a new message later in the thread doesn't auto-inherit.
+- Drafts can't be labeled. `messages.modify` on a draft message returns `400`. Send the draft, then label the resulting message.
+
+### Deep dive — push notifications, history IDs, and the polling-fallback dance
+
+Gmail push works through Cloud Pub/Sub per the [push guide](https://developers.google.com/workspace/gmail/api/guides/push). The lifecycle:
+
+```
+1. Create a Pub/Sub topic in your GCP project
+2. Grant gmail-api-push@system.gserviceaccount.com publish rights on the topic
+3. Call users.watch with topicName + (optional) labelIds + labelFilterBehavior
+4. Watch response: { historyId: "12345", expiration: "1684886400000" }  // 7 days from now
+5. Persist historyId per user
+6. On every inbound Pub/Sub message:
+   history.list(startHistoryId=<persisted>) to enumerate every change since last poll
+7. Re-call users.watch before expiration — recommended daily, hard limit 7 days
+```
+
+The failure modes:
+
+**Failure 1 — watch expires silently.** Per the [push guide](https://developers.google.com/workspace/gmail/api/guides/push): "You must call the watch at least once every 7 days or you'll stop receiving updates for the user. We recommend calling watch once per day." No warning, no inbound failure event, just silence. The defensive pattern is daily re-watch via a scheduled job — gives a 6-day safety margin.
+
+**Failure 2 — historyId out of range.** Gmail retains history for a limited window (Google does not publicize the exact length). If the consumer falls behind (process crashes, queue backed up, debugger pause), `history.list(startHistoryId=<too old>)` returns `404 historyNotFound`. Recovery: drop the persisted ID, full-sync the mailbox via `messages.list`, persist the new `historyId` from the most-recent message.
+
+**Failure 3 — Pub/Sub delivery is at-least-once by default.** Per the [Cloud Pub/Sub exactly-once delivery documentation](https://docs.cloud.google.com/pubsub/docs/exactly-once-delivery), exactly-once is an opt-in feature on pull subscriptions only; default delivery (including push) is at-least-once. A handler may see the same notification twice and must be idempotent — keyed on the `(history.id, message.id, change_type)` triple from `history.list`, not on the Pub/Sub event ID.
+
+**Failure 4 — watch's labelFilter doesn't filter `history.list`.** `users.watch(labelIds=["INBOX"], labelFilterBehavior="INCLUDE")` filters which changes generate notifications. Once `history.list(startHistoryId=...)` is called, the returned change list spans ALL labels in that window regardless of the watch's filter. Filter history results client-side.
+
+### Deep dive — search syntax, quota costs, and the read-cheap pattern
+
+Gmail's `q` parameter on `messages.list` accepts the same syntax as the web UI's advanced search per the [advanced search reference](https://support.google.com/mail/answer/7190):
+
+| Operator | Meaning |
+|---|---|
+| `from:alice@example.com` | Messages from this address |
+| `to:bob@example.com` | Messages to this address |
+| `subject:"Q2 plan"` | Subject contains this exact phrase |
+| `label:followups` | Carries this label (display name is allowed in `q` — distinct from `modify`, which requires labelId) |
+| `is:unread` / `is:read` / `is:starred` / `is:important` | State flags |
+| `has:attachment` | Has any attachment |
+| `filename:pdf` | Has an attachment with this extension or filename |
+| `newer_than:7d` / `older_than:30d` | Relative date |
+| `after:2026/01/01` / `before:2026/02/01` | Absolute dates |
+| `in:sent` / `in:inbox` / `in:trash` | Folder/label shorthand |
+| `-from:noreply@` | Exclude (negation) |
+| `{from:a OR from:b}` | Braces = OR |
+| space between terms | Implicit AND |
+
+Key non-SQL constraints:
+
+- No parentheses for grouping. Grouping is via braces, and only for OR.
+- No general boolean nesting. `(from:a AND subject:b) OR (from:c AND subject:d)` has no direct equivalent — run two queries and union client-side.
+- Phrases with spaces need double quotes. `subject:"Q2 plan"` matches the literal phrase; `subject:Q2 plan` parses as `subject:Q2 AND plan`.
+- Dates use `YYYY/MM/DD` form per the [advanced search reference](https://support.google.com/mail/answer/7190): `after:2026/01/01`, `before:2026/02/01`. Relative forms (`newer_than:7d`) are also supported.
+
+**Quota costs.** Per the [Gmail quota reference](https://developers.google.com/workspace/gmail/api/reference/quota), representative method costs:
+
+| Method | Cost (quota units) |
+|---|---|
+| `messages.list` | 5 |
+| `messages.get` | 20 |
+| `messages.send` | 100 |
+| `drafts.create` | 10 |
+| `drafts.send` | 100 |
+| `messages.modify` | 5 |
+| `labels.list` | 1 |
+| `labels.get` | 1 |
+
+Per-user cap is 6,000 quota units per minute per project. A naïve "list 500 messages, read each one" pipeline costs 5 + 500×20 = 10,005 units — over the per-user-minute cap. Mitigations: tight `q` filter to reduce list cardinality; request `format: "metadata"` or `format: "minimal"` on `messages.get` when full body isn't needed; use `messages.batchModify` / `messages.batchDelete` for bulk label operations (one call instead of N modifies). The batch endpoint per the [batch guide](https://developers.google.com/workspace/gmail/api/guides/batch) accepts up to 100 calls in one HTTP request (50 recommended) and reduces connection overhead but each call still counts individually against quota.
+
+### Deep dive — scopes and the restricted-scope verification gate
+
+Gmail's OAuth scope hierarchy per the [Gmail API OAuth scopes reference](https://developers.google.com/workspace/gmail/api/auth/scopes):
+
+| Scope | Capability | Verification posture |
+|---|---|---|
+| `gmail.labels` | Read/write label resources only | Non-sensitive |
+| `gmail.send` | Send mail; no read | Sensitive. Per the [restricted-scope verification doc](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification), the CASA security-assessment gate is documented as applying to Restricted scopes; Sensitive scopes like `gmail.send` are not covered by that gate (inference from scope-of-the-doc, not an explicit exemption statement) |
+| `gmail.metadata` | Read message metadata (headers, no body) | Restricted |
+| `gmail.readonly` | Read all mail | Restricted |
+| `gmail.modify` | Read + write labels + delete | Restricted |
+| `gmail.compose` | Compose, read drafts, send | Restricted |
+| `gmail.insert` | Add to mailbox without sending (e.g. import) | Restricted |
+| `https://mail.google.com/` | Full access — read, write, send, permanently delete | Restricted; highest scrutiny. Easiest scope to copy from old examples and the most expensive to ship — if the app needs read + label + send, `gmail.modify` + `gmail.send` is materially cheaper to verify |
+
+Per the [restricted-scope verification documentation](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification), apps requesting restricted scopes for **external** use must undergo a security assessment "through the App Defense Alliance and cloud application security assessment framework (CASA)" — an annual review by an approved lab. The verification doc addresses only Restricted scopes; Sensitive scopes like `gmail.send` are not within its scope, so a send-only app appears to skip the CASA assessment gate (inference from the verification-doc's stated scope, not an explicit Sensitive-exemption statement).
+
+**Internal-only apps skip the assessment entirely.** Per the [restricted-scope verification doc](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification), apps configured as "Internal" in the OAuth consent screen (same-Workspace-org users only) don't go through restricted-scope review. Building for internal use only is the fastest path to production.
+
+### Deep dive — service-account auth and domain-wide delegation (Gmail)
+
+The same OAuth-user vs service-account-DWD choice exists for Gmail as for Calendar. The decision rule is the same: single-user / interactive / consumer accounts use OAuth-user; multi-user Workspace-internal agents use SA + DWD.
+
+The setup is mostly identical to the Calendar walkthrough per Google's [service-account guide](https://developers.google.com/identity/protocols/oauth2/service-account) and the [DWD admin guide](https://knowledge.workspace.google.com/admin/apps/control-api-access-with-domain-wide-delegation), with two Gmail-specific points:
+
+- **Scope grants matter exactly.** The Admin Console DWD entry authorizes the SA for specific scopes only. Adding `https://www.googleapis.com/auth/gmail.send` does NOT also authorize `gmail.modify` — every scope the agent uses must be listed. Mismatch returns `unauthorized_client` with no helpful message about which scope is missing.
+- **The `subject` parameter is the impersonated user's email.** Gmail-via-DWD acts as that user — the resulting tokens are scoped to their mailbox, watch channels register on their mailbox, etc. The SA itself has no mailbox; calls without `subject` return 400.
+
+The same most-common gotcha as Calendar applies: the Admin Console authorization step is easy to skip ("the SA exists in GCP, why is auth failing?"). Verify in the Admin Console under Security → Access and data control → API Controls → Domain-wide delegation that the SA's numeric Client ID (not email) is listed with the exact scopes the agent requests. Propagation can take up to 24 hours.
+
+DWD does not work for consumer `@gmail.com` accounts — it's a Workspace-only mechanism. For consumer Gmail, OAuth-user is the only option.
+
+### Gmail anti-patterns
+
+**A-G1 — Using `base64` instead of `base64url`.** The most common Gmail-from-automation failure. Standard base64 contains `+` and `/`, which break the URL-safe encoding the API expects per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending). Symptom: intermittent `400 Bad Request: Invalid value for ByteString` errors. Fix: always `urlsafe_b64encode` (Python) / `base64url` (Node).
+
+**A-G2 — Addressing labels by display name.** `addLabelIds=["My Followups"]` returns 400 per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels). The API has no display-name lookup. Maintain a name→ID map at app startup.
+
+**A-G3 — Setting `threadId` without `In-Reply-To` and `References`.** Per the [threads guide](https://developers.google.com/workspace/gmail/api/guides/threads), all three conditions must hold for in-thread display; `threadId` alone governs only the sender's mailbox. Always populate the RFC 2822 headers from the parent message's `Message-ID`.
+
+**A-G4 — Letting an agent fire `messages.send` without human review.** A draft + human send loop avoids the worst-case failure mode of agent-authored outbound. The pattern is `drafts.create` → human reviews → human sends.
+
+**A-G5 — Polling `messages.list` instead of `history.list` for change detection.** `messages.list` returns all messages in the inbox; `history.list` returns only what changed per the [push guide](https://developers.google.com/workspace/gmail/api/guides/push). For monitoring tasks, history + watch is dramatically cheaper.
+
+**A-G6 — Hand-rolling MIME boundaries via string concatenation.** Boundary mismatch produces messages that render in some clients (Gmail web UI) and break in others (Outlook, Apple Mail). Use the language's MIME library (`email.mime` in Python, `nodemailer` in Node) and never hand-write boundary strings.
+
+**A-G7 — Forgetting that watch expires every 7 days.** Schedule a daily re-watch; persist `historyId` to bridge across the renewal.
+
+**A-G8 — Reading `payload.body.data` on a multipart message instead of walking `payload.parts[]` recursively.** Multipart `messages.get` puts the actual body inside the leaf parts (`payload.parts[].body.data`, possibly nested), not `payload.body.data` at the top. Code that assumes the latter returns empty bodies on HTML / attachment-bearing messages and misses attachments entirely. Symptom: agent sees empty mail or no attachments where the Gmail web UI shows full content. Walk the parts tree until the leaf with `mimeType: "text/plain"` or `"text/html"` is found; attachment bytes live in a separate `messages.attachments.get` call keyed on the part's `attachmentId`.
+
+**A-G9 — Using `internalDate` when the operator means the user's `Date:` header.** Per the Gmail API, `internalDate` is server-side receive time in milliseconds since epoch — useful for the receiving mailbox's view but not for the sender's local-time perspective. When an agent reports "this message was sent at 9am" from `internalDate`, users in different timezones see the wall-clock shifted by the offset between the server and the user's zone. Symptom: time-zone-shifted timestamps in reports. For user-perspective time, parse the `Date:` header from `payload.headers` (RFC 2822 format) instead.
+
+---
+
 ## Machine-readable identity (this article's own schema)
 
 This article applies the [Marketing to Agents](marketing-to-agents.md) playbook to itself — JSON-LD `Article` schema is auto-emitted in `<head>` by the repository's Jekyll `_includes/head-custom.html` whenever a guide carries `agent_friendly: true` in its frontmatter (this one does). Agents indexing the rendered HTML at [watsonrm.github.io/rmwcommerce](https://watsonrm.github.io/rmwcommerce/guides/operating-google-workspace-from-claude.html) see a typed `Article` with author `sameAs` references to Rick's LinkedIn, X, GitHub, and Watson Weekly profiles; publisher `Organization` is RMW Commerce Consulting; license is CC BY-NC-ND 4.0. Agents fetching the raw markdown see the equivalent metadata in the YAML frontmatter at the top of this file.
@@ -905,7 +1621,7 @@ This guide synthesizes patterns and failure modes from running Google Drive + Do
 - [Google Cloud Secret Manager](https://cloud.google.com/secret-manager/docs) — the canonical place for credentials in the cloud-secret-proxy pattern
 - [Restricted-scope OAuth verification (CASA assessment)](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification) — the verification gate external apps hit when requesting the broad `drive` scope
 - [Control which apps access Workspace data (Admin Help)](https://support.google.com/a/answer/7281227) — how Workspace admins block / allow / restrict third-party app API access org-wide
-- [Domain-wide delegation (Admin Help)](https://support.google.com/a/answer/162106) — how to authorize a service account to impersonate Workspace users
+- [Domain-wide delegation (Admin Help)](https://knowledge.workspace.google.com/admin/apps/control-api-access-with-domain-wide-delegation) — how to authorize a service account to impersonate Workspace users
 
 ### Workspace plan / account-type references
 
@@ -935,6 +1651,65 @@ This guide synthesizes patterns and failure modes from running Google Drive + Do
 - [Apps Script CellImage class](https://developers.google.com/apps-script/reference/spreadsheet/cell-image) — the only path to blob-image-in-cell inserts (Limit S1)
 - [Tanaike: benchmark reading and writing spreadsheet using Google Apps Script](https://tanaikech.github.io/2018/10/12/benchmark-reading-and-writing-spreadsheet-using-google-apps-script/) — the ~75-column crossover between API and `setValues()` for write throughput
 - [Google Dev forum: append-after-deleteDimension race condition](https://discuss.google.dev/t/row-offsets-occur-when-append-requests-run-immediately-after-deletedimension-suggesting-the-delete-isn-t-fully-applied-yet/345218) — concrete confirmation of the no-revision-lock concurrency limit
+
+### Google Calendar — primary references
+
+- [Calendar API v3 reference](https://developers.google.com/workspace/calendar/api/v3/reference) — resource catalog: Acl, CalendarList, Calendars, Channels, Colors, Events, Freebusy, Settings.
+- [Events resource reference](https://developers.google.com/workspace/calendar/api/v3/reference/events) — event types (`default`, `birthday`, `focusTime`, `fromGmail`, `outOfOffice`, `workingLocation`), transparency, eventId / iCalUID; iCalUID lookup via `events.list`.
+- [events.insert reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert) — `sendUpdates` enum values and the documented default (`false` — behaves like `none`); `conferenceDataVersion` parameter shape; `externalOnly` defined as "non-Google Calendar guests."
+- [events.update reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/update) — "always updates the entire event resource" full-replace semantics.
+- [events.list reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/list) — `singleEvents=true` expansion behavior, `orderBy: "startTime"` requiring `singleEvents=true`, the canonical place to look up which filters break incremental sync.
+- [events.move reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/move) — explicit `default`-only event-type restriction.
+- [ACL resource reference](https://developers.google.com/workspace/calendar/api/v3/reference/acl) and [acl.insert reference](https://developers.google.com/workspace/calendar/api/v3/reference/acl/insert) — the five roles (`none`/`freeBusyReader`/`reader`/`writer`/`owner`) and four scope types (`default`/`user`/`group`/`domain`) governing per-calendar access.
+- [Events & Calendars concepts](https://developers.google.com/workspace/calendar/api/concepts/events-calendars) — "both timed or both all-day" rejection rule and event-type taxonomy.
+- [Recurring events guide](https://developers.google.com/workspace/calendar/api/guides/recurringevents) — RRULE / RDATE / EXDATE semantics, the "this and following" two-call procedure, and the documented warning against individual-instance edits as a backdoor series edit.
+- [Create events guide](https://developers.google.com/workspace/calendar/api/guides/create-events) — `conferenceData.createRequest` async flow and the `pending` / `success` state machine.
+- [Extended properties guide](https://developers.google.com/workspace/calendar/api/guides/extended-properties) — 44-char keys, 1024-char values, 300 properties per event, 32 KB total.
+- [Sync token guide](https://developers.google.com/workspace/calendar/api/guides/sync) — `nextSyncToken` lifecycle, `410 GONE` resync semantics, filter-incompatibility rule, multi-page pagination.
+- [Push notifications guide (Calendar)](https://developers.google.com/workspace/calendar/api/guides/push) — `events.watch` channel expiration, sync verification handshake (`X-Goog-Resource-State: sync`), `X-Goog-Channel-Token` validation pattern, "no automatic way to renew a notification channel."
+- [Calendar API batch guide](https://developers.google.com/workspace/calendar/api/guides/batch) — `https://www.googleapis.com/batch/calendar/v3` endpoint, 1000-call hard cap, per-call quota accounting.
+- [Freebusy query reference](https://developers.google.com/workspace/calendar/api/v3/reference/freebusy/query) — 50-calendar cap (`calendarExpansionMax`) and busy-interval format.
+- [Get specific versions of resources](https://developers.google.com/workspace/calendar/api/guides/version-resources) — ETag / `If-Match` / 412 optimistic-concurrency semantics for Event reads.
+- [RFC 5545 — Internet Calendaring and Scheduling Core Object Specification (iCalendar)](https://www.rfc-editor.org/info/rfc5545/) — RRULE / RDATE / EXDATE syntax used in the Calendar API `recurrence` field; canonical reference for iCalUID format.
+- [IANA Time Zone Database](https://www.iana.org/time-zones) — canonical IANA zone names (`America/New_York`, etc.) required by `start.timeZone` in the Calendar API.
+
+### Gmail — primary references
+
+- [Gmail API v1 REST reference](https://developers.google.com/workspace/gmail/api/reference/rest) — full resource catalog: Users, Messages, Threads, Drafts, Labels, History, Attachments, plus `users.settings.*` for sendAs / filters / forwardingAddresses.
+- [messages.send reference](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/send) — `raw` field shape and base64url requirement.
+- [messages.insert reference](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/insert) — IMAP-APPEND-like direct insertion that does not deliver.
+- [messages.import reference](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/import) — SMTP-style spam classification on import that still does not deliver to external recipients.
+- [Sending mail guide](https://developers.google.com/workspace/gmail/api/guides/sending) — base64URL encoding requirement, RFC 2822 compliance for MIME messages, multipart MIME assembly.
+- [Gmail attachment size limits (consumer help)](https://support.google.com/mail/answer/6584) — 25 MB cap on personal Gmail; Workspace caps are admin-configurable.
+- [Manage threads guide](https://developers.google.com/workspace/gmail/api/guides/threads) — the three conditions for in-thread reply (`threadId` + RFC 2822 headers + matching Subject); cites RFC 2822 by name.
+- [Manage labels guide](https://developers.google.com/workspace/gmail/api/guides/labels) — system labels vs user labels, thread vs message label inheritance, draft-labeling restriction.
+- [users.settings.sendAs reference](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.settings.sendAs) — send-as alias resource, verification workflow, `From`-header binding.
+- [users.settings.filters reference](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.settings.filters) — user-level filter criteria and actions; `addLabelIds` / `removeLabelIds` / `forward`.
+- [users.settings.forwardingAddresses reference](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.settings.forwardingAddresses) — forwarding-address create-then-verify pattern referenced by filter `forward` actions.
+- [Advanced search syntax (consumer docs)](https://support.google.com/mail/answer/7190) — canonical reference for `from:` / `to:` / `subject:` / `is:` / `has:` / `newer_than:` / etc.
+- [Push notifications guide (Gmail)](https://developers.google.com/workspace/gmail/api/guides/push) — Pub/Sub topic setup, `users.watch`, the 7-day expiration rule.
+- [Batch request guide (Gmail)](https://developers.google.com/workspace/gmail/api/guides/batch) — JSON batch endpoint, 100-call hard cap (50 recommended).
+- [Gmail API OAuth scopes reference](https://developers.google.com/workspace/gmail/api/auth/scopes) — full scope hierarchy with verification posture per scope.
+- [Gmail API usage limits / quota reference](https://developers.google.com/workspace/gmail/api/reference/quota) — quota-unit costs, 6,000-units-per-minute per-user cap.
+- [Workspace sending limits](https://knowledge.workspace.google.com/admin/gmail/gmail-sending-limits-in-google-workspace) — per-account daily send caps for Workspace and SMTP relay.
+- [Cloud Pub/Sub exactly-once delivery documentation](https://docs.cloud.google.com/pubsub/docs/exactly-once-delivery) — clarifies that default delivery is at-least-once and exactly-once is an opt-in feature on pull subscriptions, so push-subscription handlers must be idempotent.
+- [RFC 2822 — Internet Message Format](https://www.rfc-editor.org/info/rfc2822/) — the message-format spec the Gmail docs cite by name for `In-Reply-To` / `References` / `Message-ID` / `Subject` header syntax.
+- [RFC 5322 — Internet Message Format](https://www.rfc-editor.org/info/rfc5322/) — obsoletes RFC 2822; same headers, current canonical Internet Message Format spec.
+- [RFC 2046 — Multipurpose Internet Mail Extensions Part Two: Media Types](https://www.rfc-editor.org/info/rfc2046/) — `multipart/alternative` and `multipart/mixed` container semantics.
+- [RFC 2392 — Content-ID and Message-ID Uniform Resource Locators](https://www.rfc-editor.org/info/rfc2392/) — `cid:` URI scheme for inline-image references in HTML mail bodies.
+- [RFC 3834 — Recommendations for Automatic Responses to Electronic Mail](https://www.rfc-editor.org/info/rfc3834/) — `Auto-Submitted:` header semantics for distinguishing automated mail from human mail.
+- [RFC 4648 — The Base16, Base32, and Base64 Data Encodings](https://www.rfc-editor.org/info/rfc4648/) — §5 defines the URL-safe (base64url) alphabet required by Gmail's `raw` field.
+
+### Authentication — Calendar and Gmail (service accounts + DWD)
+
+- [Using OAuth 2.0 for server-to-server applications (service accounts)](https://developers.google.com/identity/protocols/oauth2/service-account) — service-account creation, the `subject` impersonation parameter, the numeric Client ID requirement, and the `unauthorized_client` failure mode when the Admin Console authorization step is missed.
+- [Control API access with domain-wide delegation (Workspace Admin)](https://knowledge.workspace.google.com/admin/apps/control-api-access-with-domain-wide-delegation) — super-admin role requirement, the Admin Console path (Security → Access and data control → API Controls → Domain-wide delegation), per-scope authorization, and propagation timing. (URL updated from the original `support.google.com/a/answer/162106`, which now redirects here.)
+
+### Community-observed (Tier 3 — use only as additional evidence)
+
+- [googleapis/google-api-ruby-client #145](https://github.com/googleapis/google-api-ruby-client/issues/145) — symmetric decode-side base64url bug on `messages.get` with `format=raw` (calling `Base64.decode64` instead of `Base64.urlsafe_decode64`). Community-observed; the authoritative source is the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending).
+- [googleapis/google-api-nodejs-client #1938](https://github.com/googleapis/google-api-nodejs-client/issues/1938) — threading-headers gotcha. Community-observed; the authoritative source is the [threads guide](https://developers.google.com/workspace/gmail/api/guides/threads).
+- [Restricted-scope OAuth verification](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification) — App Defense Alliance / CASA security-assessment gate for external apps requesting restricted scopes.
 
 ### Google Slides — primary references
 
