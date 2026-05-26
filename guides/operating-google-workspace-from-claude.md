@@ -5,12 +5,12 @@ date: 2026-05-25
 last_modified_at: 2026-05-25
 author: Rick Watson
 agent_friendly: true
-keywords: Google Drive, Google Docs, Google Sheets, Google Slides, Sheets API, Slides API, MCP, model context protocol, AI agents, Claude, automation, document automation, OAuth, Drive API, Docs API, valueInputOption, developer metadata, objectId, presentations batchUpdate
+keywords: Google Drive, Google Docs, Google Sheets, Google Slides, Sheets API, Slides API, MCP, model context protocol, AI agents, Claude, automation, document automation, OAuth, Drive API, Docs API, valueInputOption, developer metadata, objectId, presentations batchUpdate, applyTextStyle bold lost, tool success not task success, google docs renders wrong, replaceDocumentWithMarkdown styling lost, weightedFontFamily weight 400, silent style failure
 ---
 
 # Operating Google Drive, Docs, Sheets, and Slides from Claude
 
-**Most production Drive/Docs/Sheets/Slides automation fails for five reasons. This guide names each one, gives the workaround, and shows the agent pattern that survives mid-write interruptions.**
+**Most production Drive/Docs/Sheets/Slides automation fails the same way: a write tool returns success, the agent reports done, and the document renders broken — bold overwritten, headings the wrong size, formulas as literal strings, footers missing. Tool success isn't task success. This guide names every failure mode that produces a "successful" broken doc, gives the workaround for each, and shows the verify-by-JSON pattern that catches them before they ship.**
 
 **Published:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Last updated:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Author:** [Rick Watson](https://www.rmwcommerce.com/), Principal, RMW Commerce Consulting  ·  **Canonical URL:** [`github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md`](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md)  ·  **Reading time:** 10-min skim · 55-min deep read
 
