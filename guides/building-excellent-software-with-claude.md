@@ -60,6 +60,19 @@ Claude will load the skill and work through the relevant disciplines against you
 
 ---
 
+## Related guides
+
+The seven disciplines below assume you've already chosen the right shape for what you're building. If you haven't, start there:
+
+- **[The Prompts-to-Agents Ladder](../the-prompts-to-agents-ladder.md)** — prompt, skill, single agent, or multi-agent system. The wrong rung is not rescued by good testing or red-teaming.
+
+Two peer guides cover the tactical layer once the shape is set:
+
+- **[Making Claude Faster](making-claude-faster.md)** — the six levers that turn a working build into a fast one.
+- **[Multi-Agent Fan-Out and Verification](../multi-agent-fan-out-and-verification.md)** — the architecture playbook for Rung 4 builds: where verification belongs and where it doesn't.
+
+---
+
 ## 1. Be honest about cost and benefit
 
 This discipline matters most for anyone building instrumentation, reporting, or any tool that puts a number in front of a user. Getting it wrong is the highest-cost mistake, which is why it is ranked first.
