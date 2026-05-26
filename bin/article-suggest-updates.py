@@ -213,10 +213,13 @@ def _verdict_from_response(resp: dict) -> dict:
     text_blob = text_blob.strip()
 
     # Fast path — clean JSON.
+    primary_exc: json.JSONDecodeError | None = None
     try:
         return json.loads(text_blob)
-    except json.JSONDecodeError as primary_exc:
-        pass
+    except json.JSONDecodeError as exc:
+        # In Python 3 the `as` variable is cleared at the end of the except
+        # block — capture it to an outer-scope name before falling through.
+        primary_exc = exc
 
     # Fallback — scan for the first complete top-level JSON object.
     extracted = _extract_first_json_object(text_blob)
@@ -227,6 +230,7 @@ def _verdict_from_response(resp: dict) -> dict:
             pass
 
     # Re-raise the original error so the caller's error log is informative.
+    assert primary_exc is not None
     raise primary_exc
 
 
