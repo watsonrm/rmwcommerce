@@ -10,13 +10,13 @@ keywords: Google Drive, Google Docs, Google Sheets, Google Slides, Google Calend
 
 # Operating Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude
 
-**Most production Workspace automation fails the same way: a write tool returns success, the agent reports done, and the output is broken — bold overwritten, headings the wrong size, formulas as literal strings, attendees silently never notified, emails rejected with `400 invalidArgument`. Tool success isn't task success. This guide names every failure mode that produces a "successful" broken result, gives the workaround for each, and shows the verification patterns that catch them before they ship.**
+**Six Workspace surfaces — Drive, Docs, Sheets, Slides, Calendar, Gmail — are now reachable from Claude as production write targets. Done well, an agent ships a branded doc from a markdown payload, lands formulas as live formulas, builds decks from templates, schedules meetings with working Meet links, and drafts mail a human can review and send in one click. The connective tissue between those wins is the verify-after-write habit: read the JSON, confirm what landed, dispatch the next step against ground truth. This guide names the patterns that produce reliable output on each surface, the workarounds for the things the APIs genuinely cannot do, and the few high-leverage decisions that close the largest share of real-world breakage.**
 
 **Published:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Last updated:** <time datetime="2026-05-26">2026-05-26</time>  ·  **Author:** [Rick Watson](https://www.rmwcommerce.com/), Principal, RMW Commerce Consulting  ·  **Canonical URL:** [`github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md`](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md)  ·  **Reading time:** 10-min skim · 75-min deep read
 
-Who this is for: developers and operators using Claude (or any AI agent) to read and write Google Drive files, Google Docs, Google Sheets, Google Slides, Google Calendar events, and Gmail messages at scale. Anyone who has watched an agent overwrite styled formatting, create four files with the same title, write a formula that lands as a literal string, hand-craft a `batchUpdate` for a deck because the MCP didn't expose it, add attendees silently with no invitation email, or get `400 invalidArgument` from Gmail because standard base64 isn't base64url.
+Who this is for: developers and operators using Claude (or any AI agent) to read and write Google Drive files, Google Docs, Google Sheets, Google Slides, Google Calendar events, and Gmail messages at scale. Anyone who wants an agent to produce branded docs, live-formula sheets, template-driven decks, working calendar invites, and reviewable mail — without watching the agent overwrite styled formatting, create four files with the same title, write a formula that lands as a literal string, hand-craft a `batchUpdate` for a deck because the MCP didn't expose it, add attendees silently with no invitation email, or get `400 invalidArgument` from Gmail because standard base64 isn't base64url.
 
-**Jump to:** [60-second map](#the-60-second-map--what-youre-actually-working-with) · [What's possible](#whats-possible--the-headline-capabilities) · [What's NOT possible](#whats-not-possible--and-the-workaround) · [Where to spend your time](#where-to-spend-your-time--docs) · [TL;DR](#tldr--the-five-non-obvious-bits) · [Sheets (Part 7)](#part-7--operating-google-sheets) · [Slides (Part 8)](#part-8--operating-google-slides) · [Calendar (Part 9)](#part-9--operating-google-calendar) · [Gmail (Part 10)](#part-10--operating-gmail) · [Full TOC](#whats-in-this-article)
+**Jump to:** [60-second map](#the-60-second-map--what-youre-actually-working-with) · [Master priority map](#master-priority-map--highest-leverage-pattern-per-surface) · [What you can do today](#what-you-can-do-today--capability-inventory) · [Hard limits + workarounds](#hard-limits--workarounds) · [TL;DR](#tldr--the-five-highest-leverage-decisions) · [Sheets (Part 7)](#part-7--operating-google-sheets) · [Slides (Part 8)](#part-8--operating-google-slides) · [Calendar (Part 9)](#part-9--operating-google-calendar) · [Gmail (Part 10)](#part-10--operating-gmail) · [Full TOC](#whats-in-this-article)
 
 ---
 
@@ -51,7 +51,26 @@ That five-step skeleton catches the largest share of real-world failure modes. T
 
 ---
 
-## What's possible — the headline capabilities
+## Master priority map — highest-leverage pattern per surface
+
+One row per surface. The top pattern on each row is the single decision that closes the largest share of real-world breakage for that surface; the per-Part `Where to spend your time` tables that follow expand items 2 through N. **If you adopt only the six patterns in this table, you ship the bulk of the wins this guide is about.**
+
+| Surface | Highest-leverage pattern | Why this pattern wins |
+|---|---|---|
+| **Drive** | Search-before-create + `copyFile` from templates for any doc needing footers / page numbers | Idempotent runs reach the same Drive state instead of accumulating duplicates; templates carry the `PAGE_NUMBER` auto-text and footer structure the Docs API genuinely cannot author from scratch |
+| **Docs** | Brand-styling sequence: body sweep → cascade check → paragraph styles → heading text styles → inline bold prefixes | The only call order that produces a doc rendering the way the markdown intended; every other order leaves Arial body, missing headings, or overwritten bold runs |
+| **Sheets** | `valueInputOption=USER_ENTERED` on writes; `valueRenderOption=UNFORMATTED_VALUE` on compute reads | Formulas land as formulas and dates land as dates; compute paths read typed values instead of locale-rendered strings, eliminating the round-trip mangle |
+| **Slides** | Pre-assign your own `objectId` at create time; look up shapes by text content or alt-text on each batch | Object IDs returned by the API are not stable across editor edits per Google's docs; durable lookups need a stable handle the caller controls |
+| **Calendar** | Pass `sendUpdates=all` explicitly on every insert / update / delete with attendees | The documented default is `false` (= no notifications fire) per the [insert reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert); attendees get added silently otherwise — the most common reason an agent-created meeting "never went out" |
+| **Gmail** | `drafts.create` for outbound; humans review and send via `drafts.send` | Agent-authored drafts are reviewable and revocable before delivery; the alternative is direct `messages.send`, which puts mail on the wire before any human sees it |
+
+Each per-Part `Where to spend your time` table below expands its surface's row into the full priority stack. Drive does not get its own deep dive Part — Drive operations are folded into the Docs Part because almost every Drive write is in service of a Docs / Sheets / Slides body change.
+
+---
+
+## What you can do today — capability inventory
+
+The capabilities the Workspace APIs deliver at the present production state. Each row pairs the result with the tool that produces it; notes carry the load-bearing flag or option that decides whether the call ships the result or a near-miss.
 
 | You want to... | Tool you reach for | Notes |
 |---|---|---|
@@ -71,9 +90,9 @@ That five-step skeleton catches the largest share of real-world failure modes. T
 
 ---
 
-## What's NOT possible — and the workaround
+## Hard limits + workarounds
 
-The hard limits the APIs simply do not support. Each row names a workaround. Scan this table before assuming you've found a new bug — most "the API can't do X" complaints land on a known limit.
+A handful of capabilities the Workspace APIs simply do not expose today. Each row names the workaround that closes the gap. Scan this table before assuming you've found a new bug — most "the API can't do X" reports land on a known limit with a documented path forward.
 
 | You want to... | Reality | Workaround |
 |---|---|---|
@@ -93,35 +112,15 @@ The hard limits the APIs simply do not support. Each row names a workaround. Sca
 
 ---
 
-## Where to spend your time — Docs
+## TL;DR — the five highest-leverage decisions
 
-Once the map is clear, here are the patterns that close the largest share of real-world failure modes. **The reader who only adopts items 1–5 closes the largest share of real-world failure modes.** These cover **Docs** specifically — Sheets has its own priority table in [Part 7](#part-7--operating-google-sheets).
+If you read nothing else, internalize these five. Each leads with the decision that produces the win; the watch-out follows. The five surfaces are deliberately mixed — none of these are obvious from reading Google's docs.
 
-| # | Pattern | Why it matters | Effort |
-|---|---|---|---|
-| 1 | **Verify every style via JSON read, not tool success** | The single most expensive failure mode. `applyTextStyle` returns success while silently overwriting bold, leaving bullets as `textStyle: {}`, or setting wrong font weight. The JSON is the only ground truth. | Low |
-| 2 | **Brand styling sequence: body sweep → cascade check → heading paragraph styles → heading text styles → inline bold prefixes** | The only 5-step order that works. Every other order produces a visually broken doc that passes individual tool-call success checks. | Medium |
-| 3 | **Cascade-check both directions after every paragraph-style write** | Two opposite failure modes: HEADING_1 cascades across too many paragraphs (huge bold body) AND mid-write interruption leaves every paragraph as NORMAL_TEXT (no headings). Detect both before declaring success. | Medium |
-| 4 | **Pre-resize images at the file level (`sips` on macOS) before `insertImage`** | API width/height parameters don't reliably constrain rendered size. Source file pixel dimensions win. | Low |
-| 5 | **Copy from template for any doc that needs a page-number footer** | The Docs API cannot create `PAGE_NUMBER` / `PAGE_COUNT` auto-text. `copyFile` from a template that has the footer baked in is the only path. | Medium |
-| 6 | **Edit existing docs in place — never recreate to "prepend"** | Recreating a doc with the same title to insert content at top is how duplicates accumulate. Use `replaceDocumentWithMarkdown` on a stable `doc_id`. | Low |
-| 7 | **Treat all existing human content as load-bearing** | Range replaces and `deleteRange` silently overwrite pasted images, smart chips, comments, manual edits. Inspect JSON for `inlineObjectElement`, `richLink`, `person` first. | Medium |
-| 8 | **Idempotency: search-before-create, body-match-before-update, date-match-before-prepend** | Rerunning the same write must reach the same Drive state. Prevents duplicate-title accumulation when an orchestrator retries on transient errors. | Low |
-| 9 | **State.json breadcrumbs for resume-from-interruption** | A write killed mid-cascade strands the doc half-styled. State.json lets the next dispatch detect the interruption and recover before compounding damage. | High |
-
-Most readers should adopt items 1–5 and stop. Items 6–9 are amplification, mostly relevant once you're running document writes from an unattended orchestrator.
-
----
-
-## TL;DR — the five non-obvious bits
-
-If you read nothing else, internalize these. They're the highest-leverage corrections most operators need to make to existing automation. None of them are obvious from reading Google's docs.
-
-1. **Tool success ≠ task success.** After every style write, read the doc as JSON and verify the values actually landed. Silent partial-success is the single most expensive failure mode in production.
-2. **Markdown imports leave Google Docs defaults.** A markdown write is a body write, not a style write. Brand styling is the next 30 lines of code — there is no skipping it.
-3. **For Sheets, `USER_ENTERED` is the load-bearing default.** `=SUM(A1:A10)` with `RAW` lands the literal string in the cell. Pass `USER_ENTERED` explicitly on every write.
-4. **The Docs API cannot insert PAGE_NUMBER footers into an existing doc.** Period. Page-numbered docs must come from `copyFile` of a template you built. No API path adds the footer afterward.
-5. **Same MCP server name, different products, different bugs.** A skill that works in a direct prompt can fail in skill-dispatch context. Test in both before shipping.
+1. **Verify every Docs style write by reading the JSON.** After every `applyTextStyle` / `applyParagraphStyle` call, read the doc as JSON and confirm the values landed per paragraph. The JSON is the contract — tool-call success isn't. Silent partial-success is the single most expensive case to handle in production.
+2. **Pass `USER_ENTERED` explicitly on every Sheets write.** Sheets parses input the way the UI does — formulas become formulas, `Mar 1 2026` becomes a date. Without the explicit flag, `=SUM(A1:A10)` lands as a literal string starting with `=` and downstream math reads zero.
+3. **Pass `sendUpdates=all` on every Calendar insert / update / delete with attendees.** The documented default is `false` (= no notifications fire). Without the explicit flag, attendees get added silently and never see the invite — the most common reason an agent-created meeting "didn't go through."
+4. **Draft, don't send, from Gmail — and use base64url on every `raw` field.** `drafts.create` keeps a reviewable artifact in the user's drafts folder before mail goes on the wire. The MIME `raw` field is base64url-encoded (URL-safe alphabet, no `+` or `/`) per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending); standard base64 passes plaintext tests and fails the first HTML or binary payload with `400 invalidArgument`.
+5. **Use `copyFile` from a template for any Doc that needs page numbers.** The Docs API cannot insert `PAGE_NUMBER` auto-text into an existing doc. Page-numbered docs come from cloning a template you built — that's the path, not a missing API.
 
 ---
 
@@ -129,8 +128,8 @@ If you read nothing else, internalize these. They're the highest-leverage correc
 
 - [Part 1 — The toolset and the mental model](#part-1--the-toolset-and-the-mental-model) — including [connector parity gotchas](#connector-parity-is-not-guaranteed)
 - [Part 2 — Patterns that work (Docs)](#part-2--patterns-that-work)
-- [Part 3 — Hard limits the API does not support](#part-3--hard-limits-the-api-does-not-support) — including [non-native files](#limit-5--non-native-files-need-download_file_content-not-readdocument)
-- [Part 4 — Anti-patterns to recognize](#part-4--anti-patterns-to-recognize)
+- [Part 3 — Hard limits + workarounds (Drive & Docs)](#part-3--hard-limits--workarounds-drive--docs) — including [non-native files](#limit-5--non-native-files-need-download_file_content-not-readdocument)
+- [Part 4 — Patterns to avoid (Drive & Docs)](#part-4--patterns-to-avoid-drive--docs)
 - [Part 5 — Architecture: the single-writer pattern](#part-5--architecture-the-single-writer-pattern)
 - [Part 6 — How to measure whether your writes are healthy](#part-6--how-to-measure-whether-your-writes-are-healthy)
 - [Part 7 — Operating Google Sheets](#part-7--operating-google-sheets) — values-vs-structure split, A1 vs GridRange, USER_ENTERED defaults, developer metadata, Sheets-specific hard limits
@@ -140,8 +139,11 @@ If you read nothing else, internalize these. They're the highest-leverage correc
 - [What we still don't know](#what-we-still-dont-know)
 
 ---
-
 ## Part 1 — The toolset and the mental model
+
+### What this surface unlocks — Drive & Docs
+
+Drive plus Docs together are the canonical "agent writes a document a human will read" surface. From a markdown payload you can land a branded company doc, prepend a dated section to an existing running-notes file, copy a templated proposal that carries its own page-number footer, or convert an inbound `.docx` to a native Google Doc for further editing. Drive provides idempotent addressing (file IDs) and the templating mechanism; Docs provides the body and styling surface. The patterns in Parts 2 through 6 show exactly how to make those writes land the way the markdown intended, on the first attempt, with verification baked in.
 
 ### Three APIs, three mental models
 
@@ -195,7 +197,7 @@ There are actually three paths to get body content into a Google Doc, not two. E
 | Path | What it is | Strengths | Trade-offs |
 |---|---|---|---|
 | **MCP `replaceDocumentWithMarkdown`** | The MCP server wraps markdown upload via Drive `files.update`. One call. | Default for any MCP-enabled environment. Handles paragraphs, headings, bullets, basic formatting in one shot. | Leaves Google Docs defaults on every paragraph (Arial body, default heading sizes, no brand colors). Styling pass mandatory. |
-| **Raw Docs API `batchUpdate`** | Per-element `insertText` / `applyParagraphStyle` / `applyTextStyle` requests assembled into one batched call. | Surgical. No markdown round-trip. Full control over every textRun. | Multiples more code. The failure modes in Part 4 cluster around this path. |
+| **Raw Docs API `batchUpdate`** | Per-element `insertText` / `applyParagraphStyle` / `applyTextStyle` requests assembled into one batched call. | Surgical. No markdown round-trip. Full control over every textRun. | Multiples more code. The watch-outs in Part 4 cluster around this path. |
 | **Drive HTML-import** | Multipart upload of inline-CSS HTML with `mimeType=application/vnd.google-apps.document`. Drive converts to a native Doc. | Faster than markdown for large content. Preserves headings, links, bold, lists, tables natively. The canonical "no MCP available" workaround. | Drive's HTML import **strips inline CSS for fonts and colors** — you still need a follow-up `batchUpdate` styling pass. Tables and nested lists can come through with subtle structural differences. |
 
 Most automation uses path 1 for the common case and falls back to path 3 in cloud environments where the MCP server isn't reachable. Path 2 is for surgical edits inside an otherwise-styled doc, not for full body composition.
@@ -229,6 +231,24 @@ Workarounds: edit table structure manually in the Drive UI, or export to `.docx`
 
 ## Part 2 — Patterns that work
 
+### Where to spend your time — Docs
+
+Once the map is clear, here are the patterns that close the largest share of real-world failure modes on the Docs surface. **The reader who only adopts items 1–5 closes the largest share of real-world failure modes.** Sheets has its own priority table in [Part 7](#part-7--operating-google-sheets); Slides, Calendar, and Gmail each have theirs in Parts 8–10.
+
+| # | Pattern | Why this pattern wins | Effort |
+|---|---|---|---|
+| 1 | **Verify every style via JSON read, not tool success** | The JSON is the only ground truth for what's on the page. Reading it after every style write catches every silent-overwrite case — bold runs erased, bullets left as `textStyle: {}`, wrong font weight — before they ship. | Low |
+| 2 | **Brand styling sequence: body sweep → cascade check → heading paragraph styles → heading text styles → inline bold prefixes** | The only 5-step order that produces a doc rendering the way the markdown intended. Every other order leaves Arial body, missing headings, or overwritten bold runs that still pass individual tool-call success checks. | Medium |
+| 3 | **Cascade-check both directions after every paragraph-style write** | Two opposite cases need detection: HEADING_1 cascades across too many paragraphs (huge bold body) AND mid-write interruption leaves every paragraph as NORMAL_TEXT (no headings). Catching both before declaring success is what keeps the doc shipping clean. | Medium |
+| 4 | **Pre-resize images at the file level (`sips` on macOS) before `insertImage`** | Pre-resizing the source file is the only path that reliably constrains rendered size — the API width/height parameters do not. One `sips` call, then the image lands at the size you asked for. | Low |
+| 5 | **Copy from template for any doc that needs a page-number footer** | `copyFile` clones a template you built with the footer already baked in, then `replaceDocumentWithMarkdown` overlays the body. The footer survives because it lives at the `documentStyle` level, not in the body stream. | Medium |
+| 6 | **Edit existing docs in place — never recreate to "prepend"** | Editing in place keeps the `doc_id` stable, so every external bookmark, Asana comment, and briefing link keeps working. Recreate-to-prepend is the canonical way to accumulate four files with the same title. | Low |
+| 7 | **Treat all existing human content as load-bearing** | Inspecting the JSON for `inlineObjectElement`, `richLink`, `person`, and any unauthored text runs before any range replace preserves pasted images, smart chips, comments, and manual edits that would otherwise vanish into a wholesale replace. | Medium |
+| 8 | **Idempotency: search-before-create, body-match-before-update, date-match-before-prepend** | Rerunning the same write reaches the same Drive state. That's the property an orchestrator's retry-on-transient-error loop needs to avoid silently duplicating content the first time the network blips. | Low |
+| 9 | **State.json breadcrumbs for resume-from-interruption** | The breadcrumb file lets the next dispatch detect that a previous write died mid-cascade and recover the doc before layering a fresh write on top of a half-styled state. | High |
+
+Most readers should adopt items 1–5 and stop. Items 6–9 are amplification, mostly relevant once you're running document writes from an unattended orchestrator.
+
 ### Pattern 1 — Edit existing documents in place
 
 When updating any tracked Google Doc:
@@ -237,9 +257,9 @@ When updating any tracked Google Doc:
 2. Assemble new content.
 3. Overwrite with `replaceDocumentWithMarkdown`, or `insertText` / `replaceRangeWithMarkdown` for surgical edits.
 
-Never create a new Doc with the same title as a way to "prepend" content. This was a common workaround in 2024–2025 when in-place editing tools were incomplete or unstable. The MCPs released through 2025 close that gap. Holding onto the recreate-pattern as a habit produces duplicate files indefinitely.
+The doc id stays stable across the update, which means every external reference — bookmarks, Asana comments, briefing links — keeps working.
 
-**The failure mode this prevents.** A real incident: four files named `2026 ClientB Advisory Running Notes` in the same Drive folder. One was the live doc that all external bookmarks and Asana comments pointed at. The other three were stale recreations from earlier sessions that had silently fallen back to the recreate path. Spotted only because a human noticed; an unattended agent would have kept producing recreations forever. Three were trashed; the canonical doc id was pinned in config so subsequent runs couldn't drift.
+**The watch-out this prevents.** A real incident: four files named `2026 ClientB Advisory Running Notes` in the same Drive folder. One was the live doc that all external bookmarks and Asana comments pointed at. The other three were stale recreations from earlier sessions that had silently fallen back to a recreate path. Spotted only because a human noticed; an unattended agent would have kept producing recreations forever. Three were trashed; the canonical doc id was pinned in config so subsequent runs couldn't drift.
 
 **If a configured doc id doesn't resolve, STOP and ask** before creating a replacement. Silent recreation is exactly how duplicates accumulate. After every update, the agent should search Drive by title and confirm exactly one file matches. Two matches is a bug.
 
@@ -253,12 +273,12 @@ Inspect:
 - `bullet` (present or absent?)
 - For each `textRun`: `content`, `textStyle.fontFamily` and `weightedFontFamily.fontFamily`, `textStyle.bold`, `textStyle.foregroundColor`, `fontSize.magnitude`
 
-**Silent failure modes that pass the tool-call success check:**
+The JSON is the contract. A handful of edges to handle:
 
 1. `applyTextStyle` with `{fontFamily: "X"}` (no `bold` flag) **overwrites existing bold formatting** on bold runs. Markdown's `**bold**` styling gets erased when you re-style. Mitigation: always include an explicit `bold: true` (or `false` for body sweeps) on every text-style application.
 2. **Paragraph-range styles don't reliably cascade into bullet textRuns.** Bullets end up with `textStyle: {}` even when the parent paragraph range was styled. Mitigation: style each bullet individually with `matchInstance: N`. Don't rely on a parent range.
 3. **`weightedFontFamily.weight: 400` can appear even when `bold: true` was set.** Visually bold appears, but the font variant is wrong. Per the [TextStyle reference](https://googleapis.dev/java/google-api-services-docs/latest/com/google/api/services/docs/v1/model/TextStyle.html), `weightedFontFamily` is applied first and weight defaults to 400; the `bold` flag is applied separately and the two can disagree. Mitigation: pass `weightedFontFamily: {fontFamily: "X", weight: 700}` AND `bold: true` together on the same request, and include both subfields in the `fields` mask. Inspect both `bold` and `weightedFontFamily.weight` in the post-write JSON; re-apply if they disagree.
-4. **Agents report "all styles applied successfully" when JSON inspection shows they weren't.** This is the most common subagent failure mode in production. Mitigation: do not trust the success message; the JSON is the contract.
+4. **Agents report "all styles applied successfully" when JSON inspection shows they weren't.** This is the most common subagent miss in production. Mitigation: do not trust the success message; the JSON is the contract.
 
 The cost of verification is one `getDocumentInfo` call per style operation. The cost of not verifying is a doc that ships broken and a human who catches it later. The trade is unambiguous.
 
@@ -290,7 +310,7 @@ For frequently-used assets (logos, brand marks), cache canonical pre-sized varia
 
 After every paragraph-style write, walk the JSON and count `namedStyleType` distribution (the legal values are `TITLE`, `HEADING_1` through `HEADING_6`, `NORMAL_TEXT`, plus a few list/quote variants — see [Format text in a Google Doc](https://developers.google.com/workspace/docs/api/how-tos/format-text)). Two opposite regressions are possible; check for both.
 
-**Failure mode A — Excess cascade.** A `replaceDocumentWithMarkdown` write cascades HEADING_1 across far more paragraphs than the markdown intended. Real example: a doc with 4 expected H1 headings rendered with 116 paragraphs all set to HEADING_1, producing huge-bold-Arial body throughout. Detection: if actual H1 count > 1.5× expected, the cascade fired.
+**Edge A — Excess cascade.** A `replaceDocumentWithMarkdown` write cascades HEADING_1 across far more paragraphs than the markdown intended. Real example: a doc with 4 expected H1 headings rendered with 116 paragraphs all set to HEADING_1, producing huge-bold-Arial body throughout. Detection: if actual H1 count > 1.5× expected, the cascade fired.
 
 **Recovery from excess cascade:**
 
@@ -299,7 +319,7 @@ After every paragraph-style write, walk the JSON and count `namedStyleType` dist
 3. Re-apply heading text styles via `applyTextStyle`.
 4. Re-read JSON. Confirm count now matches.
 
-**Failure mode B — namedStyleType strip.** The inverse. A partial write — typically `replaceDocumentWithMarkdown` followed by the agent dying or being interrupted before the heading re-apply step ran — leaves every paragraph as NORMAL_TEXT. What should be the doc TITLE, section H1s, topic H2s, and sub-H3s all render as plain body text. Detection: if actual count of `(TITLE + HEADING_1 + HEADING_2 + HEADING_3)` < 0.5× expected, strip is live.
+**Edge B — namedStyleType strip.** The inverse. A partial write — typically `replaceDocumentWithMarkdown` followed by the agent dying or being interrupted before the heading re-apply step ran — leaves every paragraph as NORMAL_TEXT. What should be the doc TITLE, section H1s, topic H2s, and sub-H3s all render as plain body text. Detection: if actual count of `(TITLE + HEADING_1 + HEADING_2 + HEADING_3)` < 0.5× expected, strip is live.
 
 **Recovery from strip — atomic per heading**, do NOT separate the paragraph-style and text-style passes:
 
@@ -311,11 +331,11 @@ After every paragraph-style write, walk the JSON and count `namedStyleType` dist
 3. Do not batch all paragraph styles, then all text styles. The gap between phases is exactly when an interruption strands the doc in a half-styled state.
 4. Re-read JSON. Confirm heading count meets expected.
 
-The asymmetry is important. The two failure modes look opposite but stem from the same fragility — the doc's style state is built up in multiple tool calls, and any interruption between calls leaves it inconsistent.
+The asymmetry is important. The two edges look opposite but stem from the same fragility — the doc's style state is built up in multiple tool calls, and any interruption between calls leaves it inconsistent.
 
 ### Pattern 5 — Brand styling sequence: the only order that works
 
-After any `replaceDocumentWithMarkdown` write, apply styling in **exactly this order**. The MCP wraps the underlying [`updateTextStyle`](https://developers.google.com/workspace/docs/api/reference/rest/v1/documents/batchUpdate) and `updateParagraphStyle` request types; the steps below are the call sequence that survives every interaction failure mode documented in Pattern 4 and Anti-pattern 2:
+After any `replaceDocumentWithMarkdown` write, apply styling in **exactly this order**. The MCP wraps the underlying [`updateTextStyle`](https://developers.google.com/workspace/docs/api/reference/rest/v1/documents/batchUpdate) and `updateParagraphStyle` request types; the steps below are the call sequence that survives every interaction edge documented in Pattern 4 and the patterns-to-avoid list in Part 4:
 
 1. **Body sweep.** `applyTextStyle` with `{fontFamily: <body>, fontSize: <body>, foregroundColor: <body>, bold: false}` across the full document range (`startIndex: 1, endIndex: <doc end>`). This sets the baseline. Without it, body text stays Arial.
 2. **Cascade check (interlude).** Read JSON, count HEADING_1s. If excess, reset to NORMAL_TEXT before going further.
@@ -339,7 +359,7 @@ Running the same write twice must reach the same Drive state. If it doesn't, the
 
 ---
 
-## Part 3 — Hard limits the API does not support
+## Part 3 — Hard limits + workarounds (Drive & Docs)
 
 These are not pattern errors. The Docs API genuinely lacks these capabilities as of mid-2026. Each has a working workaround; none have a "right" API call.
 
@@ -391,7 +411,7 @@ The agent's job is to surface the mismatch in its prose summary so the human kno
 - For Office documents specifically: upload-with-conversion via [`files.create`](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/create) with a target `mimeType` (`application/vnd.google-apps.document` for `.docx`, `application/vnd.google-apps.spreadsheet` for `.xlsx`, `application/vnd.google-apps.presentation` for `.pptx` — see [Google's MIME type list](https://developers.google.com/workspace/drive/api/guides/mime-types)). The result is a native Doc/Sheet/Slide that `readDocument` works on. The original Office file stays untouched. Some MCP servers wrap this conversion under a `copyFile` tool name; some require a separate upload step.
 - For images and PDFs: pass the downloaded bytes to a model that supports the corresponding modality. Vision-capable models read images natively; PDF text extraction needs either server-side extraction tools or model-side PDF parsing.
 
-The most common skill-level failure mode: calling `readDocument` on a Drive file id that resolves to a `.docx`. The error message rarely names this as the cause; the skill ends up reporting "couldn't read the doc" with no useful detail. Audit any skill that accepts "a Drive file id" as input — does it check `mimeType` before deciding how to read? If not, it's brittle on non-native files. The check is one extra `get_file_metadata` call and a switch on the returned mime type.
+The most common skill-level edge: calling `readDocument` on a Drive file id that resolves to a `.docx`. The error message rarely names this as the cause; the skill ends up reporting "couldn't read the doc" with no useful detail. Audit any skill that accepts "a Drive file id" as input — does it check `mimeType` before deciding how to read? If not, it's brittle on non-native files. The check is one extra `get_file_metadata` call and a switch on the returned mime type.
 
 ### Limit 6 — `replaceDocumentWithMarkdown` collapses consecutive `**Label:**` rows
 
@@ -410,17 +430,19 @@ Cannot declare the write done until zero paragraphs contain ≥ 2 `**Label:**` r
 
 ---
 
-## Part 4 — Anti-patterns to recognize
+## Part 4 — Patterns to avoid (Drive & Docs)
 
-### Anti-pattern 1 — Recreating a doc with the same title to "prepend"
+Five patterns that look reasonable in code review and produce wrong output in production. Each entry leads with the constructive alternative — the shape to course-correct toward when you spot the pattern.
 
-If you find code that creates a new doc, writes the prepend content + a separator + the old content, and then trashes the old doc, that's the recreate-pattern. It was a legitimate workaround in 2024 before in-place editing tools matured. It is the wrong move now.
+### Avoid 1 — Recreating a doc with the same title to "prepend"; do an in-place update instead
 
-Why it persists: it "works" until the trash step fails or the doc has external references that point at the old id. Then you have two files, or four, or eight. Spot it in code review by looking for `createDocument` calls inside what should be an "update" or "prepend" path.
+If you find code that creates a new doc, writes the prepend content + a separator + the old content, and then trashes the old doc, that's the recreate-pattern. It was a legitimate workaround in 2024 before in-place editing tools matured. The MCPs released through 2025 close that gap; the in-place path is now the right move.
 
-Fix: switch to `replaceDocumentWithMarkdown` (full body replace) or `insertText` at index 1 (surgical prepend). The doc id stays stable.
+Why the recreate pattern persists: it "works" until the trash step fails or the doc has external references that point at the old id. Then you have two files, or four, or eight. Spot it in code review by looking for `createDocument` calls inside what should be an "update" or "prepend" path.
 
-### Anti-pattern 2 — Trusting tool success without JSON verification
+**Course-correct to:** `replaceDocumentWithMarkdown` (full body replace) or `insertText` at index 1 (surgical prepend). The doc id stays stable; bookmarks keep working.
+
+### Avoid 2 — Trusting tool success without JSON verification; read the JSON instead
 
 If your code looks like this:
 
@@ -430,20 +452,20 @@ if result.success:
     return "Styles applied"
 ```
 
-…you have shipped the silent-failure failure mode. The tool returns success when:
+…you've shipped the silent-overwrite case to handle. The tool returns success when:
 
 - The API request succeeded, even though the doc didn't update the way you expected.
 - The style was applied to one textRun but not the parent paragraph.
 - Bold was overwritten on existing bold runs because no `bold: true` flag was passed.
 - The cascade fired on a different range than intended.
 
-Fix: every style operation is followed by a `getDocumentInfo` read and a JSON inspection of the affected range. Make this routine, not exceptional.
+**Course-correct to:** every style operation is followed by a `getDocumentInfo` read and a JSON inspection of the affected range. Make this routine, not exceptional.
 
-### Anti-pattern 3 — `insertText` at index 1 for a styled prepend
+### Avoid 3 — `insertText` at index 1 for a styled prepend; use the full-body markdown path
 
 `insertText` inserts plain text. If your prepend content has `# H1` and `**bold**` markdown syntax in it, those tokens go into the doc as literal `#` characters and `**` characters with no styling applied.
 
-For a prepend that needs styling, the right move is:
+**Course-correct to:** for a prepend that needs styling, the right move is:
 
 1. `readDocument` (`format: "markdown"`) to get the current body.
 2. Assemble the new full body: `<new entry>\n\n---\n\n<existing body>`.
@@ -452,15 +474,15 @@ For a prepend that needs styling, the right move is:
 
 `insertText` is the right tool for adding unstyled text (a tracker line, a timestamp). For styled content, use the markdown path.
 
-**A specific failure mode worth naming:** "unstyled" does not mean "markdown source as the doc body." Cloud helpers that deliberately skip the styling pass (because brand cascade requires the MCP, which the cloud env doesn't have) sometimes prepend raw markdown via `insertText` and label the result "intentionally unstyled, will be re-styled by the next interactive run." That's wrong twice. First, the markdown tokens (`#`, `**`, `-`) land as literal characters and stay there until the interactive run re-styles — readers in the meantime see `**Format:**` as `**Format:**`, not as bold. Second, the interactive re-style runs `applyTextStyle` on the existing body, which won't convert markdown tokens to formatting; it'll just bold the literal `**` characters. The cloud helper must either skip the prepend until interactive is available, or assemble the full body and use the HTML-import path (which produces real styled content even without MCP).
+**A specific case worth naming:** "unstyled" does not mean "markdown source as the doc body." Cloud helpers that deliberately skip the styling pass (because brand cascade requires the MCP, which the cloud env doesn't have) sometimes prepend raw markdown via `insertText` and label the result "intentionally unstyled, will be re-styled by the next interactive run." That's wrong twice. First, the markdown tokens (`#`, `**`, `-`) land as literal characters and stay there until the interactive run re-styles — readers in the meantime see `**Format:**` as `**Format:**`, not as bold. Second, the interactive re-style runs `applyTextStyle` on the existing body, which won't convert markdown tokens to formatting; it'll just bold the literal `**` characters. The cloud helper must either skip the prepend until interactive is available, or assemble the full body and use the HTML-import path (which produces real styled content even without MCP).
 
-### Anti-pattern 4 — Deleting human content during a reformat
+### Avoid 4 — Deleting human content during a reformat; scan and preserve embedded objects first
 
 The bright line is **information loss**, not formatting. Reformatting (P1 → bullets, header level changes, italic → bold) is fine. **Deleting, paraphrasing, or silently dropping content** — including pasted images, smart chips, comments, attachments, and typed prose — is not.
 
-The failure mode: an agent runs `replaceRangeWithMarkdown` over a range that includes a pasted image. The reformat is correct; the image silently disappears. The image is gone from the doc and the original is gone from the agent's context. No recovery.
+The case to handle: an agent runs `replaceRangeWithMarkdown` over a range that includes a pasted image. The reformat is correct; the image silently disappears. The image is gone from the doc and the original is gone from the agent's context. No recovery.
 
-**Before any `replaceRangeWithMarkdown`, `deleteRange`, or `replaceDocumentWithMarkdown` that touches existing content:** read the JSON for the affected range and scan for:
+**Course-correct to:** before any `replaceRangeWithMarkdown`, `deleteRange`, or `replaceDocumentWithMarkdown` that touches existing content, read the JSON for the affected range and scan for:
 
 - `inlineObjectElement` (pasted images, embedded files)
 - `richLink` (linked Drive files rendered inline)
@@ -469,11 +491,11 @@ The failure mode: an agent runs `replaceRangeWithMarkdown` over a range that inc
 
 If found, do not use a wholesale range replace. Instead: use surgical `applyTextStyle` / `applyParagraphStyle` on the existing structure, or `insertText` / `deleteRange` paragraph-by-paragraph around the embedded objects. If a wholesale replace is genuinely the right shape, extract the embedded objects first and re-insert them in the new content at the same logical position.
 
-### Anti-pattern 5 — A subagent that reports "all styles applied successfully"
+### Avoid 5 — A subagent that reports "all styles applied successfully"; require a verification field instead
 
 If a subagent's return message says "applied styling" without a JSON verification step, the message is unreliable. The verification step might be in the subagent's code, but if the message doesn't tell you the post-write state — heading counts, font names per heading, body color — the subagent is reporting tool-call success, not document state.
 
-Fix: require the subagent's return contract to include a `verification` field with the actual post-write JSON inspection results. The orchestrator (or the human) reads the verification field, not the prose message.
+**Course-correct to:** require the subagent's return contract to include a `verification` field with the actual post-write JSON inspection results. The orchestrator (or the human) reads the verification field, not the prose message.
 
 ---
 
@@ -548,7 +570,7 @@ Before declaring the write done, the writer runs four checks in order. Failure o
 |---|---|---|
 | 1 | **Heading count** — tally `TITLE + HEADING_1 + HEADING_2 + HEADING_3` against expected, in both directions | Cascade overflow AND strip regression |
 | 2 | **Per-paragraph style** — confirm font, size, color, bold per heading/body | Silent style overwrites from missing `bold` flags or wrong cascade |
-| 3 | **Metadata-row collapse** — scan for paragraphs with > 1 `**Label:**` run | The markdown-collapse failure mode |
+| 3 | **Metadata-row collapse** — scan for paragraphs with > 1 `**Label:**` run | The markdown-collapse case |
 | 4 | **Named-style sanity** — inspect doc-level `namedStyles.NORMAL_TEXT`; if Arial / wrong size, flag in prose | Drive UI fix needed; surface to the human |
 
 These run after the brand sequence, not in place of it. A doc that passes all four checks is healthy. A doc that fails any check ships with a flag in the agent's return so the human or the next orchestrator knows.
@@ -568,7 +590,7 @@ Every invocation writes to a known per-invocation directory:
   error.txt        # only on failure; full error payload
 ```
 
-The log path makes silent failures debuggable later. Without it, "the doc looked wrong yesterday" is a question with no answer. With it, the post-write JSON sits on disk forever.
+The log path makes silent partial-success — the most expensive case to handle in production — debuggable later. Without it, "the doc looked wrong yesterday" is a question with no answer. With it, the post-write JSON sits on disk forever.
 
 ### Single writer per doc — and verifiers don't write either
 
@@ -580,7 +602,7 @@ The clean shape: validators emit a typed outcome (`ok | drift_detected | flagged
 
 ### Surface ownership — which docs are NOT yours to write
 
-The writer pattern assumes the agent owns the surfaces it writes to. In practice, many Drive docs are **mixed surfaces** — humans curate the body, an agent prepends a dated section, and a separate process synthesizes the meeting afterward. Agents reflexively want to "summarize the call" or "consolidate the notes" into the same doc they prepended into. Both impulses produce information loss (Anti-pattern 4).
+The writer pattern assumes the agent owns the surfaces it writes to. In practice, many Drive docs are **mixed surfaces** — humans curate the body, an agent prepends a dated section, and a separate process synthesizes the meeting afterward. Agents reflexively want to "summarize the call" or "consolidate the notes" into the same doc they prepended into. Both impulses produce information loss (Avoid 4 in Part 4).
 
 The discipline: every Drive-touching skill should explicitly name the surfaces it does and does not own. Examples:
 
@@ -590,7 +612,7 @@ The discipline: every Drive-touching skill should explicitly name the surfaces i
 | Post-meeting synthesis | A dated decisions-log entry in a separate file | The meeting-notes prep section at the top of running-notes |
 | Brand validator | Read-only; emits drift findings | Every doc body (validators don't write — see above) |
 
-Putting this in the skill's preamble (or in the agent's tools allowlist) prevents the reflexive "I see a doc I just touched; let me summarize what happened" failure mode. The right answer is almost always: a different file, owned by a different skill.
+Putting this in the skill's preamble (or in the agent's tools allowlist) prevents the reflexive "I see a doc I just touched; let me summarize what happened" case. The right answer is almost always: a different file, owned by a different skill.
 
 ### Concurrency cap on writer fan-out
 
@@ -637,35 +659,38 @@ The Drive UI is not a measurement tool. "It looked right when I opened it" is no
 
 ## Part 7 — Operating Google Sheets
 
+### What this surface unlocks — Sheets
+
+Sheets is the second-most-developed Workspace surface for agent automation, after Docs. From a single MCP server you can create a spreadsheet, write cell values that land as live formulas and typed dates, batch dozens of structural changes atomically, anchor data ranges with developer metadata so renames don't break the pipeline, and read computation-ready values without locale round-trip. The decisions in this Part — `USER_ENTERED` on writes, `UNFORMATTED_VALUE` on compute reads, `batchUpdate` over per-cell loops, developer metadata over hardcoded ranges — are what separate a working data pipeline from one that quietly mangles formulas, dates, and numbers under load.
+
 Sheets is structurally different from Docs and the patterns reflect it. A Docs document is a tree of paragraphs with index-based addressing; a Sheets spreadsheet is a collection of 2D grids addressed by row/column. The same MCP server typically exposes both, but the failure modes don't transfer. This part covers what's unique to Sheets.
 
-### The mental model — two endpoint families, one spreadsheet
+### What you can do today — Sheets capability inventory
 
-Per Google's [Sheets API concepts](https://developers.google.com/sheets/api/guides/concepts), a Spreadsheet contains an array of Sheet resources, each a 2D grid of Cells keyed by row and column index (not stable IDs). The API splits into two surface families and **mixing them is the #1 mental-model error**:
+| You want to... | Tool you reach for | Notes |
+|---|---|---|
+| Create a spreadsheet | `createSpreadsheet` | Returns the new file's `spreadsheetId` |
+| Write cell values (text, numbers, dates) | `writeSpreadsheet` / REST `values.update` with `valueInputOption=USER_ENTERED` | Parses input the way the UI does — `Mar 1 2026` lands as a date, `=SUM(...)` lands as a formula |
+| Write a formula | Same call; `USER_ENTERED` is non-negotiable | `RAW` lands the literal string starting with `=` in the cell |
+| Read values for computation | `readSpreadsheet` / `values.get` with `valueRenderOption=UNFORMATTED_VALUE` | Returns typed values; `FORMATTED_VALUE` returns locale-rendered strings — round-trip risk for any compute path |
+| Read formulas as source text | Same call with `valueRenderOption=FORMULA` | For round-tripping or auditing formula contents |
+| Atomic multi-step structural change | REST `spreadsheets.batchUpdate` with a list of typed `Request` objects | Atomic per Google's [batchUpdate guide](https://developers.google.com/sheets/api/guides/batchupdate); one failure rolls back the whole batch |
+| Anchor a data range that survives renames / reorders | `AddDeveloperMetadataRequest`; read via `batchGetByDataFilter` with a DataFilter | Tags carry through tab renames, reorders, inserted rows — see [developer metadata](https://developers.google.com/sheets/api/guides/metadata) |
+| Format cells (color, borders, number format) | REST `spreadsheets.batchUpdate` with `RepeatCellRequest` / `UpdateBordersRequest` / `UpdateCellsRequest` | Always set a narrow `fields` mask; `"*"` resets every property in the message to default |
+| Add or rename a sheet (tab) | `AddSheetRequest` / `UpdateSheetPropertiesRequest` | sheetId is stable across renames; tab names are not |
+| Apply conditional formatting | `AddConditionalFormatRuleRequest` | Range is a `GridRange`; ordering of rules matters |
+| Insert a chart | `AddChartRequest` | Chart styling ceiling is real — see Limit S3 below |
+| Embed an image via formula | `IMAGE(<public-url>)` cell value with `USER_ENTERED` | Public URL required; Drive-hosted URLs don't load; SVG not supported |
 
-- **`spreadsheets.values.*`** — read/write **cell content only** (strings, numbers, formulas). Endpoints: `get`, `update`, `append`, `clear`, `batchGet`, `batchUpdate`, `batchClear`.
-- **`spreadsheets.batchUpdate`** — read/write **structure** (sheets, formatting, charts, conditional rules, named/protected ranges, dimensions, data validation). Omnibus endpoint accepting a list of typed `Request` objects. See [Google's batchUpdate guide](https://developers.google.com/sheets/api/guides/batchupdate).
+### Where to spend your time — Sheets
 
-Touching cell values → `values.*`. Touching anything visual or structural → `spreadsheets.batchUpdate`. Code that mixes these reveals an author who hasn't internalized the model.
-
-### Range notation — A1 vs GridRange
-
-Two parallel addressing schemes coexist:
-
-- **A1 notation** for `values.*`: `Sheet1!A1:B2`, `'Class Data'!A2:A4`. Sheet names with spaces or special characters **must** be single-quoted.
-- **GridRange** for structural requests: `{sheetId, startRowIndex, endRowIndex, startColumnIndex, endColumnIndex}`. Per the [GridRange reference](https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/other#GridRange), "All indexes are zero-based. Indexes are half open, i.e. the start index is inclusive and the end index is exclusive — `[startIndex, endIndex)`. Missing indexes indicate the range is unbounded on that side."
-
-`endRowIndex: 5` means rows 0–4 inclusive, equivalent to A1 `A1:A5`. Off-by-one between the two systems is the most common bug in Sheets automation. The `"Unable to parse range"` 400 response — the single most-reported Sheets API error — is almost always one of: a sheet renamed since the config was written, missing single quotes around a name with a space, or a tab that was deleted.
-
-### Sheets — where to spend your time
-
-| # | Pattern | Why it matters | Effort |
+| # | Pattern | Why this pattern wins | Effort |
 |---|---|---|---|
-| S1 | **`valueInputOption=USER_ENTERED` for almost every write** | The single most-common Sheets API mistake: writing `=SUM(A1:A10)` with `RAW` lands the literal string starting with `=` in the cell. USER_ENTERED parses input the way the UI does — formulas become formulas, `Mar 1 2026` becomes a date. | Low |
-| S2 | **Set the `fields` mask on every `UpdateCellsRequest`** | Omitting `fields` or passing `"*"` silently wipes cell properties you didn't intend to touch. The narrowest path beats the broadest. | Low |
-| S3 | **Collapse N writes into one `batchUpdate`** | Per-user quota is 60 requests/min ([Sheets API limits](https://developers.google.com/sheets/api/limits)). A loop of `values.update` calls burns 60 quota units for what a single `values.batchUpdate` costs as one. | Low |
-| S4 | **Pin `valueRenderOption=UNFORMATTED_VALUE` for any compute path** | Default `FORMATTED_VALUE` returns locale-rendered strings. Read → math → write-back round-trips can silently mangle commas, decimals, and dates if you don't pin the render mode. | Low |
-| S5 | **Use developer metadata to anchor sheet position** | Hardcoded `Sheet1!A1:Z1000` ranges break the moment a tab is renamed or rows extend past row 1000. [Developer metadata](https://developers.google.com/sheets/api/guides/metadata) tags survive renames and reorders. | Medium |
+| S1 | **`valueInputOption=USER_ENTERED` for almost every write** | Formulas become formulas, dates become dates — the UI's parse behavior, applied at the API. Without it, `=SUM(A1:A10)` lands as the literal string starting with `=` and downstream math reads zero. | Low |
+| S2 | **Set the `fields` mask on every `UpdateCellsRequest`** | The narrowest mask covers exactly what you're writing and leaves every other property intact. Omitting the mask or passing `"*"` writes the message's defaults across every property in the cell. | Low |
+| S3 | **Collapse N writes into one `batchUpdate`** | Per-user quota is 60 requests/min ([Sheets API limits](https://developers.google.com/sheets/api/limits)). One batchUpdate is one quota unit; an N-call loop is N. The batch is also atomic — partial-failure recovery problems vanish. | Low |
+| S4 | **Pin `valueRenderOption=UNFORMATTED_VALUE` for any compute path** | Compute reads typed values directly, with no locale round-trip. The default `FORMATTED_VALUE` returns locale-rendered strings — readable for display, but a quiet mangle the moment math touches them. | Low |
+| S5 | **Use developer metadata to anchor sheet position** | Developer metadata tags survive every rename, reorder, and row insertion. The pipeline reads "the row tagged `primary_data`" instead of "row 1 of the sheet named exactly `Data`" — the former survives every human edit. | Medium |
 
 ### Pattern S1 — USER_ENTERED is the load-bearing default
 
@@ -675,7 +700,7 @@ Per the [values guide](https://developers.google.com/sheets/api/guides/values):
 >
 > `USER_ENTERED`: "The input is parsed exactly as if it were entered into the Sheets UI. For example, `Mar 1 2016` becomes a date, and `=1+2` becomes a formula."
 
-The default in most clients is `INPUT_VALUE_OPTION_UNSPECIFIED`, which defaults server-side to a stricter mode and produces the literal-string failure mode. **Always pass `USER_ENTERED` explicitly** unless the input is genuinely a string that begins with `=` and you want it preserved that way.
+The default in most clients is `INPUT_VALUE_OPTION_UNSPECIFIED`, which defaults server-side to a stricter mode and produces the literal-string behavior. **Always pass `USER_ENTERED` explicitly** unless the input is genuinely a string that begins with `=` and you want it preserved that way.
 
 The corresponding read-side companion is `valueRenderOption`. Three values:
 
@@ -703,7 +728,25 @@ The durable answer to "the sheet keeps moving and my pipeline breaks." [`AddDeve
 
 The pattern: tag the header row of a data range with `key: "primary_data"` once at setup. Every subsequent read filters by that key. The tab can be renamed, the sheet reordered, rows can be inserted above — the metadata anchor survives all of it.
 
-### Sheets hard limits the API does not support
+### The mental model — two endpoint families, one spreadsheet
+
+Per Google's [Sheets API concepts](https://developers.google.com/sheets/api/guides/concepts), a Spreadsheet contains an array of Sheet resources, each a 2D grid of Cells keyed by row and column index (not stable IDs). The API splits into two surface families and **mixing them is the #1 mental-model error**:
+
+- **`spreadsheets.values.*`** — read/write **cell content only** (strings, numbers, formulas). Endpoints: `get`, `update`, `append`, `clear`, `batchGet`, `batchUpdate`, `batchClear`.
+- **`spreadsheets.batchUpdate`** — read/write **structure** (sheets, formatting, charts, conditional rules, named/protected ranges, dimensions, data validation). Omnibus endpoint accepting a list of typed `Request` objects. See [Google's batchUpdate guide](https://developers.google.com/sheets/api/guides/batchupdate).
+
+Touching cell values → `values.*`. Touching anything visual or structural → `spreadsheets.batchUpdate`. Code that mixes these reveals an author who hasn't internalized the model.
+
+### Range notation — A1 vs GridRange
+
+Two parallel addressing schemes coexist:
+
+- **A1 notation** for `values.*`: `Sheet1!A1:B2`, `'Class Data'!A2:A4`. Sheet names with spaces or special characters **must** be single-quoted.
+- **GridRange** for structural requests: `{sheetId, startRowIndex, endRowIndex, startColumnIndex, endColumnIndex}`. Per the [GridRange reference](https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/other#GridRange), "All indexes are zero-based. Indexes are half open, i.e. the start index is inclusive and the end index is exclusive — `[startIndex, endIndex)`. Missing indexes indicate the range is unbounded on that side."
+
+`endRowIndex: 5` means rows 0–4 inclusive, equivalent to A1 `A1:A5`. Off-by-one between the two systems is the most common bug in Sheets automation. The `"Unable to parse range"` 400 response — the single most-reported Sheets API error — is almost always one of: a sheet renamed since the config was written, missing single quotes around a name with a space, or a tab that was deleted.
+
+### Hard limits + workarounds — Sheets
 
 **Limit S1 — No `CellImage` (blob) inserts via the API.** The Sheets API can write `IMAGE()` formula URLs through USER_ENTERED, but uploaded image blobs anchored to specific cells require Apps Script's [`SpreadsheetApp.newCellImage()`](https://developers.google.com/apps-script/reference/spreadsheet/cell-image). `IMAGE()` also won't load from `drive.google.com` URLs and won't render SVG.
 
@@ -717,19 +760,19 @@ The pattern: tag the header row of a data range with `key: "primary_data"` once 
 
 **Limit S6 — No triggers, custom menus, or sidebar UI.** These are Apps Script territory only. If your automation needs to fire on cell edit, schedule on a time-driven trigger, or render a sidebar UI, the API is the wrong surface. Apps Script reaches the same Sheets and adds the UI/trigger layer the API doesn't.
 
-### Sheets anti-patterns
+### Patterns to avoid — Sheets
 
-**A-S1 — Writing formulas with `valueInputOption=RAW`.** Covered in Pattern S1. The most-common Sheets API mistake; spot it in code review by looking for any formula string written without an explicit USER_ENTERED flag.
+**A-S1 — Writing formulas with `valueInputOption=RAW`; pass `USER_ENTERED` instead.** Covered in Pattern S1. The most-common Sheets API mistake; spot it in code review by looking for any formula string written without an explicit `USER_ENTERED` flag.
 
-**A-S2 — Hardcoded `Sheet1!A1:Z1000` ranges.** Brittle. Every rename, reorder, or row-extension breaks the pipeline. Use developer metadata (Pattern S5) or named ranges instead.
+**A-S2 — Hardcoded `Sheet1!A1:Z1000` ranges; use developer metadata or named ranges.** Hardcoded ranges break the moment a tab is renamed, reordered, or rows extend past row 1000. Developer metadata (Pattern S4) or named ranges survive every human edit.
 
-**A-S3 — Looping `values.update` calls.** N quota units for what one `values.batchUpdate` costs as one. Always collapse.
+**A-S3 — Looping `values.update` calls; collapse into one `values.batchUpdate`.** N quota units for what one batch call costs as one. Always collapse.
 
-**A-S4 — Omitting the `fields` mask on `UpdateCellsRequest`.** Silently wipes cell properties you didn't intend to touch. The mask should be the narrowest path that covers what you're writing.
+**A-S4 — Omitting the `fields` mask on `UpdateCellsRequest`; set the narrowest mask that covers the write.** Omitting the mask silently writes the message's defaults across every property in the cell. The mask should be the narrowest path that covers what you're writing.
 
-**A-S5 — Reading FORMATTED_VALUE, doing math, writing back.** Locale round-trip mangle. Pin `UNFORMATTED_VALUE` for compute paths.
+**A-S5 — Reading `FORMATTED_VALUE`, doing math, writing back; pin `UNFORMATTED_VALUE` for compute paths.** Locale round-trip mangle. The compute path always pins `UNFORMATTED_VALUE`.
 
-**A-S6 — `values.append` with INSERT_ROWS into a table that has a totals row below it.** Append's "table" detection uses contiguous non-empty cells, but it pushes the totals row down forever with INSERT_ROWS — or splats over data with OVERWRITE. For sheets with structural rows below the data, append is the wrong shape; explicit `UpdateCellsRequest` is.
+**A-S6 — `values.append` with `INSERT_ROWS` into a table that has a totals row below it; use `UpdateCellsRequest` instead.** Append's "table" detection uses contiguous non-empty cells, but it pushes the totals row down forever with `INSERT_ROWS` — or splats over data with `OVERWRITE`. For sheets with structural rows below the data, append is the wrong shape; explicit `UpdateCellsRequest` is.
 
 ### Apps Script vs Sheets API — where the line falls
 
@@ -746,27 +789,13 @@ Most production automations land somewhere on the spectrum. The decision rule: i
 
 ## Part 8 — Operating Google Slides
 
+### What this surface unlocks — Slides
+
+Slides is the surface where production decks come from agents — copy a template, swap in fresh data, restyle, ship. Done well, an agent clones a master template via Drive `files.copy`, batch-updates 50–200 atomic mutations across the whole deck in one call, replaces tag tokens (`{{title}}`, `{{date}}`) with current data, embeds a live Sheets chart, and writes speaker notes. The decisions in this Part — pre-assigning your own `objectId` for stable addressing, deleting placeholder prompt text before insert, bundling mutations in one `batchUpdate`, copying-not-mutating templates — are what produce decks that round-trip cleanly across editor edits.
+
 Slides is the third Workspace surface and the most under-served by production MCP tooling. The mental model is different from both Docs and Sheets; the failure modes are different; the API surface is different.
 
-### The mental model — one batch endpoint, object-ID addressing
-
-A presentation is a tree: **Presentation → Page → PageElement**. Four page types (Slide, Master, Layout, Notes); page elements are Shape, Table, Image, Video, Line, WordArt, SheetsChart, or Group. Style inheritance flows up: slide ← layout ← master. Per the [Slides API overview](https://developers.google.com/workspace/slides/api/guides/overview), all mutation goes through one endpoint — `presentations.batchUpdate` — which accepts a list of typed `Request` objects and applies them atomically.
-
-Slides addressing is **string `objectId` per element**. Unlike Docs (start/end indices into a flat document) and unlike Sheets (`A1` ranges or `GridRange`), every page and page element has an explicit ID.
-
-> **The #1 Slides gotcha — object IDs are not stable.** Per Google's own docs: *"you cannot depend on an object ID being unchanged after a presentation is changed in the Slides UI."* If a human opens the deck in the Slides editor between your batch writes, your saved object IDs may not match anymore. The discovery patterns that survive: persist the **text content** of a shape (find shapes whose text contains "Title — {{date}}") or the **alt-text** (find shapes whose alt-text is `"primary_chart"`), and re-resolve to the current object ID before each batch.
-
-### Slides — where to spend your time
-
-| # | Pattern | Why it matters | Effort |
-|---|---|---|---|
-| L1 | **Pre-assign your own `objectId` at create time, persist content/alt-text as the lookup key** | Solves the round-trip-instability problem. Every `Create*Request` accepts an optional `objectId`. Generate stable IDs and look up by text/alt-text on each subsequent batch. | Low |
-| L2 | **Always pair `InsertText` with a preceding `DeleteText` against placeholder shapes** | Layout-inherited placeholders ship with prompt text ("Click to add title"). InsertText at index 0 prepends; you end up with `Click to add titleMy Real Title`. | Low |
-| L3 | **Bundle every related mutation into one `batchUpdate` (atomic) — never one-request-per-mutation** | Write quota is 600/min/project, 60/min/user. 50–200 requests in one batch is the documented norm and atomicity prevents half-applied decks. | Low |
-| L4 | **Always set `fields` mask on `Update*Request`** | Same rule as Sheets and Docs. Omitting the mask or passing `"*"` resets every property in the message to its default — silently wiping styling you didn't intend to touch. | Low |
-| L5 | **For template-driven decks, copy the template via Drive `files.copy`, then `ReplaceAllText` into the copy** | Google's explicit instruction: *"make a copy and use the Slides API to manipulate the copy. Don't use the Slides API to manipulate your primary 'template' copy!"* | Medium |
-
-### What's possible — Slides headline capabilities
+### What you can do today — Slides capability inventory
 
 | You want to... | Request | Notes |
 |---|---|---|
@@ -779,10 +808,38 @@ Slides addressing is **string `objectId` per element**. Unlike Docs (start/end i
 | Read/write speaker notes | `InsertText` against `slide.slideProperties.notesPage.notesProperties.speakerNotesObjectId` | Only text content is editable; formatting is not |
 | Duplicate a slide or element | `DuplicateObjectRequest` | New IDs assigned automatically; transform stays the same |
 | Reorder slides | `UpdateSlidesPositionRequest` | |
-| Tag-substitution across the deck | `ReplaceAllTextRequest` with `containsText` | Inherits formatting from the first character of the matched range — see anti-pattern below |
+| Tag-substitution across the deck | `ReplaceAllTextRequest` with `containsText` | Inherits formatting from the first character of the matched range — see avoid-list below |
 | Generate slide thumbnail | `presentations.pages.getThumbnail` | Expensive read; rate-limited |
 
-### What's NOT possible — and the workaround (Slides)
+### Where to spend your time — Slides
+
+| # | Pattern | Why this pattern wins | Effort |
+|---|---|---|---|
+| L1 | **Pre-assign your own `objectId` at create time, persist content/alt-text as the lookup key** | Caller-controlled IDs plus content/alt-text lookup survive every editor round-trip. Object IDs returned by the API are not stable per Google's docs; a deck a human opens between batches needs a re-resolvable handle, and text or alt-text is it. | Low |
+| L2 | **Always pair `InsertText` with a preceding `DeleteText` against placeholder shapes** | Inserting against an empty shape lands clean text; inserting against a placeholder still carrying its prompt text (`Click to add title`) concatenates. The `DeleteText` first guarantees the shape is empty before the insert. | Low |
+| L3 | **Bundle every related mutation into one `batchUpdate` (atomic) — never one-request-per-mutation** | 50–200 requests in a single call is the documented norm. Atomicity prevents half-applied decks; quota math (600/min/project, 60/min/user) collapses N round-trips into one. | Low |
+| L4 | **Always set `fields` mask on `Update*Request`** | The narrowest mask updates exactly what you're targeting and leaves every other property intact. Same rule as Sheets and Docs. | Low |
+| L5 | **For template-driven decks, copy the template via Drive `files.copy`, then `ReplaceAllText` into the copy** | Google's explicit instruction: *"make a copy and use the Slides API to manipulate the copy. Don't use the Slides API to manipulate your primary 'template' copy!"* — keeps the template clean and reusable for the next deck. | Medium |
+
+### The mental model — one batch endpoint, object-ID addressing
+
+A presentation is a tree: **Presentation → Page → PageElement**. Four page types (Slide, Master, Layout, Notes); page elements are Shape, Table, Image, Video, Line, WordArt, SheetsChart, or Group. Style inheritance flows up: slide ← layout ← master. Per the [Slides API overview](https://developers.google.com/workspace/slides/api/guides/overview), all mutation goes through one endpoint — `presentations.batchUpdate` — which accepts a list of typed `Request` objects and applies them atomically.
+
+Slides addressing is **string `objectId` per element**. Unlike Docs (start/end indices into a flat document) and unlike Sheets (`A1` ranges or `GridRange`), every page and page element has an explicit ID.
+
+> **The #1 Slides gotcha — object IDs are not stable.** Per Google's own docs: *"you cannot depend on an object ID being unchanged after a presentation is changed in the Slides UI."* If a human opens the deck in the Slides editor between your batch writes, your saved object IDs may not match anymore. The discovery patterns that survive: persist the **text content** of a shape (find shapes whose text contains "Title — {{date}}") or the **alt-text** (find shapes whose alt-text is `"primary_chart"`), and re-resolve to the current object ID before each batch.
+
+### Production MCP coverage for Slides is shallow
+
+This matters and deserves to be named explicitly. As of mid-2026:
+
+- The production Google Workspace MCP servers (taylorwilsdon/google_workspace_mcp, matteoantoci/google-slides-mcp) expose ~7 Slides tools — `create_presentation`, `get_presentation`, `batch_update_presentation`, `get_page`, `get_page_thumbnail`, `list_presentation_comments`, `manage_presentation_comment`.
+- Compare to Docs (~14 tools, fine-grained: `insertText`, `applyTextStyle`, `applyParagraphStyle`, `insertImage`, `replaceDocumentWithMarkdown`, etc.) and Sheets (~13 tools, equally fine-grained).
+- The Slides MCP path funnels every mutation through `batch_update_presentation`, so the agent ends up authoring raw `Request` JSON. There is no `insertImage`-style convenience tool, no `applyTextStyle`, no `replaceAllText` shortcut.
+
+**Practical implication:** building decks from an agent today means either (a) authoring raw `presentations.batchUpdate` payloads directly, or (b) writing a thin local helper that exposes higher-level operations (create slide with layout, insert text into placeholder, etc.) on top of the REST API. The latter is the right shape for any operator who builds more than a handful of decks programmatically.
+
+### Hard limits + workarounds — Slides
 
 | Hard limit | Workaround |
 |---|---|
@@ -799,29 +856,19 @@ Slides addressing is **string `objectId` per element**. Unlike Docs (start/end i
 | **Auto-fit / shrink-to-fit measurement** | Cannot read the rendered text size via API. Pre-measure client-side or use Apps Script. |
 | **Table column width / row height edits** | Long-standing gap in `SlidesApp` per [Tanaike, 2023](https://tanaikech.github.io/2023/07/01/managing-row-height-and-column-width-of-table-on-google-slides-using-google-apps-script/); REST API supports `UpdateTableColumnPropertiesRequest`. Use the REST API path. |
 
-### Production MCP coverage for Slides is shallow
+### Patterns to avoid — Slides
 
-This matters and deserves to be named explicitly. As of mid-2026:
+**A-L1 — Trusting object IDs after a human edits the deck; re-resolve via text content or alt-text.** Once the editor touches the file, your stored IDs may be stale. Cover by re-resolving via text content or alt-text on each batch.
 
-- The production Google Workspace MCP servers (taylorwilsdon/google_workspace_mcp, matteoantoci/google-slides-mcp) expose ~7 Slides tools — `create_presentation`, `get_presentation`, `batch_update_presentation`, `get_page`, `get_page_thumbnail`, `list_presentation_comments`, `manage_presentation_comment`.
-- Compare to Docs (~14 tools, fine-grained: `insertText`, `applyTextStyle`, `applyParagraphStyle`, `insertImage`, `replaceDocumentWithMarkdown`, etc.) and Sheets (~13 tools, equally fine-grained).
-- The Slides MCP path funnels every mutation through `batch_update_presentation`, so the agent ends up authoring raw `Request` JSON. There is no `insertImage`-style convenience tool, no `applyTextStyle`, no `replaceAllText` shortcut.
+**A-L2 — `InsertText` at index 0 of a placeholder without first `DeleteText`; pair every InsertText against a placeholder with a preceding DeleteText.** Placeholder prompt text ("Click to add title") stays in the cell. The resulting slide reads `Click to add titleYour Real Content`. Pairing fixes it.
 
-**Practical implication:** building decks from an agent today means either (a) authoring raw `presentations.batchUpdate` payloads directly, or (b) writing a thin local helper that exposes higher-level operations (create slide with layout, insert text into placeholder, etc.) on top of the REST API. The latter is the right shape for any operator who builds more than a handful of decks programmatically.
+**A-L3 — Calling `ReplaceAllText` and expecting it to restyle; follow with `UpdateTextStyleRequest`.** ReplaceAllText changes the text only; formatting carries from the first character of the matched range. For a redesign, always follow with `UpdateTextStyleRequest`.
 
-### Slides anti-patterns
+**A-L4 — Posting one-request-per-mutation; bundle 50–200 in a single `batchUpdate`.** Quota is per-project (600/min) and per-user (60/min). Bundle 50–200 requests in a single `batchUpdate`; atomic semantics prevent partial-failure mess.
 
-**A-L1 — Trusting object IDs after a human edits the deck.** Once the editor touches the file, your stored IDs may be stale. Cover by re-resolving via text content or alt-text on each batch.
+**A-L5 — Using the Slides API to manipulate your "template" copy; always `files.copy` first, mutate the copy.** Google's explicit warning. Always `files.copy` the template into a working folder first, then mutate the copy. The template stays clean and reusable.
 
-**A-L2 — `InsertText` at index 0 of a placeholder without first `DeleteText`.** Placeholder prompt text ("Click to add title") stays in the cell. The resulting slide reads `Click to add titleYour Real Content`. Pair every InsertText against a placeholder with a preceding DeleteText.
-
-**A-L3 — Calling `ReplaceAllText` and expecting it to restyle.** ReplaceAllText changes the text only; formatting carries from the first character of the matched range. For a redesign, always follow with `UpdateTextStyleRequest`.
-
-**A-L4 — Posting one-request-per-mutation.** Quota is per-project (600/min) and per-user (60/min). Bundle 50–200 requests in a single `batchUpdate`; atomic semantics prevent partial-failure mess.
-
-**A-L5 — Using the Slides API to manipulate your "template" copy.** Google's explicit warning. Always `files.copy` the template into a working folder first, then mutate the copy. The template stays clean and reusable.
-
-**A-L6 — Passing `*` as the `fields` mask on Update requests.** Resets every property in the message to its default, silently wiping styling. Use the narrowest path that covers what you're writing.
+**A-L6 — Passing `*` as the `fields` mask on Update requests; set the narrowest mask that covers the write.** Passing `*` resets every property in the message to its default. Use the narrowest path that covers what you're writing.
 
 ### Apps Script vs Slides API — where the line falls
 
@@ -845,7 +892,7 @@ The same overlap as Sheets, with one structural difference: **production MCP cov
 
 3. **Whether `replaceDocumentWithMarkdown` will stabilize on metadata-row formatting.** The current consecutive-`**Label:**` collapse is a quirk of the markdown converter, not a deliberate behavior. A future MCP release may fix it; until then, the source-side rule (blank line between every `**Label:**` row) is the durable defense.
 
-4. **Whether the cascade-style failure modes will reduce as MCP servers mature.** Both excess cascade and namedStyleType strip are interactions between the markdown converter and the doc's named styles. As the converter gets smarter, the regressions may become rarer. Keep cascade-check as a defense regardless — the cost is one extra `getDocumentInfo` per write, and the failure modes are too expensive to leave undefended.
+4. **Whether the cascade-style edges will reduce as MCP servers mature.** Both excess cascade and namedStyleType strip are interactions between the markdown converter and the doc's named styles. As the converter gets smarter, the regressions may become rarer. Keep cascade-check as a defense regardless — the cost is one extra `getDocumentInfo` per write, and the cases to handle are too expensive to leave undefended.
 
 5. **Whether Google ships revision-locked concurrency for Sheets writes.** No If-Match / ETag mechanism exists today; concurrent `append` calls and append-after-deleteDimension races are real. A future API change would let serialized pipelines run truly parallel. Until then, the workaround is to keep dependent writes inside a single `batchUpdate` call.
 
@@ -858,6 +905,10 @@ The same overlap as Sheets, with one structural difference: **production MCP cov
 ---
 
 ## Part 9 — Operating Google Calendar
+
+### What this surface unlocks — Calendar
+
+Calendar is where an agent moves from documents to scheduled actions. From a single API surface you can create single and recurring events with attendees, book Workspace resource calendars (rooms, equipment) that auto-accept during free windows, attach a Google Meet link that resolves asynchronously, store structured app state on the event via `extendedProperties`, push-subscribe to inbox changes, and run optimistic-concurrency updates that catch concurrent writers. The decisions in this Part — passing `sendUpdates=all` so attendees actually get notified, populating `start.timeZone` with an IANA ID, read-mutate-write to avoid full-replace wipes, persisting `syncToken` for incremental change tracking — are the ones that separate working calendar automation from agents that silently add attendees no one ever sees on their invite list.
 
 Calendar is the fourth Workspace surface and the first one in this guide where the addressing model is genuinely tricky. Docs uses character indices, Sheets uses A1 ranges, Slides uses string `objectId`. Calendar uses **two parallel identifiers** (`eventId` vs `iCalUID`), plus a third (`recurringEventId` + `originalStartTime`) for instances of recurring events. Production bugs cluster on choosing the wrong one.
 
@@ -879,7 +930,7 @@ A calendar is a collection of events identified by an email-shaped string (`prim
 
 The Calendar API exposes 11 endpoints on the Events resource per the [Events reference](https://developers.google.com/workspace/calendar/api/v3/reference/events): `delete`, `get`, `import`, `insert`, `instances`, `list`, `move`, `patch`, `quickAdd`, `update`, `watch` — plus `freebusy.query` and the `calendarList.*` / `acl.*` / `calendars.*` / `settings.*` / `colors.*` / `channels.*` resources at the top level. Most MCP wrappers cover a subset — typically `list`, `get`, `insert`, `update`, `delete`, plus `freebusy` and `events.instances` for the recurring case. Anything not exposed by the wrapper (sync tokens, conferenceData polling, ACL edits, freebusy queries against >50 calendars, ETag concurrency) drops to direct REST against the [Calendar API v3 reference](https://developers.google.com/workspace/calendar/api/v3/reference).
 
-### What's possible — Calendar headline capabilities
+### What you can do today — Calendar capability inventory
 
 | You want to... | Tool you reach for | Notes |
 |---|---|---|
@@ -901,39 +952,22 @@ The Calendar API exposes 11 endpoints on the Events resource per the [Events ref
 | Receive push notifications on changes | [`events.watch`](https://developers.google.com/workspace/calendar/api/guides/push) on a webhook channel | Channel expiration returned in the response; per the [push guide](https://developers.google.com/workspace/calendar/api/guides/push), renewal requires a new `watch` call with a new channel `id` |
 | Submit many Calendar calls in one HTTP round-trip | JSON batch endpoint `https://www.googleapis.com/batch/calendar/v3` per the [batch guide](https://developers.google.com/workspace/calendar/api/guides/batch) | 1000 calls per batch hard cap; each call still counts individually against quota |
 
-### What's NOT possible — and the workaround (Calendar)
-
-| You want to... | Reality | Workaround |
-|---|---|---|
-| Mix all-day and timed in one event (`start.date` + `end.dateTime`) | API rejects with `400 invalid`. Per the [concepts doc](https://developers.google.com/workspace/calendar/api/concepts/events-calendars): "The start and end of the event must both be timed or both be all-day. For example, it is not valid to specify `start.date` and `end.dateTime`." | Two separate events, or pick one shape |
-| Atomically update a recurring series AND following exceptions | The two-call split (trim `UNTIL` + insert new series) **resets any exceptions** occurring after the target instance, per the [recurring events guide](https://developers.google.com/workspace/calendar/api/guides/recurringevents) | Snapshot the exceptions via `events.instances` first, replay them onto the new series |
-| Guarantee invitation delivery even with `sendUpdates=all` | The [insert reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert) qualifies the parameter: "Note that some emails might still be sent." Calendar-side notification settings can override in both directions | For mission-critical sends, pass `sendUpdates=all` AND fire a parallel Gmail message outside the Calendar pipeline |
-| Hardcode a UTC offset in `start.dateTime` and trust it across DST | Offsets become wrong on DST transitions and political changes. Recurring events with no `timeZone` field can't be expanded reliably | Always populate `start.timeZone` with an [IANA Time Zone Database](https://www.iana.org/time-zones) ID (`America/New_York`), never `-05:00` |
-| Get a guaranteed `hangoutLink` on the create-event response | `conferenceData.createRequest` is async per the [create-events guide](https://developers.google.com/workspace/calendar/api/guides/create-events): the initial response has `status: pending` and no `hangoutLink` populated | Poll `events.get` until `conferenceData.createRequest.status.statusCode == "success"` |
-| Filter `events.list` by `q` + sync incrementally in one call | `syncToken` is incompatible with most filters per the [sync guide](https://developers.google.com/workspace/calendar/api/guides/sync); combining returns `400 invalidParameter` | Two parallel pipelines: filtered full-list reads, plus a separate unfiltered sync-token pipeline |
-| Subscribe to push notifications indefinitely without re-registration | `events.watch` channels expire; the response carries an `expiration` field as a millisecond Unix timestamp. Per the [push guide](https://developers.google.com/workspace/calendar/api/guides/push), "there's no automatic way to renew a notification channel" | Schedule a re-watch before expiration; persist + re-issue any active `syncToken` on the new channel |
-| Use an arbitrary `event.id` | `event.id` must be base32hex (lowercase `a-v` + `0-9`), 5–1024 chars, unique-per-calendar per the [Event resource reference](https://developers.google.com/workspace/calendar/api/v3/reference/events#resource); uppercase or punctuation rejects | Use `iCalUID` (RFC 5545 format) and `events.import` for cross-system event copies |
-| Refetch an event using its iCalUID directly | `events.get` requires `eventId`; iCalUID lookup is via list-with-filter only per the [Events reference](https://developers.google.com/workspace/calendar/api/v3/reference/events) | `events.list?iCalUID=...` returns the matching event (or 0 results); pull `id` from the first item |
-| Move a non-default event type between calendars | `events.move` rejects with 400 — only `eventType=default` is movable per the [move reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/move) | Delete + recreate as a new `default` event on the destination calendar (loses history) |
-| Treat `events.update` as a partial update | The [update reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/update) is explicit: "This method does not support patch semantics and always updates the entire event resource." Omitted fields reset to default and may wipe attendees, reminders, conferenceData | Read with `events.get`, mutate the returned object in place, write it back — or use `events.patch` if partial-write semantics actually apply |
-| Avoid silent overwrite on concurrent writers | Use ETag + `If-Match`. Calendar implements optimistic concurrency per the [version-resources guide](https://developers.google.com/workspace/calendar/api/guides/version-resources) | On `412 Precondition Failed`, re-read and retry |
-
 ### Where to spend your time — Calendar
 
-The patterns that close the largest share of real-world Calendar failure modes. The top four are non-negotiable — every Calendar agent gets them wrong at least once.
+The patterns that close the largest share of real-world Calendar cases to handle. The top four are non-negotiable — every Calendar agent gets them wrong at least once.
 
-| # | Pattern | Why it matters | Symptom when missed | Effort |
-|---|---|---|---|---|
-| 1 | **Always pass `sendUpdates=all` explicitly on insert / update / delete when attendees are present** | Per the [insert reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert), "the default is `false`" — no notifications fire, the human shows up to a meeting they never knew about | Attendees get added silently; no invite email arrives; meeting "didn't go through" reports | Low |
-| 2 | **Populate `start.timeZone` with an [IANA](https://www.iana.org/time-zones) ID, never an offset; recurring events MUST have a timeZone** | Without a timeZone the API can't expand recurrences reliably. Offsets like `-05:00` become wrong on the second Sunday in March when DST kicks in | Recurring events fire at the wrong wall-clock time after DST; single events drift by an hour twice a year | Low |
-| 3 | **Read-mutate-write, never partial-update via raw object construction** | Per the [update reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/update), update replaces the full resource | Update title, attendees vanish; update time, reminders / conferenceData reset to defaults; transparency flips back to `opaque` and breaks downstream schedulers | Low |
-| 4 | **For series edits, decide series-vs-instance up front; never modify instances individually as a backdoor "edit series"** | Per the [recurring events guide](https://developers.google.com/workspace/calendar/api/guides/recurringevents): "creates lots of exceptions that clutter the calendar, slowing down access and sending a high number of change notifications" | Attendees flooded with notifications; calendar UI slows; series is locked into a fragile per-instance state that resists future edits | Medium |
-| 5 | **Use `extendedProperties.private` as the source of app state — not the description field** | Per the [extended properties guide](https://developers.google.com/workspace/calendar/api/guides/extended-properties), private properties are hidden from end users and queryable via `privateExtendedProperty`. Descriptions get edited by humans, indexed by mail-side search, and exported | App-key lookups fail when a human edits the description; app state leaks into exports and mail-side search results | Low |
-| 6 | **Poll `conferenceData.createRequest.status` after creating a Meet event before reporting the link** | The Meet link is async per the [create-events guide](https://developers.google.com/workspace/calendar/api/guides/create-events). First response says `pending` with no `hangoutLink` | Event ships with no join URL; user joins the calendar event and finds no Meet link | Low |
-| 7 | **Persist `syncToken` per calendar in durable storage; handle `410 GONE` as full-resync, not an error** | The token is the only path to "what changed since last poll" per the [sync guide](https://developers.google.com/workspace/calendar/api/guides/sync); `updatedMin` polling misses cancellations | Cancelled events never delete from local cache; sync errors crash the loop on expected 410s | Medium |
-| 8 | **Always pass `singleEvents=true` on `events.list` when expanding recurring events** | Default is `false` per the [events.list reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/list); only the series resource is returned, instance times and exceptions are hidden | "What's happening this week" returns one row per recurring series instead of N instances; per-instance metadata (rescheduled time, attendee responses) missing | Low |
-| 9 | **Use ETag + `If-Match` on every read-modify-write to avoid silent overwrites** | Calendar implements optimistic concurrency per the [version-resources guide](https://developers.google.com/workspace/calendar/api/guides/version-resources). A 412 means another writer changed the event between read and write | `events.update` silently overwrites a concurrent edit; user's change vanishes with no error returned | Medium |
-| 10 | **For >50 calendars in freebusy lookup, batch into chunks of 50; cache aggressively** | `calendarExpansionMax` is hard-capped at 50 per the [freebusy.query reference](https://developers.google.com/workspace/calendar/api/v3/reference/freebusy/query). Larger lists fail with `400 invalidParameter` | Bulk freebusy queries fail with `400`; "find a time" UI returns no candidates | Medium |
+| # | Pattern | Why this pattern wins | Effort |
+|---|---|---|---|
+| 1 | **Always pass `sendUpdates=all` explicitly on insert / update / delete when attendees are present** | Attendees get the invitation email and actually show up to the meeting. The documented default is `false` (= no notifications fire) per the [insert reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert) — without the explicit flag the meeting "didn't go through." | Low |
+| 2 | **Populate `start.timeZone` with an [IANA](https://www.iana.org/time-zones) ID, never an offset; recurring events MUST have a timeZone** | IANA IDs (`America/New_York`) carry DST rules and political-change history; the API expands recurrences correctly across DST transitions. Hardcoded offsets like `-05:00` drift by an hour twice a year. | Low |
+| 3 | **Read-mutate-write, never partial-update via raw object construction** | The full event resource round-trips through the update — attendees, reminders, conferenceData, transparency all stay intact. Constructing an update body from scratch silently wipes every field you forgot to populate. | Low |
+| 4 | **For series edits, decide series-vs-instance up front; never modify instances individually as a backdoor "edit series"** | Series-level edits propagate to every instance cleanly. Per-instance edits accumulate as exceptions that clutter the calendar, slow access, and flood attendees with change notifications. | Medium |
+| 5 | **Use `extendedProperties.private` as the source of app state — not the description field** | App-key state survives every human edit to the description, stays out of search indexes and exports, and is directly queryable via `privateExtendedProperty`. | Low |
+| 6 | **Poll `conferenceData.createRequest.status` after creating a Meet event before reporting the link** | The Meet link is async per the [create-events guide](https://developers.google.com/workspace/calendar/api/guides/create-events). Polling until `success` ensures the event ships with a working join URL. | Low |
+| 7 | **Persist `syncToken` per calendar in durable storage; handle `410 GONE` as full-resync, not an error** | The token is the only path to "what changed since last poll" including cancellations; `updatedMin` polling misses deletes. Treating 410 as expected lets the sync loop recover cleanly. | Medium |
+| 8 | **Always pass `singleEvents=true` on `events.list` when expanding recurring events** | One row per instance instead of one row per series; per-instance metadata (rescheduled time, attendee responses) becomes visible. Default returns the series resource only. | Low |
+| 9 | **Use ETag + `If-Match` on every read-modify-write to avoid silent overwrites** | A concurrent writer's change triggers `412 Precondition Failed` instead of silent overwrite; the loser re-reads and retries instead of clobbering. | Medium |
+| 10 | **For >50 calendars in freebusy lookup, batch into chunks of 50; cache aggressively** | One query returns up to 50 calendars' busy intervals per the [freebusy.query reference](https://developers.google.com/workspace/calendar/api/v3/reference/freebusy/query); chunking lets large room-finders scale without hitting `400 invalidParameter`. | Medium |
 
 Most readers should fix patterns 1–4 and stop. Items 5–10 matter once agents are managing series, app-key state, or real-time calendar sync.
 
@@ -947,7 +981,7 @@ Most readers should fix patterns 1–4 and stop. Items 5–10 matter once agents
 
 ### Deep dive — recurrence, time zones, and the four ways to break a series
 
-Recurrence is where Calendar production bugs concentrate. The data model has four interacting pieces, and every common failure mode comes from confusing two of them.
+Recurrence is where Calendar production bugs concentrate. The data model has four interacting pieces, and every common case to handle comes from confusing two of them.
 
 **The four pieces:**
 
@@ -996,7 +1030,7 @@ def update_event(token, cal_id, event_id, mutate):
         raise
 ```
 
-The `If-Match` header is the only durable defense against the "two agents mutate the same event simultaneously, the second silently wins" failure. On 412, re-read and retry; don't blind-overwrite.
+The `If-Match` header is the only durable defense against the "two agents mutate the same event simultaneously, the second silently wins" case to handle. On 412, re-read and retry; don't blind-overwrite.
 
 ### Deep dive — sendUpdates, attendees, and the silent-add failure mode
 
@@ -1013,7 +1047,7 @@ The `If-Match` header is the only durable defense against the "two agents mutate
 
 The caveat the docs add: "Note that some emails might still be sent." Workspace orgs with calendar-side settings (default-notification policies, recipient-side filters) can override the parameter in both directions. For mission-critical "this person has to see the invite" cases, the durable defense is belt-and-braces: pass `sendUpdates=all` AND fire a parallel Gmail message with the event details outside the Calendar pipeline.
 
-A symmetric trap exists on `delete` and on `update` of an existing event. Both honor `sendUpdates` the same way. Cancelling a meeting without `sendUpdates=all` removes it from the organizer's calendar and from invitee responses, but doesn't notify them. They show up to an empty room.
+A symmetric watch-out exists on `delete` and on `update` of an existing event. Both honor `sendUpdates` the same way. Cancelling a meeting without `sendUpdates=all` removes it from the organizer's calendar and from invitee responses, but doesn't notify them. They show up to an empty room.
 
 ### Deep dive — transparency, busy/free, and how an event appears in freebusy
 
@@ -1028,7 +1062,7 @@ Two production patterns hinge on this field.
 
 **Pattern B — reverting a previously-busy event to Free, or vice versa.** A patch payload that doesn't include `transparency` leaves the existing value alone (patch is field-mask aware). An `events.update` payload that omits `transparency` resets it to the default `opaque` per the [update reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/update). The read-mutate-write rule (see the code block above) applies here too: an update that intended to change the title and forgot to carry `transparency` forward flips the event from Free to Busy and breaks every downstream scheduler that was treating it as available time.
 
-A related trap is the `eventType` field. Events typed `outOfOffice`, `focusTime`, and `workingLocation` carry their own visibility semantics independent of `transparency` — `outOfOffice` events block invitations during the window per the [Event resource reference](https://developers.google.com/workspace/calendar/api/v3/reference/events#resource). Treat the type and the transparency as orthogonal but interacting: a `default` event with `transparency: "transparent"` is the generic "block on calendar, don't show as busy" shape; a typed event has additional side effects.
+A related watch-out is the `eventType` field. Events typed `outOfOffice`, `focusTime`, and `workingLocation` carry their own visibility semantics independent of `transparency` — `outOfOffice` events block invitations during the window per the [Event resource reference](https://developers.google.com/workspace/calendar/api/v3/reference/events#resource). Treat the type and the transparency as orthogonal but interacting: a `default` event with `transparency: "transparent"` is the generic "block on calendar, don't show as busy" shape; a typed event has additional side effects.
 
 ### Deep dive — conferenceData, the async Meet link, and the polling loop
 
@@ -1064,7 +1098,7 @@ def create_event_with_meet(token, cal_id, body):
 
 The `requestId` is the idempotency key. If the request transiently fails and a retry sends the same `requestId`, the API recognizes the duplicate and doesn't create a second conference. Different `requestId` = different conference. Generate it client-side, persist it before sending the insert request, reuse on retry.
 
-The failure modes:
+The cases to handle:
 
 - **Reporting success on the initial response.** The 200 is real, but the conference is not done. The event ships with no Meet link.
 - **Forgetting `conferenceDataVersion=1`.** Without the query parameter, the API silently ignores `conferenceData` in the request body. The event creates fine, but with no conference attached.
@@ -1199,31 +1233,52 @@ The setup per Google's [service-account guide](https://developers.google.com/ide
 3. Add the SA's numeric Client ID with the exact OAuth scopes the agent will request (e.g. `https://www.googleapis.com/auth/calendar`). Propagation can take up to 24 hours per Google's guidance.
 4. In code, build a credential with `subject=<user-to-impersonate>`. The SA's token then carries that user's identity.
 
-The most common gotcha: **the SA is configured but the OAuth Client ID was never authorized in the Admin Console**, or it was authorized with the SA's email instead of the numeric Client ID. Symptom: every API call returns `unauthorized_client`. The fix is always in the Admin Console, not the code. Also worth flagging: DWD does not work for `@gmail.com` consumer accounts — it's a Workspace-only mechanism per the admin guide.
+The most common watch-out: **the SA is configured but the OAuth Client ID was never authorized in the Admin Console**, or it was authorized with the SA's email instead of the numeric Client ID. Symptom: every API call returns `unauthorized_client`. The fix is always in the Admin Console, not the code. Also worth flagging: DWD does not work for `@gmail.com` consumer accounts — it's a Workspace-only mechanism per the admin guide.
 
-### Calendar anti-patterns
+### Hard limits + workarounds — Calendar
 
-**A-C1 — Inserting attendees without `sendUpdates=all`.** Covered above. The single most common failure mode. If the `events.insert` call doesn't pass the parameter explicitly, attendees get added silently and no invitation fires.
+| You want to... | Reality | Workaround |
+|---|---|---|
+| Mix all-day and timed in one event (`start.date` + `end.dateTime`) | API rejects with `400 invalid`. Per the [concepts doc](https://developers.google.com/workspace/calendar/api/concepts/events-calendars): "The start and end of the event must both be timed or both be all-day. For example, it is not valid to specify `start.date` and `end.dateTime`." | Two separate events, or pick one shape |
+| Atomically update a recurring series AND following exceptions | The two-call split (trim `UNTIL` + insert new series) **resets any exceptions** occurring after the target instance, per the [recurring events guide](https://developers.google.com/workspace/calendar/api/guides/recurringevents) | Snapshot the exceptions via `events.instances` first, replay them onto the new series |
+| Guarantee invitation delivery even with `sendUpdates=all` | The [insert reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert) qualifies the parameter: "Note that some emails might still be sent." Calendar-side notification settings can override in both directions | For mission-critical sends, pass `sendUpdates=all` AND fire a parallel Gmail message outside the Calendar pipeline |
+| Hardcode a UTC offset in `start.dateTime` and trust it across DST | Offsets become wrong on DST transitions and political changes. Recurring events with no `timeZone` field can't be expanded reliably | Always populate `start.timeZone` with an [IANA Time Zone Database](https://www.iana.org/time-zones) ID (`America/New_York`), never `-05:00` |
+| Get a guaranteed `hangoutLink` on the create-event response | `conferenceData.createRequest` is async per the [create-events guide](https://developers.google.com/workspace/calendar/api/guides/create-events): the initial response has `status: pending` and no `hangoutLink` populated | Poll `events.get` until `conferenceData.createRequest.status.statusCode == "success"` |
+| Filter `events.list` by `q` + sync incrementally in one call | `syncToken` is incompatible with most filters per the [sync guide](https://developers.google.com/workspace/calendar/api/guides/sync); combining returns `400 invalidParameter` | Two parallel pipelines: filtered full-list reads, plus a separate unfiltered sync-token pipeline |
+| Subscribe to push notifications indefinitely without re-registration | `events.watch` channels expire; the response carries an `expiration` field as a millisecond Unix timestamp. Per the [push guide](https://developers.google.com/workspace/calendar/api/guides/push), "there's no automatic way to renew a notification channel" | Schedule a re-watch before expiration; persist + re-issue any active `syncToken` on the new channel |
+| Use an arbitrary `event.id` | `event.id` must be base32hex (lowercase `a-v` + `0-9`), 5–1024 chars, unique-per-calendar per the [Event resource reference](https://developers.google.com/workspace/calendar/api/v3/reference/events#resource); uppercase or punctuation rejects | Use `iCalUID` (RFC 5545 format) and `events.import` for cross-system event copies |
+| Refetch an event using its iCalUID directly | `events.get` requires `eventId`; iCalUID lookup is via list-with-filter only per the [Events reference](https://developers.google.com/workspace/calendar/api/v3/reference/events) | `events.list?iCalUID=...` returns the matching event (or 0 results); pull `id` from the first item |
+| Move a non-default event type between calendars | `events.move` rejects with 400 — only `eventType=default` is movable per the [move reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/move) | Delete + recreate as a new `default` event on the destination calendar (loses history) |
+| Treat `events.update` as a partial update | The [update reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/update) is explicit: "This method does not support patch semantics and always updates the entire event resource." Omitted fields reset to default and may wipe attendees, reminders, conferenceData | Read with `events.get`, mutate the returned object in place, write it back — or use `events.patch` if partial-write semantics actually apply |
+| Avoid silent overwrite on concurrent writers | Use ETag + `If-Match`. Calendar implements optimistic concurrency per the [version-resources guide](https://developers.google.com/workspace/calendar/api/guides/version-resources) | On `412 Precondition Failed`, re-read and retry |
 
-**A-C2 — Hardcoded UTC offsets in `dateTime`.** `2026-06-15T10:00:00-05:00` looks fine on June 15 but in NY at that date DST is in effect (UTC-4) — so the value lands as 11am local, not 10am. Use `start.dateTime: "2026-06-15T10:00:00"` + `start.timeZone: "America/New_York"` instead. IANA IDs are the canonical names per the [IANA Time Zone Database](https://www.iana.org/time-zones).
+### Patterns to avoid — Calendar
 
-**A-C3 — Iterating `events.instances` to do a bulk series edit.** Edit the series itself, let the instance changes propagate. Looping instances generates one exception per occurrence, slows down the calendar, and floods attendees with change notifications.
+**A-C1 — Inserting attendees without `sendUpdates=all`; pass it explicitly.** Covered above. The single most common case to handle. If the `events.insert` call doesn't pass the parameter explicitly, attendees get added silently and no invitation fires.
 
-**A-C4 — Treating `events.update` like patch.** The update verb replaces the entire resource per the [update reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/update). Construct the payload from a fresh `events.get`, mutate the field, write the full object back. Code that builds an update body from scratch silently wipes fields it forgot to populate — including `transparency`, which flips Free events to Busy and breaks downstream schedulers.
+**A-C2 — Hardcoded UTC offsets in `dateTime`; use IANA `timeZone` IDs.** `2026-06-15T10:00:00-05:00` looks fine on June 15 but in NY at that date DST is in effect (UTC-4) — so the value lands as 11am local, not 10am. Use `start.dateTime: "2026-06-15T10:00:00"` + `start.timeZone: "America/New_York"` instead. IANA IDs are the canonical names per the [IANA Time Zone Database](https://www.iana.org/time-zones).
 
-**A-C5 — Reporting success on the initial conferenceData response.** The Meet link is async. The `pending` state is not done. Poll until `status.statusCode == "success"` before declaring the event ready.
+**A-C3 — Iterating `events.instances` to do a bulk series edit; edit the series itself.** Edit the series itself, let the instance changes propagate. Looping instances generates one exception per occurrence, slows down the calendar, and floods attendees with change notifications.
 
-**A-C6 — `updatedMin` polling instead of `syncToken` for change tracking.** Misses cancellations entirely. Use `syncToken` or accept that you don't actually know what changed.
+**A-C4 — Treating `events.update` like patch; construct the body from a fresh `events.get`.** The update verb replaces the entire resource per the [update reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/update). Construct the payload from a fresh `events.get`, mutate the field, write the full object back. Code that builds an update body from scratch silently wipes fields it forgot to populate — including `transparency`, which flips Free events to Busy and breaks downstream schedulers.
 
-**A-C7 — Forgetting `singleEvents=true` on `events.list` when expanding recurring events.** Per the [events.list reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/list), the default returns the series resource only; instance times and per-occurrence metadata are hidden. Symptom: a "what's happening this week" query returns one row per recurring meeting (the series) instead of N rows (the instances). Always pass `singleEvents=true` when the agent needs instance-level data, and remember `orderBy: "startTime"` requires it.
+**A-C5 — Reporting success on the initial conferenceData response; poll until success.** The Meet link is async. The `pending` state is not done. Poll until `status.statusCode == "success"` before declaring the event ready.
 
-**A-C8 — Not handling `status: "cancelled"` tombstones on incremental sync.** Sync responses with `showDeleted=true` (and `singleEvents=true` for recurring instance cancellations) carry deleted events as tombstones with `status: "cancelled"`. Code that doesn't check `status` either crashes reading missing fields on the tombstone, or — worse — silently treats cancelled events as live and leaves them in the local cache. Branch on `status` first; route tombstones to the local delete path.
+**A-C6 — `updatedMin` polling instead of `syncToken` for change tracking; use `syncToken`.** Misses cancellations entirely. Use `syncToken` or accept that you don't actually know what changed.
 
-**A-C9 — Storing identifier state in event titles or descriptions to look up app records.** Humans rename events, breaking the lookup. Search indexes descriptions. Exports include them. Use `extendedProperties.private` for app-key state and query via `privateExtendedProperty=key=value` per the [extended properties guide](https://developers.google.com/workspace/calendar/api/guides/extended-properties).
+**A-C7 — Forgetting `singleEvents=true` on `events.list` when expanding recurring events; always pass it.** Per the [events.list reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/list), the default returns the series resource only; instance times and per-occurrence metadata are hidden. Symptom: a "what's happening this week" query returns one row per recurring meeting (the series) instead of N rows (the instances). Always pass `singleEvents=true` when the agent needs instance-level data, and remember `orderBy: "startTime"` requires it.
+
+**A-C8 — Not handling `status: "cancelled"` tombstones on incremental sync; branch on `status` first.** Sync responses with `showDeleted=true` (and `singleEvents=true` for recurring instance cancellations) carry deleted events as tombstones with `status: "cancelled"`. Code that doesn't check `status` either crashes reading missing fields on the tombstone, or — worse — silently treats cancelled events as live and leaves them in the local cache. Branch on `status` first; route tombstones to the local delete path.
+
+**A-C9 — Storing identifier state in event titles or descriptions to look up app records; use `extendedProperties.private`.** Humans rename events, breaking the lookup. Search indexes descriptions. Exports include them. Use `extendedProperties.private` for app-key state and query via `privateExtendedProperty=key=value` per the [extended properties guide](https://developers.google.com/workspace/calendar/api/guides/extended-properties).
 
 ---
 
 ## Part 10 — Operating Gmail
+
+### What this surface unlocks — Gmail
+
+Gmail is the surface where agent-authored outbound and inbox monitoring meet a human review loop. From the API you can draft mail a human signs off on, send plaintext or full multipart MIME (HTML + plain alternative + attachment + inline image), label by stable ID, reply in-thread so the message lands grouped on the recipient's side, monitor inbox changes via push notifications, manage filters and forwarding addresses, and operate alias sends from verified `sendAs` resources. The decisions in this Part — drafting instead of sending directly, base64url instead of standard base64, labelId instead of display name, all three threading conditions instead of just `threadId` — are what produce mail that ships when intended, threads on the recipient's side, and survives every label rename downstream.
 
 Gmail is the fifth Workspace surface and the one where the largest gap exists between the casual API and the production API. The casual path (`messages.send` with a hand-constructed `raw` field) works for plaintext one-shot sends. Anything with HTML, attachments, threading, inline images, or "make this look like a reply" needs the production path — multipart MIME assembly per [RFC 2822](https://www.rfc-editor.org/info/rfc2822/) (which the Gmail docs cite by name; [RFC 5322](https://www.rfc-editor.org/info/rfc5322/) obsoletes 2822 with the same headers), base64url-not-base64 encoding, and label-ID-not-display-name addressing. Production bugs cluster in the gap.
 
@@ -1242,7 +1297,7 @@ Gmail's data model is a tree of mailboxes, each containing messages grouped into
 
 The Gmail API surface ([Gmail API v1 REST reference](https://developers.google.com/workspace/gmail/api/reference/rest)) exposes the full Users / Messages / Threads / Drafts / Labels / History / Attachments tree plus `users.settings.sendAs`, `users.settings.filters`, and `users.settings.forwardingAddresses` for mailbox-configuration management. MCP wrappers typically cover roughly a dozen high-level operations — `search_threads`, `get_thread`, `create_draft`, `list_drafts`, `list_labels`, `create_label`, `delete_label`, `update_label`, `label_message`, `label_thread`, `unlabel_*`. **One omission worth naming up front: many production agent-facing connectors deliberately omit a direct `messages.send` tool** — the human-in-the-loop pattern is `drafts.create` → human reviews → human sends. Send-capable automation needs an OAuth scope that grants send — `gmail.send` is the narrowest sufficient scope per the [scopes reference](https://developers.google.com/workspace/gmail/api/auth/scopes); `gmail.compose`, `gmail.modify`, or `mail.google.com/` also qualify — plus REST against the [messages.send reference](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/send).
 
-### What's possible — Gmail headline capabilities
+### What you can do today — Gmail capability inventory
 
 | You want to... | Tool you reach for | Notes |
 |---|---|---|
@@ -1266,37 +1321,20 @@ The Gmail API surface ([Gmail API v1 REST reference](https://developers.google.c
 | Get attachment bytes | `messages.attachments.get(messageId, attachmentId)` | Returns base64url-encoded `data` field per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending)'s base64URL encoding statement (which applies symmetrically on read); decode before writing to disk |
 | Batch reads of many messages | HTTP JSON batch endpoint per the [batch guide](https://developers.google.com/workspace/gmail/api/guides/batch) | Limit 100 calls per batch; "sending batches larger than 50 requests is not recommended" |
 
-### What's NOT possible — and the workaround (Gmail)
-
-| You want to... | Reality | Workaround |
-|---|---|---|
-| Send a large attachment past the account's size cap | API rejects once the encoded payload exceeds the account's per-message cap. Per the consumer [attachment size limits help](https://support.google.com/mail/answer/6584), personal Gmail caps at 25 MB per message; Workspace caps are admin-configurable. Base64 overhead (~37%) reduces the practical binary-attachment ceiling further — ~18 MB raw binary for the 25 MB consumer cap | Drive-share the file, link it in the body; or use the Workspace SMTP relay for higher caps |
-| Reply in-thread by passing only `threadId` on the resource | Per the [threads guide](https://developers.google.com/workspace/gmail/api/guides/threads), three conditions must all hold: `threadId` on the resource, `References` + `In-Reply-To` headers per [RFC 2822](https://www.rfc-editor.org/info/rfc2822/) (the spec the Gmail docs cite by name), and a matching `Subject` | Set `threadId` AND populate `In-Reply-To`/`References` AND keep `Subject` matching (with or without `Re:` prefix) |
-| Apply a user label by display name | Labels are addressed by ID per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels). Display names are mutable; IDs are stable. Passing a display name returns `400 invalidArgument` | `labels.list` once at app startup, build a name→ID map, pass IDs at write time |
-| Apply a label to a draft | Per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels): "You can't apply labels to draft messages" | Send the draft, then apply the label to the resulting message (or rely on the system `DRAFT` label) |
-| Base64-encode the MIME with standard `base64` | Per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending), the `raw` field requires base64url (URL-safe alphabet: `-` / `_` instead of `+` / `/`, optional `=` padding stripped). Standard base64 fails because its `+` / `/` characters are not in the URL-safe alphabet; encoding any non-trivial payload produces these characters and the API rejects with `400 invalidArgument`. The symmetric decode-side trap exists on reads (see [googleapis/google-api-ruby-client #145](https://github.com/googleapis/google-api-ruby-client/issues/145) — community-observed decoding bug on `messages.get` with `format=raw`) | Always `base64.urlsafe_b64encode()` (Python) / `Buffer.toString('base64url')` (Node) |
-| Exceed Workspace daily-send caps from a regular Gmail account | Daily-send caps are enforced at the account level per the [Workspace sending limits documentation](https://knowledge.workspace.google.com/admin/gmail/gmail-sending-limits-in-google-workspace). Exceeding triggers a temporary lockout | SMTP relay for transactional volume; user-bound API for human-paced sends |
-| Use `q` filters with sync via `historyId` | `history.list` only accepts `startHistoryId` — no `q` overlay. History is "everything that changed" | Two pipelines: poll history for change detection, hit `messages.get` for each, filter at read |
-| Use full boolean nesting in `q` | Per the [advanced search reference](https://support.google.com/mail/answer/7190), `q` supports implicit AND (space), brace-grouped OR (`{from:a from:b}`), and prefix-negation (`-from:c`). No general parens or nesting | Run multiple queries client-side and union results, or accept the limited grammar |
-| Edit a sent message after sending | Sent messages are immutable; there is no `messages.update` in the [Gmail API v1 reference](https://developers.google.com/workspace/gmail/api/reference/rest) | Send a follow-up correction or use Workspace admin recall (not API-driven) |
-| Subscribe to push notifications indefinitely without re-registration | `watch` expires; per the [push guide](https://developers.google.com/workspace/gmail/api/guides/push): "You must call the watch at least once every 7 days or you'll stop receiving updates" | Cron-schedule daily re-watch; persist `historyId` from the last event so the new watch picks up where the old one left off |
-| Read message bodies in bulk without N round-trips | `messages.list` returns IDs only. Each `messages.get` is a separate call per the [quota reference](https://developers.google.com/workspace/gmail/api/reference/quota) | Use `format: "metadata"` to avoid pulling full body when only headers are needed; batch via the [JSON batch endpoint](https://developers.google.com/workspace/gmail/api/guides/batch) |
-| Get a guaranteed delivery receipt | Gmail does not expose RFC 8098 Message Disposition Notifications or per-recipient delivery state in the public API | None — accept that "send succeeded" only means "the message left the API"; bounces arrive as inbound messages (see the bounce-handling deep dive below) |
-
 ### Where to spend your time — Gmail
 
-| # | Pattern | Why it matters | Symptom when missed | Effort |
-|---|---|---|---|---|
-| 1 | **Draft, don't send: agents create drafts via `drafts.create`, humans review and click send** | Inverts the worst-case failure — an agent-authored email going out before review | Agent ships outbound directly; review step missing; reputational and recall risk | Low |
-| 2 | **Use `urlsafe_b64encode`, not `b64encode`, for the `raw` field** | Per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending), the `raw` field requires base64url. Standard base64's `+` / `/` characters return `400 invalidArgument` when present in encoded output | Sends pass tests on plaintext payloads, fail with `400 invalidArgument` on first HTML / binary message in production | Low |
-| 3 | **Address labels by ID, not display name; cache the name→ID map at app startup** | Per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels), display names are mutable while IDs are stable | First label rename breaks every modify path that hardcoded the name; `400 invalidArgument` returns | Low |
-| 4 | **For threaded replies, set BOTH `threadId` on the resource AND `In-Reply-To` / `References` headers AND matching Subject** | Per the [threads guide](https://developers.google.com/workspace/gmail/api/guides/threads), `threadId` only governs the sender's mailbox; recipient mailboxes rely on the RFC 2822 headers | Reply lands in-thread on the sender's Gmail, appears as a new thread on the recipient's — looks broken from outside | Low |
-| 5 | **Pick the narrowest scope: `gmail.send` (sensitive) vs `gmail.modify` / `gmail.readonly` (restricted)** | Per the [Gmail OAuth scopes reference](https://developers.google.com/workspace/gmail/api/auth/scopes), restricted scopes trigger Google's [restricted-scope verification](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification) — an annual security assessment via the App Defense Alliance / CASA framework | App stuck in OAuth-consent-screen verification for weeks; restricted scope used where Sensitive would have shipped | Medium |
-| 6 | **Treat `messages.send` as a 100-quota-unit operation; budget against the [per-user 6,000 units/minute cap](https://developers.google.com/workspace/gmail/api/reference/quota)** | 60 sends/minute/user is the practical ceiling before throttling | `429 rateLimitExceeded` returns under burst; user-facing send latency spikes | Low |
-| 7 | **Re-watch every Pub/Sub subscription daily, not weekly** | Per the [push guide](https://developers.google.com/workspace/gmail/api/guides/push), the hard expiration is 7 days; renewing daily gives a 6-day safety margin | Notifications silently stop after 7 days; no error event, just silence; monitoring agent goes blind | Medium |
-| 8 | **Use the `q` parameter to narrow `messages.list` at the server, not pull-then-filter client-side** | Per the [quota reference](https://developers.google.com/workspace/gmail/api/reference/quota), `messages.list` is 5 quota units; `messages.get` is 20. A `q` filter that drops 80% of messages at list-time saves 4× quota on the read leg | Quota burn 4× larger than necessary; throttling kicks in on routine monitoring | Low |
-| 9 | **For attachments, decode `messages.attachments.get` results with base64url, not base64** | Same gotcha as encoding. The returned `data` field is base64url per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending) | Binary attachments decode to corrupted bytes; PDFs unreadable, images broken | Low |
-| 10 | **Walk `payload.parts[]` recursively on multipart messages — don't read `payload.body.data` directly** | Multipart `messages.get` puts the body inside `payload.parts[]`, not `payload.body.data`. Single-part text messages put it in `payload.body.data` | Empty body returned; attachments missing from agent's view; HTML mail looks like a blank message | Low |
+| # | Pattern | Why this pattern wins | Effort |
+|---|---|---|---|
+| 1 | **Draft, don't send: agents create drafts via `drafts.create`, humans review and click send** | Agent-authored mail goes through a human before it leaves the building. The review step catches everything the model gets wrong before it becomes a recall situation. | Low |
+| 2 | **Use `urlsafe_b64encode`, not `b64encode`, for the `raw` field** | URL-safe encoding lands the `raw` field with no `+` or `/` characters; the API accepts the payload across plaintext, HTML, and binary contents identically. Standard base64 passes on simple ASCII test inputs and fails the first production HTML / binary message. | Low |
+| 3 | **Address labels by ID, not display name; cache the name→ID map at app startup** | Stable IDs survive every label rename; the app keeps working through reorganizations. Display names are mutable per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels). | Low |
+| 4 | **For threaded replies, set BOTH `threadId` on the resource AND `In-Reply-To` / `References` headers AND matching Subject** | The reply lands in-thread on the sender's mailbox AND on the recipient's. Per the [threads guide](https://developers.google.com/workspace/gmail/api/guides/threads), `threadId` only governs the sender's side; the RFC 2822 headers are what recipient mail clients use for grouping. | Low |
+| 5 | **Pick the narrowest scope: `gmail.send` (sensitive) vs `gmail.modify` / `gmail.readonly` (restricted)** | Sensitive scopes ship faster than restricted scopes — Google's [restricted-scope verification](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification) gate is the difference between a one-week launch and a multi-week annual security assessment via the App Defense Alliance / CASA framework. | Medium |
+| 6 | **Treat `messages.send` as a 100-quota-unit operation; budget against the [per-user 6,000 units/minute cap](https://developers.google.com/workspace/gmail/api/reference/quota)** | 60 sends/minute/user is the practical ceiling. Budgeting against it surfaces throttling before it hits production. | Low |
+| 7 | **Re-watch every Pub/Sub subscription daily, not weekly** | Daily renewals give a 6-day safety margin against the 7-day hard expiration in the [push guide](https://developers.google.com/workspace/gmail/api/guides/push). Notifications never go silent. | Medium |
+| 8 | **Use the `q` parameter to narrow `messages.list` at the server, not pull-then-filter client-side** | Server-side filters drop messages before they count against `messages.get` quota. Per the [quota reference](https://developers.google.com/workspace/gmail/api/reference/quota), `messages.list` is 5 units; `messages.get` is 20 — a `q` filter that drops 80% saves 4× quota on the read leg. | Low |
+| 9 | **For attachments, decode `messages.attachments.get` results with base64url, not base64** | The returned `data` field is base64url per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending); the symmetric decode lands every binary correctly — PDFs readable, images clean. | Low |
+| 10 | **Walk `payload.parts[]` recursively on multipart messages — don't read `payload.body.data` directly** | The recursive walk finds the body wherever it lives in the parts tree, plus every attachment. Reading `payload.body.data` directly works on single-part text only; multipart messages put the body in nested leaves. | Low |
 
 Most readers should implement items 1–4 first. Items 5–10 matter once agents are doing bulk send, monitoring inboxes, or processing attachments.
 
@@ -1351,11 +1389,11 @@ def build_message(to, subject, plain, html, attachment_path):
 
 Three places this breaks in production.
 
-**Trap 1 — Standard base64 instead of urlsafe for the outer `raw` field.** `base64.b64encode` produces `+` and `/` in its output. Both are reserved characters in URL-safe base64 per [RFC 4648 §5](https://www.rfc-editor.org/info/rfc4648/). Any non-trivial payload produces these characters in the encoded output, and the Gmail API rejects with `400 Bad Request: Invalid value for ByteString`. Simple ASCII-only test inputs may encode without producing `+` or `/` and pass; production payloads (HTML, binary attachments, longer text) will not. Always `base64.urlsafe_b64encode` (Python) / `Buffer.from(...).toString('base64url')` (Node). The Node symptom is the same — request rejected with `400 invalidArgument` — but the message wording is "Invalid base64url encoding" rather than the Python client's "Invalid value for ByteString." The symmetric trap on reads — calling `Base64.decode64` instead of `Base64.urlsafe_decode64` on the `raw` field returned by `messages.get(format=raw)` — is documented community-side in [googleapis/google-api-ruby-client #145](https://github.com/googleapis/google-api-ruby-client/issues/145) (community-observed).
+**Watch-out 1 — Standard base64 instead of urlsafe for the outer `raw` field.** `base64.b64encode` produces `+` and `/` in its output. Both are reserved characters in URL-safe base64 per [RFC 4648 §5](https://www.rfc-editor.org/info/rfc4648/). Any non-trivial payload produces these characters in the encoded output, and the Gmail API rejects with `400 Bad Request: Invalid value for ByteString`. Simple ASCII-only test inputs may encode without producing `+` or `/` and pass; production payloads (HTML, binary attachments, longer text) will not. Always `base64.urlsafe_b64encode` (Python) / `Buffer.from(...).toString('base64url')` (Node). The Node symptom is the same — request rejected with `400 invalidArgument` — but the message wording is "Invalid base64url encoding" rather than the Python client's "Invalid value for ByteString." The symmetric watch-out on reads — calling `Base64.decode64` instead of `Base64.urlsafe_decode64` on the `raw` field returned by `messages.get(format=raw)` — is documented community-side in [googleapis/google-api-ruby-client #145](https://github.com/googleapis/google-api-ruby-client/issues/145) (community-observed).
 
-**Trap 2 — HTML-only sends without a text/plain alternative.** Modern spam filters penalize HTML-only messages. The defensible shape is `multipart/alternative` with `text/plain` first and `text/html` second, per [RFC 2046](https://www.rfc-editor.org/info/rfc2046/).
+**Watch-out 2 — HTML-only sends without a text/plain alternative.** Modern spam filters penalize HTML-only messages. The defensible shape is `multipart/alternative` with `text/plain` first and `text/html` second, per [RFC 2046](https://www.rfc-editor.org/info/rfc2046/).
 
-**Trap 3 — Inline images vs attached images.** An inline image (rendering in the body) needs a `Content-ID` header on the image part AND a matching `cid:<content-id>` reference in the HTML body, per [RFC 2046 §4](https://www.rfc-editor.org/info/rfc2046/) and [RFC 2392](https://www.rfc-editor.org/info/rfc2392/). An attached image is just another `multipart/mixed` part. The two are not interchangeable. Inline-image emails missing `Content-ID` render as broken thumbnails. Use `MIMEImage` with an explicit `Content-ID` for inline; a plain attachment part for attached.
+**Watch-out 3 — Inline images vs attached images.** An inline image (rendering in the body) needs a `Content-ID` header on the image part AND a matching `cid:<content-id>` reference in the HTML body, per [RFC 2046 §4](https://www.rfc-editor.org/info/rfc2046/) and [RFC 2392](https://www.rfc-editor.org/info/rfc2392/). An attached image is just another `multipart/mixed` part. The two are not interchangeable. Inline-image emails missing `Content-ID` render as broken thumbnails. Use `MIMEImage` with an explicit `Content-ID` for inline; a plain attachment part for attached.
 
 Per the consumer [attachment size limits help](https://support.google.com/mail/answer/6584), personal Gmail caps attachment size at 25 MB per message; Workspace caps are admin-configurable. Base64 MIME overhead is ~37%, so the practical binary-attachment ceiling is roughly 18 MB raw binary for the 25 MB consumer cap. Larger files should be Drive-shared with a link in the body — Gmail's web UI does this automatically; API senders must do it explicitly.
 
@@ -1368,7 +1406,7 @@ Per the [threads guide](https://developers.google.com/workspace/gmail/api/guides
 3. The `References` header contains the chain of `Message-ID` values back to the thread root.
 4. The `Subject` header matches the parent (Gmail tolerates `Re:` / `Fwd:` / translated prefixes; it does NOT tolerate substantive subject changes).
 
-The non-obvious one is that **the `threadId` only affects the sender's mailbox**. With `threadId` set but `In-Reply-To` / `References` missing, the sent message lands in-thread on the sender's Gmail but appears as a new thread on the recipient's. Same gotcha documented community-side in [googleapis/google-api-nodejs-client #1938](https://github.com/googleapis/google-api-nodejs-client/issues/1938) (community-observed).
+The non-obvious one is that **the `threadId` only affects the sender's mailbox**. With `threadId` set but `In-Reply-To` / `References` missing, the sent message lands in-thread on the sender's Gmail but appears as a new thread on the recipient's. Same edge documented community-side in [googleapis/google-api-nodejs-client #1938](https://github.com/googleapis/google-api-nodejs-client/issues/1938) (community-observed).
 
 The full threaded-reply payload pulls the parent's `Message-ID` and the existing `References` chain from a fresh `messages.get`, then appends the parent ID:
 
@@ -1421,7 +1459,7 @@ Three Gmail methods place a message into a mailbox; only one actually delivers t
 | `messages.insert` | Per the [insert reference](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/insert): "directly inserts a message into only this user's mailbox similar to `IMAP APPEND`, bypassing most scanning and classification. **Does not send a message.**" | Archival imports where the message is already a record of something that happened; restoring from a backup; building a local mailbox snapshot |
 | `messages.import` | Per the [import reference](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/import): "Imports a message into only this user's mailbox, with standard email delivery scanning and classification similar to receiving via SMTP." Also does not send — only the importing user sees it | Migration agents bringing mail from another provider, where spam/inbox classification needs to run as if the message had arrived via SMTP |
 
-The trap: an agent meant to deliver outbound mail that reaches for `import` or `insert` puts the message in the sender's own mailbox and **never delivers it to the recipient**. The sender sees the message in Sent (or wherever it was inserted) and the recipient never gets it. Reach for `send` unless explicitly building an archival or migration path.
+The watch-out: an agent meant to deliver outbound mail that reaches for `import` or `insert` puts the message in the sender's own mailbox and **never delivers it to the recipient**. The sender sees the message in Sent (or wherever it was inserted) and the recipient never gets it. Reach for `send` unless explicitly building an archival or migration path.
 
 ### Deep dive — bounce handling and the MAILER-DAEMON pattern
 
@@ -1463,15 +1501,15 @@ Gmail push works through Cloud Pub/Sub per the [push guide](https://developers.g
 7. Re-call users.watch before expiration — recommended daily, hard limit 7 days
 ```
 
-The failure modes:
+The cases to handle:
 
-**Failure 1 — watch expires silently.** Per the [push guide](https://developers.google.com/workspace/gmail/api/guides/push): "You must call the watch at least once every 7 days or you'll stop receiving updates for the user. We recommend calling watch once per day." No warning, no inbound failure event, just silence. The defensive pattern is daily re-watch via a scheduled job — gives a 6-day safety margin.
+**Case 1 — watch expires silently.** Per the [push guide](https://developers.google.com/workspace/gmail/api/guides/push): "You must call the watch at least once every 7 days or you'll stop receiving updates for the user. We recommend calling watch once per day." No warning, no inbound failure event, just silence. The defensive pattern is daily re-watch via a scheduled job — gives a 6-day safety margin.
 
-**Failure 2 — historyId out of range.** Gmail retains history for a limited window (Google does not publicize the exact length). If the consumer falls behind (process crashes, queue backed up, debugger pause), `history.list(startHistoryId=<too old>)` returns `404 historyNotFound`. Recovery: drop the persisted ID, full-sync the mailbox via `messages.list`, persist the new `historyId` from the most-recent message.
+**Case 2 — historyId out of range.** Gmail retains history for a limited window (Google does not publicize the exact length). If the consumer falls behind (process crashes, queue backed up, debugger pause), `history.list(startHistoryId=<too old>)` returns `404 historyNotFound`. Recovery: drop the persisted ID, full-sync the mailbox via `messages.list`, persist the new `historyId` from the most-recent message.
 
-**Failure 3 — Pub/Sub delivery is at-least-once by default.** Per the [Cloud Pub/Sub exactly-once delivery documentation](https://docs.cloud.google.com/pubsub/docs/exactly-once-delivery), exactly-once is an opt-in feature on pull subscriptions only; default delivery (including push) is at-least-once. A handler may see the same notification twice and must be idempotent — keyed on the `(history.id, message.id, change_type)` triple from `history.list`, not on the Pub/Sub event ID.
+**Case 3 — Pub/Sub delivery is at-least-once by default.** Per the [Cloud Pub/Sub exactly-once delivery documentation](https://docs.cloud.google.com/pubsub/docs/exactly-once-delivery), exactly-once is an opt-in feature on pull subscriptions only; default delivery (including push) is at-least-once. A handler may see the same notification twice and must be idempotent — keyed on the `(history.id, message.id, change_type)` triple from `history.list`, not on the Pub/Sub event ID.
 
-**Failure 4 — watch's labelFilter doesn't filter `history.list`.** `users.watch(labelIds=["INBOX"], labelFilterBehavior="INCLUDE")` filters which changes generate notifications. Once `history.list(startHistoryId=...)` is called, the returned change list spans ALL labels in that window regardless of the watch's filter. Filter history results client-side.
+**Case 4 — watch's labelFilter doesn't filter `history.list`.** `users.watch(labelIds=["INBOX"], labelFilterBehavior="INCLUDE")` filters which changes generate notifications. Once `history.list(startHistoryId=...)` is called, the returned change list spans ALL labels in that window regardless of the watch's filter. Filter history results client-side.
 
 ### Deep dive — search syntax, quota costs, and the read-cheap pattern
 
@@ -1543,29 +1581,46 @@ The setup is mostly identical to the Calendar walkthrough per Google's [service-
 - **Scope grants matter exactly.** The Admin Console DWD entry authorizes the SA for specific scopes only. Adding `https://www.googleapis.com/auth/gmail.send` does NOT also authorize `gmail.modify` — every scope the agent uses must be listed. Mismatch returns `unauthorized_client` with no helpful message about which scope is missing.
 - **The `subject` parameter is the impersonated user's email.** Gmail-via-DWD acts as that user — the resulting tokens are scoped to their mailbox, watch channels register on their mailbox, etc. The SA itself has no mailbox; calls without `subject` return 400.
 
-The same most-common gotcha as Calendar applies: the Admin Console authorization step is easy to skip ("the SA exists in GCP, why is auth failing?"). Verify in the Admin Console under Security → Access and data control → API Controls → Domain-wide delegation that the SA's numeric Client ID (not email) is listed with the exact scopes the agent requests. Propagation can take up to 24 hours.
+The same most-common watch-out as Calendar applies: the Admin Console authorization step is easy to skip ("the SA exists in GCP, why is auth failing?"). Verify in the Admin Console under Security → Access and data control → API Controls → Domain-wide delegation that the SA's numeric Client ID (not email) is listed with the exact scopes the agent requests. Propagation can take up to 24 hours.
 
 DWD does not work for consumer `@gmail.com` accounts — it's a Workspace-only mechanism. For consumer Gmail, OAuth-user is the only option.
 
-### Gmail anti-patterns
+### Hard limits + workarounds — Gmail
 
-**A-G1 — Using `base64` instead of `base64url`.** The most common Gmail-from-automation failure. Standard base64 contains `+` and `/`, which break the URL-safe encoding the API expects per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending). Symptom: intermittent `400 Bad Request: Invalid value for ByteString` errors. Fix: always `urlsafe_b64encode` (Python) / `base64url` (Node).
+| You want to... | Reality | Workaround |
+|---|---|---|
+| Send a large attachment past the account's size cap | API rejects once the encoded payload exceeds the account's per-message cap. Per the consumer [attachment size limits help](https://support.google.com/mail/answer/6584), personal Gmail caps at 25 MB per message; Workspace caps are admin-configurable. Base64 overhead (~37%) reduces the practical binary-attachment ceiling further — ~18 MB raw binary for the 25 MB consumer cap | Drive-share the file, link it in the body; or use the Workspace SMTP relay for higher caps |
+| Reply in-thread by passing only `threadId` on the resource | Per the [threads guide](https://developers.google.com/workspace/gmail/api/guides/threads), three conditions must all hold: `threadId` on the resource, `References` + `In-Reply-To` headers per [RFC 2822](https://www.rfc-editor.org/info/rfc2822/) (the spec the Gmail docs cite by name), and a matching `Subject` | Set `threadId` AND populate `In-Reply-To`/`References` AND keep `Subject` matching (with or without `Re:` prefix) |
+| Apply a user label by display name | Labels are addressed by ID per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels). Display names are mutable; IDs are stable. Passing a display name returns `400 invalidArgument` | `labels.list` once at app startup, build a name→ID map, pass IDs at write time |
+| Apply a label to a draft | Per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels): "You can't apply labels to draft messages" | Send the draft, then apply the label to the resulting message (or rely on the system `DRAFT` label) |
+| Base64-encode the MIME with standard `base64` | Per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending), the `raw` field requires base64url (URL-safe alphabet: `-` / `_` instead of `+` / `/`, optional `=` padding stripped). Standard base64 fails because its `+` / `/` characters are not in the URL-safe alphabet; encoding any non-trivial payload produces these characters and the API rejects with `400 invalidArgument`. The symmetric decode-side watch-out exists on reads (see [googleapis/google-api-ruby-client #145](https://github.com/googleapis/google-api-ruby-client/issues/145) — community-observed decoding bug on `messages.get` with `format=raw`) | Always `base64.urlsafe_b64encode()` (Python) / `Buffer.toString('base64url')` (Node) |
+| Exceed Workspace daily-send caps from a regular Gmail account | Daily-send caps are enforced at the account level per the [Workspace sending limits documentation](https://knowledge.workspace.google.com/admin/gmail/gmail-sending-limits-in-google-workspace). Exceeding triggers a temporary lockout | SMTP relay for transactional volume; user-bound API for human-paced sends |
+| Use `q` filters with sync via `historyId` | `history.list` only accepts `startHistoryId` — no `q` overlay. History is "everything that changed" | Two pipelines: poll history for change detection, hit `messages.get` for each, filter at read |
+| Use full boolean nesting in `q` | Per the [advanced search reference](https://support.google.com/mail/answer/7190), `q` supports implicit AND (space), brace-grouped OR (`{from:a from:b}`), and prefix-negation (`-from:c`). No general parens or nesting | Run multiple queries client-side and union results, or accept the limited grammar |
+| Edit a sent message after sending | Sent messages are immutable; there is no `messages.update` in the [Gmail API v1 reference](https://developers.google.com/workspace/gmail/api/reference/rest) | Send a follow-up correction or use Workspace admin recall (not API-driven) |
+| Subscribe to push notifications indefinitely without re-registration | `watch` expires; per the [push guide](https://developers.google.com/workspace/gmail/api/guides/push): "You must call the watch at least once every 7 days or you'll stop receiving updates" | Cron-schedule daily re-watch; persist `historyId` from the last event so the new watch picks up where the old one left off |
+| Read message bodies in bulk without N round-trips | `messages.list` returns IDs only. Each `messages.get` is a separate call per the [quota reference](https://developers.google.com/workspace/gmail/api/reference/quota) | Use `format: "metadata"` to avoid pulling full body when only headers are needed; batch via the [JSON batch endpoint](https://developers.google.com/workspace/gmail/api/guides/batch) |
+| Get a guaranteed delivery receipt | Gmail does not expose RFC 8098 Message Disposition Notifications or per-recipient delivery state in the public API | None — accept that "send succeeded" only means "the message left the API"; bounces arrive as inbound messages (see the bounce-handling deep dive above) |
 
-**A-G2 — Addressing labels by display name.** `addLabelIds=["My Followups"]` returns 400 per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels). The API has no display-name lookup. Maintain a name→ID map at app startup.
+### Patterns to avoid — Gmail
 
-**A-G3 — Setting `threadId` without `In-Reply-To` and `References`.** Per the [threads guide](https://developers.google.com/workspace/gmail/api/guides/threads), all three conditions must hold for in-thread display; `threadId` alone governs only the sender's mailbox. Always populate the RFC 2822 headers from the parent message's `Message-ID`.
+**A-G1 — Using `base64` instead of `base64url`; always `urlsafe_b64encode`.** The most common Gmail-from-automation case to handle. Standard base64 contains `+` and `/`, which break the URL-safe encoding the API expects per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending). Symptom: intermittent `400 Bad Request: Invalid value for ByteString` errors. Course-correct to `urlsafe_b64encode` (Python) / `base64url` (Node).
 
-**A-G4 — Letting an agent fire `messages.send` without human review.** A draft + human send loop avoids the worst-case failure mode of agent-authored outbound. The pattern is `drafts.create` → human reviews → human sends.
+**A-G2 — Addressing labels by display name; maintain a name→ID map at startup.** `addLabelIds=["My Followups"]` returns 400 per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels). The API has no display-name lookup. Maintain a name→ID map at app startup.
 
-**A-G5 — Polling `messages.list` instead of `history.list` for change detection.** `messages.list` returns all messages in the inbox; `history.list` returns only what changed per the [push guide](https://developers.google.com/workspace/gmail/api/guides/push). For monitoring tasks, history + watch is dramatically cheaper.
+**A-G3 — Setting `threadId` without `In-Reply-To` and `References`; populate both headers from the parent's `Message-ID`.** Per the [threads guide](https://developers.google.com/workspace/gmail/api/guides/threads), all three conditions must hold for in-thread display on the recipient's side; `threadId` alone governs only the sender's mailbox. Always populate the RFC 2822 headers from the parent message's `Message-ID`.
 
-**A-G6 — Hand-rolling MIME boundaries via string concatenation.** Boundary mismatch produces messages that render in some clients (Gmail web UI) and break in others (Outlook, Apple Mail). Use the language's MIME library (`email.mime` in Python, `nodemailer` in Node) and never hand-write boundary strings.
+**A-G4 — Letting an agent fire `messages.send` without human review; use `drafts.create` + human send.** A draft + human send loop avoids the worst-case agent-authored outbound. The pattern is `drafts.create` → human reviews → human sends.
 
-**A-G7 — Forgetting that watch expires every 7 days.** Schedule a daily re-watch; persist `historyId` to bridge across the renewal.
+**A-G5 — Polling `messages.list` instead of `history.list` for change detection; use history + watch.** `messages.list` returns all messages in the inbox; `history.list` returns only what changed per the [push guide](https://developers.google.com/workspace/gmail/api/guides/push). For monitoring tasks, history + watch is dramatically cheaper.
 
-**A-G8 — Reading `payload.body.data` on a multipart message instead of walking `payload.parts[]` recursively.** Multipart `messages.get` puts the actual body inside the leaf parts (`payload.parts[].body.data`, possibly nested), not `payload.body.data` at the top. Code that assumes the latter returns empty bodies on HTML / attachment-bearing messages and misses attachments entirely. Symptom: agent sees empty mail or no attachments where the Gmail web UI shows full content. Walk the parts tree until the leaf with `mimeType: "text/plain"` or `"text/html"` is found; attachment bytes live in a separate `messages.attachments.get` call keyed on the part's `attachmentId`.
+**A-G6 — Hand-rolling MIME boundaries via string concatenation; use the language's MIME library.** Boundary mismatch produces messages that render in some clients (Gmail web UI) and break in others (Outlook, Apple Mail). Use the language's MIME library (`email.mime` in Python, `nodemailer` in Node) and never hand-write boundary strings.
 
-**A-G9 — Using `internalDate` when the operator means the user's `Date:` header.** Per the Gmail API, `internalDate` is server-side receive time in milliseconds since epoch — useful for the receiving mailbox's view but not for the sender's local-time perspective. When an agent reports "this message was sent at 9am" from `internalDate`, users in different timezones see the wall-clock shifted by the offset between the server and the user's zone. Symptom: time-zone-shifted timestamps in reports. For user-perspective time, parse the `Date:` header from `payload.headers` (RFC 2822 format) instead.
+**A-G7 — Forgetting that watch expires every 7 days; schedule a daily re-watch.** Schedule a daily re-watch; persist `historyId` to bridge across the renewal.
+
+**A-G8 — Reading `payload.body.data` on a multipart message instead of walking `payload.parts[]` recursively; walk the tree.** Multipart `messages.get` puts the actual body inside the leaf parts (`payload.parts[].body.data`, possibly nested), not `payload.body.data` at the top. Code that assumes the latter returns empty bodies on HTML / attachment-bearing messages and misses attachments entirely. Symptom: agent sees empty mail or no attachments where the Gmail web UI shows full content. Walk the parts tree until the leaf with `mimeType: "text/plain"` or `"text/html"` is found; attachment bytes live in a separate `messages.attachments.get` call keyed on the part's `attachmentId`.
+
+**A-G9 — Using `internalDate` when the operator means the user's `Date:` header; parse the `Date:` header from `payload.headers`.** Per the Gmail API, `internalDate` is server-side receive time in milliseconds since epoch — useful for the receiving mailbox's view but not for the sender's local-time perspective. When an agent reports "this message was sent at 9am" from `internalDate`, users in different timezones see the wall-clock shifted by the offset between the server and the user's zone. Symptom: time-zone-shifted timestamps in reports. For user-perspective time, parse the `Date:` header from `payload.headers` (RFC 2822 format) instead.
 
 ---
 
@@ -1577,7 +1632,7 @@ This article applies the [Marketing to Agents](marketing-to-agents.md) playbook 
 
 ## Sources & Attribution
 
-This guide synthesizes patterns and failure modes from running Google Drive + Docs automation in production through 2025–2026. The source taxonomy applied throughout: **failure mode > workaround > pattern**. Every limitation has a documented failure that produced it, and every pattern has a workaround it replaces.
+This guide synthesizes patterns and case handling from running Google Drive + Docs automation in production through 2025–2026. The source taxonomy applied throughout: **capability > workaround > pattern**. Every limit is paired with the workaround that closes it, and every pattern names the case it makes routine.
 
 ### Anthropic / Model Context Protocol
 
@@ -1594,7 +1649,7 @@ This guide synthesizes patterns and failure modes from running Google Drive + Do
 - [Document structure concepts](https://developers.google.com/workspace/docs/api/concepts/structure) — body → StructuralElement → Paragraph → ParagraphElement → TextRun model; the index/coordinate system
 - [batchUpdate reference](https://developers.google.com/workspace/docs/api/reference/rest/v1/documents/batchUpdate) — full catalog of update request types (the underlying calls MCP tools wrap)
 - [Format text in a Google Doc](https://developers.google.com/workspace/docs/api/how-tos/format-text) — official how-to covering `namedStyleType` values, inheritance, and `updateTextStyle` fields-mask semantics
-- [TextStyle reference (JavaDoc)](https://googleapis.dev/java/google-api-services-docs/latest/com/google/api/services/docs/v1/model/TextStyle.html) — confirms the `bold` + `weightedFontFamily` interaction documented in Pattern 2's "weight 400 even when bold: true" failure mode
+- [TextStyle reference (JavaDoc)](https://googleapis.dev/java/google-api-services-docs/latest/com/google/api/services/docs/v1/model/TextStyle.html) — confirms the `bold` + `weightedFontFamily` interaction documented in Pattern 2's "weight 400 even when bold: true" case
 - [Extract text from a Google Doc](https://developers.google.com/workspace/docs/api/samples/extract-text) — canonical `body.content` walking pattern
 - [Output document contents as JSON](https://developers.google.com/workspace/docs/api/samples/output-json) — the JSON-read habit baseline; supports the verification pattern
 - [Google Docs API release notes](https://developers.google.com/workspace/docs/api/release-notes) — where to watch for changes that would obsolete the workarounds in Part 3
@@ -1728,4 +1783,4 @@ This guide synthesizes patterns and failure modes from running Google Drive + Do
 - [Tanaike — Slides topic index](https://tanaikech.github.io/topics/slides/) — community gotchas by Google Developer Expert Kanshi Tanaike (text manipulation, table column widths, replace-all formatting limits)
 - [taylorwilsdon/google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp) — the production MCP server; Slides exposes ~7 tools (vs ~14 Docs / ~13 Sheets), confirming the under-served MCP-coverage gap
 
-The patterns and anti-patterns documented here emerged from real production failures across 2025–2026. Each was caught the first time by a human, fixed once, and lifted into the writer agent's playbook so it cannot recur silently. The article is the public form of that playbook.
+The patterns and patterns-to-avoid documented here emerged from real production cases across 2025–2026. Each was caught the first time by a human, fixed once, and lifted into the writer agent's playbook so it cannot recur silently. The article is the public form of that playbook.
