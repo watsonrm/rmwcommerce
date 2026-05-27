@@ -17,6 +17,13 @@ Who this is for: someone running a non-technical business who wants to use Claud
 
 > © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. Quoted material is the property of its respective owners and used under fair use with attribution — see [Sources & Attribution](#sources--attribution). Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
+> [!IMPORTANT]
+> ### Haven't installed Claude Code yet? Start somewhere else.
+>
+> This guide is the *why* — mindset, question templates, common ways things go wrong. It is not the install walkthrough. If you do not have Claude Code running on your machine right now, jump to **[Your First Session](claude-code-non-developers-first-session.md)** and ship one small working thing first. Come back here once you have a commit on the board. The mindset below lands better after you have felt the tool work, not before.
+>
+> **Stuck before you even start?** Paste this into Claude.ai (the regular web chat, not Claude Code): *"I'm a non-developer trying to set up Claude Code for the first time. Walk me through it step by step, on macOS / Windows / Linux (pick mine), and don't assume I know anything about terminals or git."* That unblocks you in five minutes with zero install required.
+
 ---
 
 ## TL;DR — what's in it for you
@@ -42,20 +49,23 @@ Ranked by leverage, not by how much technical knowledge each row requires.
 
 Most readers should focus on the first two and stop there. The categories of trouble in row 3 matter too, but rows 4 and 5 can wait until you've actually run into the problems they solve.
 
+> **Marketer-brain reframe for the approval process.** "Critical thinking" sounds like a new exam. It isn't. Reviewing what Claude proposes is the same skill as reviewing a freelancer's draft, a media plan, or a piece of copy: "is this what I asked for, yes or no?" If you can catch a wrong claim in a marketing brief, you can catch a wrong Bash command. You are not learning a new mental skill — you are applying the one you have to a new surface.
+
 ---
 
 ## How to use this guide
 
 This guide is the reasoning. The skill is the live coach.
 
-**Install the companion skill** at [`skills/claude-code-for-non-developers/`](skills/claude-code-for-non-developers/) so Claude can coach you in real time when you say things like "I'm not a developer", "should I approve this?", "is this safe to push?", or "what does this command do?":
+**Install the companion skill** so Claude can coach you in real time when you say things like "I'm not a developer", "should I approve this?", "is this safe to push?", or "what does this command do?"
 
-```bash
-# from a clone of this repo
-cp -r skills/claude-code-for-non-developers ~/.claude/skills/
-```
+Open Claude Code in any folder and say:
 
-Once installed, Claude will load the skill on demand whenever those phrases come up — walking you through the question templates, the approval checklist, and the common stumbling blocks. You don't need to paste anything; just ask the question in plain English and the skill triggers.
+> *"Install the `claude-code-for-non-developers` skill from `github.com/watsonrm/rmwcommerce` into my `~/.claude/skills/` folder. Clone the repo somewhere temporary if you need to, copy the `skills/claude-code-for-non-developers/` directory into `~/.claude/skills/`, and confirm when it is loaded."*
+
+Claude will do all of that for you. (Yes — the install instructions for the companion skill are themselves an example of the meta-skill this guide teaches: ask Claude to do the technical work and review the result.)
+
+Once installed, Claude loads the skill on demand whenever those phrases come up — walking you through the question templates, the approval checklist, and the common stumbling blocks. You don't need to paste anything; just ask in plain English and the skill triggers.
 
 Read the article itself in this order: once up front for the mindset shift, then come back to specific sections as situations arise. If things have already gone sideways, jump straight to [Section 5](#section-5-the-failure-modes). The companion guide — [Claude Code for Non-Developers: Your First Session](claude-code-non-developers-first-session.md) — covers the practical mechanics of getting started, with its own skill at [`skills/claude-code-first-session/`](skills/claude-code-first-session/).
 
@@ -76,6 +86,8 @@ For a practical map of when to stay with a simple prompt versus when to graduate
 ---
 
 ## Section 2: Why Claude Code specifically (the Matrix section)
+
+First, the honest part: the first hour with Claude Code looks like a wall of text. Diffs you can't fully parse, bash output flying by, files being read out loud. If you came in expecting a clean GUI, the terminal will feel wrong, and "trust the process" is not satisfying advice. The friction is real. The defense below is about *why* the friction is worth tolerating — not a claim that it isn't there.
 
 There's a version of this question that sounds like: "Why not just use a friendlier tool?" Cursor, Replit, GitHub Copilot, ChatGPT Canvas — all of them have cleaner interfaces, better autocomplete UI, easier onboarding. For non-developers especially, those tools look like the right answer.
 
@@ -177,7 +189,7 @@ These are the decisions you can make once and not revisit.
 >
 > Internal work (reading files, drafting docs, running queries) can be one-shot: ask, get result. Outbound work (Slack sends, emails, public commits, anything visible to other people) needs two gates:
 >
-> 1. **Channel and audience must be explicitly named** in the ask ("send to #newsroom" — not "send the update")
+> 1. **Channel and audience must be explicitly named** in the ask ("send to #your-team-channel" — not "send the update")
 > 2. **Draft-confirmation before send** — Claude shows you the message, waits for "send it"
 >
 > "Fix all the things" never authorizes an outbound action, no matter how obvious it looks. The cost of one wrong Slack is hours of cleanup; the cost of one extra confirm-prompt is two seconds. I learned this rule across three separate incidents — each one a different agent, each one assuming "approval" covered the next action down the line. It didn't. If you only remember one safety rule from this guide, remember this one.

@@ -17,6 +17,33 @@ Who this is for: non-developers running Claude Code for the first time who want 
 
 > © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. Quoted material is the property of its respective owners and used under fair use with attribution — see [Sources & Attribution](#sources--attribution). Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
+> [!TIP]
+> ### Right Now (10 minutes, total)
+>
+> If you skip the rest of this guide and only do these three things, you will be unstuck. Come back for the reasoning after.
+>
+> **1. Check that you have a paid Claude account.** Claude Code requires a Pro, Max, Team, or Enterprise plan — the free Claude.ai tier does not include it. ([upgrade page](https://claude.ai/upgrade)) If you don't have one, stop here and fix that first; the install will fail otherwise.
+>
+> **2. Install Claude Code.** Open Terminal (macOS: ⌘+Space, type "Terminal"; Windows: Start, type "PowerShell"; Linux: you know where it lives) and paste:
+>
+> ```bash
+> # macOS / Linux
+> curl -fsSL https://claude.ai/install.sh | bash
+> ```
+>
+> ```powershell
+> # Windows PowerShell
+> irm https://claude.ai/install.ps1 | iex
+> ```
+>
+> Confirm it worked: type `claude --version`. You should see a version number, not "command not found." If you see "command not found," close the terminal, open a new one, and try again — the new terminal will pick up the install.
+>
+> **3. Open Claude Code in any folder and paste this exact prompt.** Make a new empty folder on your desktop called `claude-first-session`, then in Terminal run `cd ~/Desktop/claude-first-session && claude`. When you see the Claude prompt, paste verbatim:
+>
+> > *"I'm new to Claude Code. I am not a developer. First, set up safety basics for this folder (git, .gitignore, any defaults a non-developer needs). Then walk me through making a one-page HTML site that says my name and one sentence about what I do. Explain each step in plain English before doing it. Wait for my approval before running any command."*
+>
+> That's the entire first session. The rest of this guide is the *why* behind those three steps and what to do when something doesn't go smoothly. Read it after — not before.
+
 ---
 
 ## TL;DR — what's in it for you
@@ -43,14 +70,15 @@ Who this is for: non-developers running Claude Code for the first time who want 
 
 This guide walks you through your first session. The skill is the live walkthrough.
 
-**Install the companion skill** at [`skills/claude-code-first-session/`](skills/claude-code-first-session/) before you start, so Claude can guide you through the session live when you say "I just installed Claude Code", "first time using this", or "where do I start?":
+**Install the companion skill** so Claude can guide you live when you say "I just installed Claude Code", "first time using this", or "where do I start?"
 
-```bash
-# from a clone of this repo
-cp -r skills/claude-code-first-session ~/.claude/skills/
-```
+Open Claude Code in any folder and say:
 
-Once installed, you don't need to paste anything — just say one of those trigger phrases and Claude will load the skill, walk you through install, permission setup, picking a contained first project, drafting `CLAUDE.md`, the approval loop, and the first commit.
+> *"Install the `claude-code-first-session` skill from `github.com/watsonrm/rmwcommerce` into my `~/.claude/skills/` folder. Clone the repo somewhere temporary if you need to, copy the `skills/claude-code-first-session/` directory into `~/.claude/skills/`, and confirm when it is loaded."*
+
+Claude will do all of that for you. The install instructions for the skill are themselves the lesson: you don't run the `cp` command yourself — you ask Claude to.
+
+Once installed, you don't need to paste anything else — just say one of the trigger phrases and Claude will load the skill, walk you through install, permission setup, picking a contained first project, drafting `CLAUDE.md`, the approval loop, and the first commit.
 
 Read this article in order the first time for the reasoning. Section 1 is install and permissions — do that before anything else. Sections 2–5 are the setup sequence. Sections 6–9 are the first real session and what comes after.
 
@@ -110,7 +138,11 @@ Don't enable `bypassPermissions` mode. This skips all permission prompts. Anthro
 
 When Claude proposes a Bash command you don't recognize, ask it to explain before you approve. This isn't weakness — it's the job. "Before running that, what does this command do and what will it change?" Claude will tell you. Approve informed; don't approve blind.
 
-You can allow specific safe commands to run without prompting every time, while everything else still prompts. A reasonable starting allowlist in your project's `.claude/settings.json` (solo operator on your own machine? See Section 6 — broaden the allowlist. The list below is for shared setups.):
+You can allow specific safe commands to run without prompting every time, while everything else still prompts. Do not write this file yourself. Ask Claude:
+
+> *"Set up a starter allowlist in `.claude/settings.json` for this project. I am a non-developer on my own machine — keep it conservative. Show me what you're about to write before saving it."*
+
+What Claude will propose looks roughly like the JSON below — included here so you know what "looks right" when Claude shows it to you. You are checking that the list matches what Claude described, not writing it from scratch:
 
 ```json
 {
@@ -127,7 +159,7 @@ You can allow specific safe commands to run without prompting every time, while 
 }
 ```
 
-Expand this list only when you understand what a command does. The full [settings hierarchy](glossary.md#settings-hierarchy-global--global-local--project--project-local) and [allow / ask / deny semantics](glossary.md#allow--ask--deny-semantics) are documented at [code.claude.com/docs/en/permissions](https://code.claude.com/docs/en/permissions).
+Expand this list only when you understand what a command does — and "understand" means "Claude has explained it to you in plain English and you agreed." The full [settings hierarchy](glossary.md#settings-hierarchy-global--global-local--project--project-local) and [allow / ask / deny semantics](glossary.md#allow--ask--deny-semantics) are documented at [code.claude.com/docs/en/permissions](https://code.claude.com/docs/en/permissions).
 
 For the long-term setup that keeps you from being interrupted on every action after your first few weeks, see [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md).
 
@@ -173,17 +205,23 @@ The approval process doesn't slow you down. It's what keeps the tool working for
 
 ## Section 4: Pick a contained first project
 
-The first project should teach you Claude Code's mechanics without exposing you to production risk.
+If you're reading this section because you skipped the **Right Now** block at the top, the default project is already chosen for you: a one-page HTML site that says your name and one sentence about what you do. That's it. Do not try to pick something more ambitious for session one.
 
-A static personal site is the safest option. A site with HTML files, maybe a CSS file, no backend. Jekyll and Eleventy (11ty) are two static site generators that Claude Code handles well. The worst that goes wrong is the site looks wrong — no data loss, no charges, no multi-user impact. Skip if you don't need a website — the CLI script option from row 2 is the safer alternative.
+### Why that default
 
-A personal CLI script is equally safe. A script that does one thing on your own machine: organize your downloads folder by file type, rename photos by date, convert a folder of files from one format to another. Runs only when you run it. Touches only your files.
+You will not deploy it. You will not show it to anyone. Its only job is to teach you the approval loop — read what Claude proposes, click yes, see what happens, commit when it works — on a project where nothing bad can happen. The worst case is "the page looks wrong," which is recoverable in 30 seconds. No data loss, no charges, no multi-user impact, no API keys.
 
-A data transformation script is also good for a first project. Read a CSV, do something to the data, write a new CSV. Nothing writes to a database or calls an API. Input and output are easy to inspect.
+### What not to build first
 
-A personal automation that fetches your own data from a service you already pay for is a reasonable step up — but it involves API calls and environment variables. Do one of the above first if this is your first week.
+Anything that touches money, anything multi-user, anything that calls a paid API in a loop without a spend cap set at the provider level. Not because these are forbidden — because they pile risk on top of a workflow you haven't practiced yet. Revisit after 10+ working hours; the constraints loosen with experience.
 
-What not to build first: anything that touches money, anything multi-user, anything that calls a paid API in a loop without a spend cap set at the provider level. These aren't permanent exclusions — they mean "not until you've built something smaller first and understand what you're approving." Revisit this list after 10+ working hours in Claude Code; the constraints loosen with experience.
+### Other safe options once the HTML site is committed
+
+These are second-session candidates, not first-session ones. Pick one only after the default project is in git:
+
+- **A personal CLI script.** A script that does one thing on your own machine: organize your downloads folder by file type, rename photos by date, convert a folder of files from one format to another.
+- **A data transformation script.** Read a CSV, do something to the data, write a new CSV. Input and output easy to inspect.
+- **A personal automation that fetches your own data** from a service you already pay for — but this involves API calls and environment variables. Save it for week two.
 
 ---
 
