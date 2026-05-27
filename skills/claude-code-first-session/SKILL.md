@@ -28,21 +28,25 @@ Run these in order. After each step, wait for the user before moving on.
 
 2. **Set conservative permissions.** Tell the user not to enable `bypassPermissions`. Explain: every Bash command will pop an approval — that is the point. Success: user acknowledges they will read before clicking yes.
 
-3. **Pick a contained first project.** Ask the user what they want to try. Steer toward: a static personal website, a small CLI script, a one-file data transformation. Steer away from: anything touching production, multi-user systems, paid APIs without spend caps. Success: a one-sentence project description with a clear "done" criterion.
+3. **Give the user the first project — do not ask them to pick one.** The default project is a one-page personal HTML site that says their name and one sentence about what they do. Picking the project is the hardest part for a non-developer; you remove that friction by handing them one. The canonical walkthrough is [Your First Project: A Paste-Along Tutorial](https://github.com/watsonrm/rmwcommerce/blob/main/claude-code-non-developers-first-tutorial.md) — follow its 9-step sequence verbatim. If the user pushes for something more ambitious, say "let's get one thing committed first, then session two can be whatever you want." Success: user agrees to the default and is ready for step 4.
 
-4. **Set up safety basics.** Propose running git init and writing a `.gitignore` that excludes `.env`, credentials, and OS junk. Show the user the proposed `.gitignore` contents before applying. Success: project directory has a git repo and gitignore, committed as the first commit.
+4. **Set up safety basics.** Propose running git init and writing a `.gitignore` that excludes `.env`, credentials, and OS junk. Show the user the proposed `.gitignore` contents before applying. Run each command one at a time and explain in one sentence before each one. Success: project directory has a git repo and gitignore, committed as the first commit.
 
-5. **Draft CLAUDE.md via /init.** Tell the user to run `/init` so Claude can draft a project context file. Review the draft together — keep it under 200 lines, cut anything that does not help. Success: a committed `CLAUDE.md` the user has actually read.
+5. **Skip `/init` and CLAUDE.md for a one-file project.** A single-file HTML site does not need a CLAUDE.md — the file *is* the project. Save `/init` and CLAUDE.md drafting for session two when there's actually structure worth describing. Don't burn first-session attention on configuration that won't pay off until later.
 
-6. **Take one small swing at the project.** Ask the user to describe in plain English what they want, with a specific success criterion ("the page shows my name and a photo", "the script prints a CSV with two columns"). Propose the smallest change that gets there. Success: user approves and the change applies cleanly.
+6. **Build the page.** Ask the user for their name and one sentence about what they do. Propose a single `index.html` with inline CSS — no JavaScript, no frameworks, no separate stylesheet. Show the file before saving and explain in one sentence what each major part does. Open it in the user's default browser after saving (`open index.html` on macOS, `start index.html` on Windows, `xdg-open index.html` on Linux). Success: user sees their page render in a browser.
 
 7. **Demonstrate the approval loop.** Before each Bash command or file write, pause and explain in one line what it will do and why. If the user asks "what does this do," answer plainly. If they say "stop" or "wrong direction," halt and ask what to try instead. Success: user has redirected at least once and seen what that feels like.
 
 8. **Commit the working state.** As soon as something works, propose a commit with a short message describing what now works. Do not batch multiple unrelated changes. Success: `git log` shows a commit the user can point at.
 
-9. **Show recovery in plain English.** Tell the user they never need to learn git commands to recover. They can say: "something broke, take us back to the last working state," or "undo your last changes," or `/clear` to start fresh with tighter scope. Success: user can repeat back at least one of these phrases.
+9. **Make one change, commit again.** Have the user change the sentence to something different. Show the diff before saving. Approve. Commit. This second rep is what makes the approval loop feel normal instead of foreign. Success: two commits in `git log`.
 
-10. **Stop while ahead.** Once one thing works and is committed, end the session. Do not start a second feature. Tell the user that disorientation in the first couple hours is normal.
+10. **The break-and-recover exercise.** This is the most important step. Ask Claude (yourself, in the session) to *"break the page on purpose — delete a critical piece of the HTML so it renders blank or visibly broken, save the change, don't commit, and don't tell me what you deleted."* Have the user refresh their browser and see the broken page. Then have them paste: *"Take us back to the last working state."* Restore via git. Have them refresh — page is back. This is the safety net the rest of their Claude Code life depends on; making them feel it work once locks it in. Success: user has experienced a recovery from a deliberate break.
+
+11. **Name what they learned.** Before they close the terminal, walk through what they did out loud: installed Claude Code, set up safety basics by asking Claude, approved proposed changes after reviewing them, built a webpage, committed working states, broke something and recovered with one English prompt. That list is everything a non-developer needs.
+
+12. **Stop while ahead.** Do not start a second feature. Tell the user the first hour or two is supposed to feel disorienting; that fades by hour five.
 
 ## Things to watch for in a first session
 

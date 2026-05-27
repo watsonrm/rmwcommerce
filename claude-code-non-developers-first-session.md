@@ -203,9 +203,11 @@ The approval process doesn't slow you down. It's what keeps the tool working for
 
 ---
 
-## Section 4: Pick a contained first project
+## Section 4: Your first project is already chosen
 
-If you're reading this section because you skipped the **Right Now** block at the top, the default project is already chosen for you: a one-page HTML site that says your name and one sentence about what you do. That's it. Do not try to pick something more ambitious for session one.
+You don't pick. Picking is the hardest part for someone who has never built anything. The default first project is a one-page personal HTML site that says your name and one sentence about what you do.
+
+**Use the full walkthrough:** [Your First Project: A Paste-Along Tutorial](claude-code-non-developers-first-tutorial.md). 45 minutes, exact prompts to paste at each step, a visible result in your browser, and a deliberate break-and-recover exercise so you feel the safety net work. That's the rest of this section — go run it, then come back here for the second-session options below.
 
 ### Why that default
 
@@ -215,9 +217,9 @@ You will not deploy it. You will not show it to anyone. Its only job is to teach
 
 Anything that touches money, anything multi-user, anything that calls a paid API in a loop without a spend cap set at the provider level. Not because these are forbidden — because they pile risk on top of a workflow you haven't practiced yet. Revisit after 10+ working hours; the constraints loosen with experience.
 
-### Other safe options once the HTML site is committed
+### Second-session candidates
 
-These are second-session candidates, not first-session ones. Pick one only after the default project is in git:
+After the HTML tutorial is committed, pick one of these for session two:
 
 - **A personal CLI script.** A script that does one thing on your own machine: organize your downloads folder by file type, rename photos by date, convert a folder of files from one format to another.
 - **A data transformation script.** Read a CSV, do something to the data, write a new CSV. Input and output easy to inspect.

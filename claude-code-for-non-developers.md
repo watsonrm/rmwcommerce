@@ -18,9 +18,14 @@ Who this is for: someone running a non-technical business who wants to use Claud
 > © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. Quoted material is the property of its respective owners and used under fair use with attribution — see [Sources & Attribution](#sources--attribution). Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
 > [!IMPORTANT]
-> ### Haven't installed Claude Code yet? Start somewhere else.
+> ### Haven't built anything with Claude Code yet? Start somewhere else.
 >
-> This guide is the *why* — mindset, question templates, common ways things go wrong. It is not the install walkthrough. If you do not have Claude Code running on your machine right now, jump to **[Your First Session](claude-code-non-developers-first-session.md)** and ship one small working thing first. Come back here once you have a commit on the board. The mindset below lands better after you have felt the tool work, not before.
+> This guide is the *why* — mindset, question templates, common ways things go wrong. It is not the walkthrough.
+>
+> - **Not installed yet:** jump to [Your First Session](claude-code-non-developers-first-session.md) — the **Right Now** block at the top installs Claude Code and gets you to a prompt in ten minutes.
+> - **Installed but haven't built anything:** jump to [Your First Project: A Paste-Along Tutorial](claude-code-non-developers-first-tutorial.md) — 45 minutes, exact prompts to paste, a one-page personal site you can show in your browser, and a deliberate break-and-recover exercise so you feel the safety net work.
+>
+> Come back to this guide once you have a commit on the board. The mindset below lands better after you've felt the tool work.
 >
 > **Stuck before you even start?** Paste this into Claude.ai (the regular web chat, not Claude Code): *"I'm a non-developer trying to set up Claude Code for the first time. Walk me through it step by step, on macOS / Windows / Linux (pick mine), and don't assume I know anything about terminals or git."* That unblocks you in five minutes with zero install required.
 
