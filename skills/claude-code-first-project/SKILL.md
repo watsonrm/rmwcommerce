@@ -1,6 +1,6 @@
 ---
-name: claude-code-first-session
-description: Walk a first-time non-developer Claude Code user through their initial ~30-minute session — install check, safety setup, tiny first project, approval workflow, commit. Trigger when user says "I just installed Claude Code", "first time using this", "I'm new to Claude Code", "walk me through my first session", "what should I do first", "help me get started", or "got it open now what".
+name: claude-code-first-project
+description: Walk a first-time non-developer Claude Code user through the canonical first-project tutorial — install check, safety setup, build a one-page personal HTML site, approval loop, commit, and a deliberate break-and-recover exercise. Trigger when user says "I just installed Claude Code", "first time using this", "I'm new to Claude Code", "walk me through my first project", "what should I build first", "help me get started", or "got it open now what".
 ---
 
 ## When to use this skill
@@ -9,16 +9,16 @@ Invoke on these triggers:
 
 - "I just installed Claude Code"
 - "first time using this" / "I'm new"
-- "walk me through my first session"
+- "walk me through my first project" / "what should I build first"
 - "what should I do first" / "where do I start"
 - "help me get started"
 - "I got it open, now what"
 
-If the user is past their first session and asking about ongoing work, do not use this skill — hand off to `claude-code-for-non-developers`.
+If the user is past their first project and asking about ongoing work, do not use this skill — hand off to `claude-code-for-non-developers`.
 
 ## What we're going to do
 
-This is a first session, not a tutorial. Goal: one small working result, committed to git, with the user understanding the approval process. Aim for ~30 minutes. Avoid scope creep. The skill the user is actually learning is "decide before approving" — not coding.
+The canonical first-project tutorial: [Your First Project: A Paste-Along Tutorial](https://github.com/watsonrm/rmwcommerce/blob/main/claude-code-non-developers-first-tutorial.md). Goal: one working HTML page, committed to git, with the user understanding the approval process and having felt the break-and-recover exercise work. Aim for ~45 minutes. The skill the user is actually learning is "decide before approving" — not coding.
 
 ## First-session procedure
 
@@ -73,4 +73,4 @@ For ongoing work after the first session, hand off to the `claude-code-for-non-d
 
 ---
 
-Source article: https://github.com/watsonrm/rmwcommerce/blob/main/claude-code-non-developers-first-session.md
+Source article: https://github.com/watsonrm/rmwcommerce/blob/main/claude-code-non-developers-first-tutorial.md

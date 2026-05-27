@@ -17,7 +17,7 @@ Load this skill when the user signals any of the following:
 - Says something broke and they don't know how to recover
 - Asks what code Claude just wrote, in plain English
 
-If the user is in their first-ever session, hand off to `claude-code-first-session`. This skill is for ongoing work.
+If the user is in their first-ever session, hand off to `claude-code-first-project`. This skill is for ongoing work.
 
 ## How to frame Claude Code for the user
 
@@ -86,7 +86,7 @@ When in doubt, propose the plan in one short paragraph and wait for approval.
 
 ## Handoffs
 
-- For first-session setup, see the `claude-code-first-session` skill.
+- For first-session setup, see the `claude-code-first-project` skill.
 - For workflow optimization once the user is established, see the `claude-code-optimizer` skill.
 
 ---

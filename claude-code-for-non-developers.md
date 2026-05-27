@@ -22,13 +22,22 @@ Who this is for: someone running a non-technical business who wants to use Claud
 >
 > This guide is the *why* — mindset, question templates, common ways things go wrong. It is not the walkthrough.
 >
-> - **Not installed yet:** jump to [Your First Session](claude-code-non-developers-first-session.md) — the **Right Now** block at the top installs Claude Code and gets you to a prompt in ten minutes.
-> - **Installed but haven't built anything:** jump to [Your First Project: A Paste-Along Tutorial](claude-code-non-developers-first-tutorial.md) — 45 minutes, exact prompts to paste, a one-page personal site you can show in your browser, and a deliberate break-and-recover exercise so you feel the safety net work.
+> - **Not sure if Claude Code is even right for you:** take [The 5-Minute Test](claude-code-5-minute-test.md). One prompt, paste a real conversation, get a personalized YES/NO before you install anything.
+> - **Decided yes, want to build something:** jump straight to [Your First Project: A Paste-Along Tutorial](claude-code-non-developers-first-tutorial.md) — install steps included at the top, then 45 minutes of paste-along to a working page in your browser, including a deliberate break-and-recover exercise so you feel the safety net work.
 > - **Built something but it's only on your laptop:** jump to [Back It Up to GitHub](claude-code-non-developers-github-tutorial.md) — 30 minutes, push your project into a private repo, then deliberately `rm -rf` the local folder and clone it back. Backup, portability, and fearless experimentation, without learning git commands.
 >
 > Come back to this guide once you have a commit on the board. The mindset below lands better after you've felt the tool work.
->
-> **Stuck before you even start?** Paste this into Claude.ai (the regular web chat, not Claude Code): *"I'm a non-developer trying to set up Claude Code for the first time. Walk me through it step by step, on macOS / Windows / Linux (pick mine), and don't assume I know anything about terminals or git."* That unblocks you in five minutes with zero install required.
+
+## First, the 30-second basics
+
+If you've heard "Claude Code" and aren't entirely sure what it is, the bare facts before the essay:
+
+1. **It's the same Claude you already use, running on your laptop as a command-line tool.** Same model. Different surface.
+2. **It can read and write files on your computer and run commands.** The chat can't do either — it can only produce text for you to copy.
+3. **It remembers your project across sessions** through git history and a project config file. Walk away on Tuesday, come back Friday, Claude picks up where you left off.
+4. **So anything you'd want to keep, re-run, or iterate on belongs in Claude Code.** One-off questions stay in the chat.
+
+That's the entire product category. The rest of this guide is what I learned using it daily as a non-developer.
 
 ---
 
@@ -73,7 +82,7 @@ Claude will do all of that for you. (Yes — the install instructions for the co
 
 Once installed, Claude loads the skill on demand whenever those phrases come up — walking you through the question templates, the approval checklist, and the common stumbling blocks. You don't need to paste anything; just ask in plain English and the skill triggers.
 
-Read the article itself in this order: once up front for the mindset shift, then come back to specific sections as situations arise. If things have already gone sideways, jump straight to [Section 5](#section-5-the-failure-modes). The companion guide — [Claude Code for Non-Developers: Your First Session](claude-code-non-developers-first-session.md) — covers the practical mechanics of getting started, with its own skill at [`skills/claude-code-first-session/`](skills/claude-code-first-session/).
+Read the article itself in this order: once up front for the mindset shift, then come back to specific sections as situations arise. If things have already gone sideways, jump straight to [Section 5](#section-5-the-failure-modes). The hands-on companion to this guide is [Your First Project Tutorial](claude-code-non-developers-first-tutorial.md) — install steps plus a 45-minute paste-along build — with its own skill at [`skills/claude-code-first-project/`](skills/claude-code-first-project/).
 
 ---
 
@@ -180,15 +189,9 @@ These are the specific ways things go wrong for non-developers. For each one, th
 
 ---
 
-## Section 6: Simplified workflow defaults
+## Section 6: The one safety rule to remember
 
-These are the decisions you can make once and not revisit.
-
-**Commit to main. Don't branch.** Branches exist for teams coordinating on the same codebase simultaneously. If you're the only person working on a project, branching adds complexity without adding value. Just commit to main. If you want to try something experimental, ask Claude to make a checkpoint commit first — then you can always get back to it. Skip this if you work with collaborators or contribute to a public-fork project where others rely on stable branches.
-
-**Commit often.** After every working state. Ask Claude to do it. The message just needs to describe what works: "Commit this — the CSV parser is reading files correctly." That's a commit message. Twenty seconds of friction prevents hours of recovery.
-
-**Keep permissions conservative.** The default permission mode in Claude Code prompts you before any file modification or bash command. That's the right setting. Don't change it to auto-approve everything until you understand exactly what you're approving. If permission prompts feel like they're interrupting you constantly, that's its own problem with a fix — see [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md).
+If you only take one safety rule from this guide, take this one. The workflow defaults — commit to main, commit often, keep permissions conservative, let Claude handle the config files — get demonstrated live in [the tutorial](claude-code-non-developers-first-tutorial.md) and you'll learn them by doing. But the rule below is the one that, if you don't internalize it, will eventually cost you.
 
 > [!IMPORTANT]
 > ### The two-gate rule for outbound communications
@@ -198,25 +201,19 @@ These are the decisions you can make once and not revisit.
 > 1. **Channel and audience must be explicitly named** in the ask ("send to #your-team-channel" — not "send the update")
 > 2. **Draft-confirmation before send** — Claude shows you the message, waits for "send it"
 >
-> "Fix all the things" never authorizes an outbound action, no matter how obvious it looks. The cost of one wrong Slack is hours of cleanup; the cost of one extra confirm-prompt is two seconds. I learned this rule across three separate incidents — each one a different agent, each one assuming "approval" covered the next action down the line. It didn't. If you only remember one safety rule from this guide, remember this one.
-
-**Let Claude manage the technical defaults.** Don't learn `.gitignore` templates, virtualenv setup, or `package.json` configuration. Ask Claude to handle them. Your job is to review what Claude proposes, not to know how to write it yourself. On a company-managed machine, ask IT before letting Claude run setup commands.
+> "Fix all the things" never authorizes an outbound action, no matter how obvious it looks. The cost of one wrong Slack is hours of cleanup; the cost of one extra confirm-prompt is two seconds. I learned this rule across three separate incidents — each one a different agent, each one assuming "approval" covered the next action down the line. It didn't.
 
 ---
 
 ## Section 7: Where to go next
 
-**[Claude Code for Non-Developers: Your First Session](claude-code-non-developers-first-session.md)** — the practical companion to this guide. Installation, permissions, getting the safety basics set up, picking a first project, and understanding the approval process as it plays out in a real session.
+The on-ramp sequence, in order:
 
-**[Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md)** — the layered permission model across all Claude environments, with starter defaults for Claude Code. Read this once you've had a few weeks of sessions and want to stop being interrupted on every action.
+- **[Your First Project Tutorial](claude-code-non-developers-first-tutorial.md)** — install Claude Code and build a one-page personal site in 45 minutes, with a deliberate break-and-recover exercise that locks the approval loop into muscle memory.
+- **[Back It Up to GitHub](claude-code-non-developers-github-tutorial.md)** — push your project to a private repo and rehearse the "I lost my laptop" recovery. 30 minutes.
+- **[Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md)** — read after a few weeks, when permission prompts start to feel constant.
 
-**[Why Is Claude Code So Noisy?](claude-code-noise.md)** — the terminal looks like a wall of text by design. This covers why, what to filter, and what not to.
-
-**[The Claude Code Workflow Optimizer](claude-code-optimizer.md)** — for reducing token waste and rework once you're using Claude Code regularly. Prioritized by real-world ROI. Start with context discipline and CLAUDE.md hygiene.
-
-**[The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md)** — for knowing when to graduate from a prompt to a packaged skill to a full agent. Most people climb this ladder too fast. Read this before you build anything complex.
-
-**[Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md)** — for structuring agent systems that scale without silently breaking. Typed return contracts, intermediate-state logging, thin-orchestrator architecture. Read this only when a single agent is genuinely hitting its limits.
+When you're ready for the next layer — building skills, packaging agents, optimizing token spend — the [README](https://github.com/watsonrm/rmwcommerce#the-full-library-by-topic) has the full library map.
 
 ---
 
@@ -233,7 +230,7 @@ These are the decisions you can make once and not revisit.
 
 **Related work in this series:**
 
-- [Claude Code for Non-Developers: Your First Session](claude-code-non-developers-first-session.md) — the hands-on companion to this guide.
+- [Your First Project Tutorial](claude-code-non-developers-first-tutorial.md) — the install steps + 45-minute hands-on companion to this guide.
 - [The Claude Code Workflow Optimizer](claude-code-optimizer.md) — practitioner tactics for users already inside Claude Code daily.
 - [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) — when to graduate from prompts to skills to agents.
 - [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) — architecture for multi-agent systems at scale.

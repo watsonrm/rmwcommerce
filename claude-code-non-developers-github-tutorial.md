@@ -254,8 +254,7 @@ This is a first-party tutorial. The commands come from GitHub's own CLI document
 
 **Related work in this series:**
 
-- [Your First Session](claude-code-non-developers-first-session.md) — install Claude Code, conservative permissions. The prerequisite to tutorial 1.
-- [Your First Project: A Paste-Along Tutorial](claude-code-non-developers-first-tutorial.md) — the project this tutorial backs up. The prerequisite to this one.
+- [Your First Project: A Paste-Along Tutorial](claude-code-non-developers-first-tutorial.md) — installs Claude Code and walks you through building the `my-first-site` project this tutorial backs up. The prerequisite to this one.
 - [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md) — mindset and question templates. Read after this.
 - [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md) — what to read when permission prompts start feeling constant.
 

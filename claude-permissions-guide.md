@@ -411,7 +411,7 @@ Adjust MCP tool names to match how your MCP servers are actually configured. Run
 
 **[Why Is Claude Code So Noisy?](claude-code-noise.md)** — the noise half of the interruption problem. Permission prompts and verbose output are related but distinct. That article covers the output side; this one covers the prompt side.
 
-**[Claude Code for Non-Developers: Your First Session](claude-code-non-developers-first-session.md)** — Section 1 covers the conservative first-session permissions setup. Read this article after you've had a few weeks of sessions and want to tune from there.
+**[Your First Project Tutorial](claude-code-non-developers-first-tutorial.md)** — the pre-flight install section covers the conservative first-session permissions baseline. Read this article after you've had a few weeks of sessions and want to tune from there.
 
 **[The Claude Code Workflow Optimizer](claude-code-optimizer.md)** — Pillar 1 (context discipline) reduces the frequency of some prompt triggers. Pillar 3 (verification-first) addresses how permission prompts fit into the verification loop.
 
@@ -436,7 +436,7 @@ The Tier A, Tier B, and Tier C allowlist examples are drawn directly from my own
 
 **Related work in this series:**
 
-- [Claude Code for Non-Developers: Your First Session](claude-code-non-developers-first-session.md) — the first-session conservative permissions baseline.
+- [Your First Project Tutorial](claude-code-non-developers-first-tutorial.md) — the first-session install + conservative permissions baseline for non-developers.
 - [Why Is Claude Code So Noisy?](claude-code-noise.md) — the output-noise companion to this guide.
 - [Claude Code Workflow Optimizer](claude-code-optimizer.md) — context discipline and verification-first workflow.
 - [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) — permission considerations as autonomy increases.

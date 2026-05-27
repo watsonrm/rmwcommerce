@@ -13,7 +13,7 @@ keywords: Claude Code tutorial non-developer, first Claude Code project, paste-a
 
 *By [Rick Watson](https://rmwcommerce.com) · 2026-05-27 · Roughly 12 min read · 45 min to complete*
 
-Who this is for: a non-developer who has Claude Code installed and a paid Claude account, but has not actually built anything yet. If you do not have Claude Code installed, start with [Your First Session](claude-code-non-developers-first-session.md) — the **Right Now** block at the top gets you installed in ten minutes, and then come back here.
+Who this is for: a non-developer who wants to actually build something with Claude Code today. The install steps are in this same guide, right after the TL;DR — no other tutorial to read first.
 
 > © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. Quoted material is the property of its respective owners and used under fair use with attribution — see [Sources & Attribution](#sources--attribution). Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
@@ -37,13 +37,29 @@ You don't need to read more before starting. Skip to Step 1.
 
 ---
 
-## Before you start: three checks
+## Install Claude Code first (10 minutes — skip if you already have it)
 
-1. **Paid Claude account.** Pro, Max, Team, or Enterprise — the free Claude.ai tier does not include Claude Code. ([upgrade page](https://claude.ai/upgrade))
-2. **Claude Code installed.** Open a terminal and type `claude --version`. You should see a version number, not "command not found." If you don't, run through the **Right Now** block in [Your First Session](claude-code-non-developers-first-session.md) before this tutorial.
-3. **A browser open** in another window. You will use it to view the page you build.
+If `claude --version` already returns a version number in your terminal, jump to **Step 1**. Otherwise, get installed now.
 
-That's it. No editor, no framework knowledge, no git background.
+**1. You need a paid Claude account.** Pro, Max, Team, or Enterprise — the free Claude.ai tier does not include Claude Code. ([upgrade page](https://claude.ai/upgrade)) Don't skip this check; if your account isn't paid, the install will complete but the tool won't run.
+
+**2. Install the binary.** Open a terminal — macOS: `⌘+Space`, type "Terminal"; Windows: Start, type "PowerShell"; Linux: you know where it lives — and paste:
+
+```bash
+# macOS / Linux
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+```powershell
+# Windows PowerShell
+irm https://claude.ai/install.ps1 | iex
+```
+
+**3. Verify.** Type `claude --version`. You should see a version number, not "command not found." If you see "command not found," close the terminal, open a new one, and try again — the new terminal will pick up the install.
+
+**4. Leave the default permission settings alone.** Claude Code will prompt you before every Bash command and file modification. That is the point — those prompts are the approval loop this tutorial is about to teach you. Do **not** enable `bypassPermissions` mode, do **not** auto-approve everything. When permissions start feeling like too much friction (usually after a few weeks), [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md) covers how to tune them safely.
+
+You're installed. **Open a browser tab and leave it open** — you'll view your page in it. Now go to Step 1.
 
 ---
 
@@ -211,13 +227,28 @@ That is everything a non-developer needs to use Claude Code productively. The ne
 
 ---
 
+## What to expect over your next ten hours
+
+The first session was the hardest. From here on, the pattern repeats — different projects, same approval loop.
+
+**Hours 1–2: disorientation.** You're reading diffs you don't fully understand, approving things you're not certain about, possibly getting errors you don't know how to interpret. This is normal. Every non-developer goes through it. The conservative permissions and the safety basics you set up are what keep the disorientation from turning into catastrophe.
+
+**Hours 3–5: first wins.** You'll have one or two moments where Claude does something surprising and useful. A function you described in plain English that works on the first try. An error you couldn't decode that Claude explains and fixes. These moments are why you're here.
+
+**Hours 6–8: first real mistake.** A command you approved that you shouldn't have, or a direction you pursued that turned out to be wrong, or something that broke and you're not sure why. This is the learning. Your commit history is what makes it recoverable.
+
+**Hours 9–10: a working project.** Not perfect, but working. And you'll have a personal sense of where your gaps are — maybe your prompts are too vague, maybe you're approving too fast, maybe your context is too thin. Whatever it is, you'll know.
+
+Past hour 10, [the workflow optimizer](claude-code-optimizer.md) is the next read.
+
+---
+
 ## What to do next
 
 Pick one. Not several.
 
 - **Back it up to GitHub.** [Make Your Work Survive Your Laptop: Your First Private GitHub Repo](claude-code-non-developers-github-tutorial.md) is the natural session 2. Same paste-along format, 30 minutes, ends with your project safely in a private GitHub repo plus the muscle memory for `rm -rf`-and-recover. This is the most important next step — your project is currently one disk crash away from gone.
 - **Read the why.** [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md) explains the mindset behind what you just did. The right thing to read on the couch after the first session, not before.
-- **Pick a second project.** Section 4 of [Your First Session](claude-code-non-developers-first-session.md#section-4-your-first-project-is-already-chosen) has three second-project options (a CLI script, a CSV transform, a personal automation). Pick the one that maps to a real chore in your week.
 - **Add a photo to your page.** Drop a JPG into the `my-first-site` folder and ask Claude: *"Add this photo to the page, centered above my name, sized so it fits nicely. Show me the diff."* That's the next rep of the same approval loop. (Then commit.)
 
 When permission prompts start interrupting you constantly, that's the signal to read [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md). Not before.
@@ -249,8 +280,9 @@ This is a first-party tutorial. The commands and the approval-loop framing come 
 
 **Related work in this series:**
 
-- [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md) — the mindset and question-templates piece. Read after your first session.
-- [Your First Session](claude-code-non-developers-first-session.md) — install, conservative permissions, and the broader narrative this tutorial is the practical 45-minute cut of.
+- [The 5-Minute Claude Code Test](claude-code-5-minute-test.md) — the decision-gate front door for current Claude.ai users still deciding whether to install.
+- [Make Your Work Survive Your Laptop: First Private GitHub Repo](claude-code-non-developers-github-tutorial.md) — the natural session 2.
+- [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md) — the mindset and question-templates piece. Read after this tutorial.
 - [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md) — what to read when permission prompts start to feel constant.
 - [The Claude Code Workflow Optimizer](claude-code-optimizer.md) — once you have ten hours of Claude Code under your belt.
 

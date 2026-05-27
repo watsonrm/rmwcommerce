@@ -25,6 +25,19 @@ Five minutes flat. Use the Claude account you already have.
 
 ---
 
+## First, the 30-second basics
+
+Before the test makes sense, the bare facts about Claude Code — in case you've heard the name but never been clear what it actually is:
+
+1. **It's the same Claude you already use, running on your laptop as a command-line tool.** Same model. Different surface.
+2. **It can read and write files on your computer and run commands.** The chat can't do either — it can only produce text for you to copy.
+3. **It remembers your project across sessions** through git history and a project config file. Walk away on Tuesday, come back Friday, Claude picks up where you left off.
+4. **So anything you'd want to keep, re-run, or iterate on belongs in Claude Code.** One-off questions stay in the chat.
+
+That's the entire product category. The test below tells you whether *your* recent work fits it.
+
+---
+
 ## Do this
 
 **1. Open claude.ai in a new tab.** Start a fresh conversation.
@@ -61,7 +74,7 @@ Five minutes flat. Use the Claude account you already have.
 
 **If you got YES:**
 
-The "5-minute proof exercise" Claude gave you is the next step. Don't read another guide. Go run it. That exercise is the *only* signal that matters — if Claude Code did better than the chat on a real piece of your work in 5 minutes, you have your answer. If you don't have Claude Code installed yet, the [10-minute install block at the top of Your First Session](claude-code-non-developers-first-session.md) gets you running.
+The "5-minute proof exercise" Claude gave you is the next step. Don't read another guide. Go run it. That exercise is the *only* signal that matters — if Claude Code did better than the chat on a real piece of your work in 5 minutes, you have your answer. If you don't have Claude Code installed yet, the [10-minute install section at the top of the First Project Tutorial](claude-code-non-developers-first-tutorial.md#install-claude-code-first-10-minutes--skip-if-you-already-have-it) gets you running.
 
 **If you got NO:**
 
@@ -85,8 +98,7 @@ It's also calibrated to fail honestly. The prompt explicitly tells Claude to say
 
 These exist for after the test, not before:
 
-- **[Your First Session](claude-code-non-developers-first-session.md)** — install Claude Code in ten minutes.
-- **[Your First Project Tutorial](claude-code-non-developers-first-tutorial.md)** — 45-minute paste-along to feel the workflow end-to-end.
+- **[Your First Project Tutorial](claude-code-non-developers-first-tutorial.md)** — install Claude Code at the top, then a 45-minute paste-along to feel the workflow end-to-end.
 - **[Make Your Work Survive Your Laptop](claude-code-non-developers-github-tutorial.md)** — private GitHub repo backup, 30 minutes.
 - **[Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md)** — the mindset and question templates.
 

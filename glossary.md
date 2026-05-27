@@ -270,7 +270,7 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 
 ## Claude Code primitives
 
-*Full treatment: [Claude Code Workflow Optimizer](claude-code-optimizer.md), [Claude Code for Non-Developers: Your First Session](claude-code-non-developers-first-session.md)*
+*Full treatment: [Claude Code Workflow Optimizer](claude-code-optimizer.md), [Your First Project Tutorial](claude-code-non-developers-first-tutorial.md)*
 
 ---
 
@@ -813,7 +813,7 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 - Lilian Weng — *LLM Powered Autonomous Agents* (Jun 2023): https://lilianweng.github.io/posts/2023-06-23-agent/
 - Walden Yan / Cognition — *Don't Build Multi-Agents* (Jun 2025): https://cognition.ai/blog/dont-build-multi-agents
 
-**Related work in this series:** [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md), [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md), [Claude Code Workflow Optimizer](claude-code-optimizer.md), [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md), [Why Is Claude Code So Noisy?](claude-code-noise.md), [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md), [Claude Code for Non-Developers: Your First Session](claude-code-non-developers-first-session.md), [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md)
+**Related work in this series:** [The 5-Minute Claude Code Test](claude-code-5-minute-test.md), [Your First Project Tutorial](claude-code-non-developers-first-tutorial.md), [Make Your Work Survive Your Laptop: First Private GitHub Repo](claude-code-non-developers-github-tutorial.md), [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md), [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md), [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md), [Claude Code Workflow Optimizer](claude-code-optimizer.md), [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md), [Why Is Claude Code So Noisy?](claude-code-noise.md), [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md)
 
 ---
 
