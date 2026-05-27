@@ -2,7 +2,7 @@
 title: Operating Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude
 description: The patterns, hard limits, and anti-patterns of writing to Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude or any AI agent. Workarounds for what the APIs simply cannot do, plus surface-specific deep dives (Docs styling cascade; Sheets USER_ENTERED + values-vs-structure split; Slides object-ID stability + the under-served MCP surface; Calendar sendUpdates silent-add failure; Gmail base64url vs base64 and the threading-headers gap). Every claim grounded in a specific failure mode.
 date: 2026-05-25
-last_modified_at: 2026-05-26
+last_modified_at: 2026-05-27
 author: Rick Watson
 agent_friendly: true
 keywords: Google Drive, Google Docs, Google Sheets, Google Slides, Google Calendar, Gmail, Sheets API, Slides API, Calendar API, Gmail API, MCP, model context protocol, AI agents, Claude, automation, document automation, OAuth, Drive API, Docs API, valueInputOption, developer metadata, objectId, presentations batchUpdate, applyTextStyle bold lost, tool success not task success, google docs renders wrong, replaceDocumentWithMarkdown styling lost, weightedFontFamily weight 400, silent style failure, sendUpdates default none, base64url Gmail, threading headers In-Reply-To
@@ -12,7 +12,7 @@ keywords: Google Drive, Google Docs, Google Sheets, Google Slides, Google Calend
 
 **Six Workspace surfaces — Drive, Docs, Sheets, Slides, Calendar, Gmail — are now reachable from Claude as production write targets. Done well, an agent ships a branded doc from a markdown payload, lands formulas as live formulas, builds decks from templates, schedules meetings with working Meet links, and drafts mail a human can review and send in one click. The connective tissue between those wins is the verify-after-write habit: read the JSON, confirm what landed, dispatch the next step against ground truth. This guide names the patterns that produce reliable output on each surface, the workarounds for the things the APIs genuinely cannot do, and the few high-leverage decisions that close the largest share of real-world breakage.**
 
-**Published:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Last updated:** <time datetime="2026-05-26">2026-05-26</time>  ·  **Author:** [Rick Watson](https://www.rmwcommerce.com/), Principal, RMW Commerce Consulting  ·  **Canonical URL:** [`github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md`](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md)  ·  **Reading time:** 10-min skim · 75-min deep read
+**Published:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Last updated:** <time datetime="2026-05-27">2026-05-27</time>  ·  **Author:** [Rick Watson](https://www.rmwcommerce.com/), Principal, RMW Commerce Consulting  ·  **Canonical URL:** [`github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md`](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md)  ·  **Reading time:** 10-min skim · 75-min deep read
 
 Who this is for: developers and operators using Claude (or any AI agent) to read and write Google Drive files, Google Docs, Google Sheets, Google Slides, Google Calendar events, and Gmail messages at scale. Anyone who wants an agent to produce branded docs, live-formula sheets, template-driven decks, working calendar invites, and reviewable mail — without watching the agent overwrite styled formatting, create four files with the same title, write a formula that lands as a literal string, hand-craft a `batchUpdate` for a deck because the MCP didn't expose it, add attendees silently with no invitation email, or get `400 invalidArgument` from Gmail because standard base64 isn't base64url.
 
@@ -43,9 +43,12 @@ You reach Drive through `mcp__google-docs__searchDriveFiles`, the lighter `mcp__
 3. applyTextStyle / applyParagraphStyle          // brand styling (mandatory — markdown imports leave defaults)
 4. readDocument(doc_id, format: "json")        // verify the styles landed
 5. Compare expected vs actual per paragraph    // tool success ≠ task success
+6. Scan every textRun.content for leaked markdown syntax (^#{1,6}\s, \*\*[^*\n]+\*\*, ^---$)
+                                               // structure-only checks miss literal `#` and `**` chars that the converter
+                                               // silently left behind — Pattern 6 in Part 2
 ```
 
-That five-step skeleton catches the largest share of real-world failure modes. The rest of this guide is the named failures it prevents, the architectural pattern that makes it survive interruptions, and the Sheets equivalent.
+That six-step skeleton catches the largest share of real-world failure modes. The rest of this guide is the named failures it prevents, the architectural pattern that makes it survive interruptions, and the Sheets equivalent.
 
 > © 2026 Rick Watson / RMW Commerce Consulting. This compilation, its ranking, and the original commentary are copyrighted. The underlying techniques originate from the public Google Workspace APIs and Anthropic's Model Context Protocol. See [Sources & Attribution](#sources--attribution). Quoting brief excerpts with attribution is fine. Republishing the compilation in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
@@ -76,7 +79,7 @@ The capabilities the Workspace APIs deliver at the present production state. Eac
 |---|---|---|
 | Create a Doc from markdown content | `replaceDocumentWithMarkdown` on a newly-created file | Apply brand styling AFTER — markdown imports leave Arial / default heading sizes |
 | Update a Doc body | Same tool, existing `doc_id` | Scan for embedded human content first (smart chips, pasted images, comments) |
-| Prepend a styled section to a Doc | Read existing → assemble → full-body replace | NOT raw `insertText` at index 1 — markdown tokens land as literal characters |
+| Prepend a styled section to a Doc | Read existing → assemble → full-body replace | NOT raw `insertText` at index 1 — markdown tokens land as literal characters. Also: run the [markdown-leak check](#pattern-6--markdown-leak-check-after-every-markdownDocs-write) after every prepend — even `replaceDocumentWithMarkdown` silently leaves `#` and `**` chars in some paragraphs |
 | Insert an image | Pre-resize source with `sips` → `insertImage` with `localImagePath` | API `width`/`height` parameters are unreliable; pre-resize is the constraint |
 | Read a Doc as data | `readDocument` with `format: "json"` | Walk paragraphs; inspect `textRun`, `inlineObjectElement`, `richLink`, `person` |
 | Style a Doc per brand | 5-step sequence: body sweep → cascade check → paragraph styles → text styles → inline bold | Part 2 — the only order that works |
@@ -116,7 +119,7 @@ A handful of capabilities the Workspace APIs simply do not expose today. Each ro
 
 If you read nothing else, internalize these five. Each leads with the decision that produces the win; the watch-out follows. The five surfaces are deliberately mixed — none of these are obvious from reading Google's docs.
 
-1. **Verify every Docs style write by reading the JSON.** After every `applyTextStyle` / `applyParagraphStyle` call, read the doc as JSON and confirm the values landed per paragraph. The JSON is the contract — tool-call success isn't. Silent partial-success is the single most expensive case to handle in production.
+1. **Verify every Docs style write by reading the JSON — both structure AND content.** After every `applyTextStyle` / `applyParagraphStyle` call, read the doc as JSON and confirm the values landed per paragraph. Then walk `textRun.content` for residual `^#{1,6}\s` / `\*\*[^*\n]+\*\*` / `^---$` markdown syntax the converter silently left behind ([Pattern 6](#pattern-6--markdown-leak-check-after-every-markdownDocs-write)). The JSON is the contract — tool-call success isn't, and structure-only verification passes through leaked markdown chars unnoticed.
 2. **Pass `USER_ENTERED` explicitly on every Sheets write.** Sheets parses input the way the UI does — formulas become formulas, `Mar 1 2026` becomes a date. Without the explicit flag, `=SUM(A1:A10)` lands as a literal string starting with `=` and downstream math reads zero.
 3. **Pass `sendUpdates=all` on every Calendar insert / update / delete with attendees.** The documented default is `false` (= no notifications fire). Without the explicit flag, attendees get added silently and never see the invite — the most common reason an agent-created meeting "didn't go through."
 4. **Draft, don't send, from Gmail — and use base64url on every `raw` field.** `drafts.create` keeps a reviewable artifact in the user's drafts folder before mail goes on the wire. The MIME `raw` field is base64url-encoded (URL-safe alphabet, no `+` or `/`) per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending); standard base64 passes plaintext tests and fails the first HTML or binary payload with `400 invalidArgument`.
@@ -233,7 +236,7 @@ Workarounds: edit table structure manually in the Drive UI, or export to `.docx`
 
 ### Where to spend your time — Docs
 
-Once the map is clear, here are the patterns that close the largest share of real-world failure modes on the Docs surface. **The reader who only adopts items 1–5 closes the largest share of real-world failure modes.** Sheets has its own priority table in [Part 7](#part-7--operating-google-sheets); Slides, Calendar, and Gmail each have theirs in Parts 8–10.
+Once the map is clear, here are the patterns that close the largest share of real-world failure modes on the Docs surface. **The reader who only adopts items 1–6 closes the largest share of real-world failure modes.** Sheets has its own priority table in [Part 7](#part-7--operating-google-sheets); Slides, Calendar, and Gmail each have theirs in Parts 8–10.
 
 | # | Pattern | Why this pattern wins | Effort |
 |---|---|---|---|
@@ -242,12 +245,13 @@ Once the map is clear, here are the patterns that close the largest share of rea
 | 3 | **Cascade-check both directions after every paragraph-style write** | Two opposite cases need detection: HEADING_1 cascades across too many paragraphs (huge bold body) AND mid-write interruption leaves every paragraph as NORMAL_TEXT (no headings). Catching both before declaring success is what keeps the doc shipping clean. | Medium |
 | 4 | **Pre-resize images at the file level (`sips` on macOS) before `insertImage`** | Pre-resizing the source file is the only path that reliably constrains rendered size — the API width/height parameters do not. One `sips` call, then the image lands at the size you asked for. | Low |
 | 5 | **Copy from template for any doc that needs a page-number footer** | `copyFile` clones a template you built with the footer already baked in, then `replaceDocumentWithMarkdown` overlays the body. The footer survives because it lives at the `documentStyle` level, not in the body stream. | Medium |
-| 6 | **Edit existing docs in place — never recreate to "prepend"** | Editing in place keeps the `doc_id` stable, so every external bookmark, Asana comment, and briefing link keeps working. Recreate-to-prepend is the canonical way to accumulate four files with the same title. | Low |
-| 7 | **Treat all existing human content as load-bearing** | Inspecting the JSON for `inlineObjectElement`, `richLink`, `person`, and any unauthored text runs before any range replace preserves pasted images, smart chips, comments, and manual edits that would otherwise vanish into a wholesale replace. | Medium |
-| 8 | **Idempotency: search-before-create, body-match-before-update, date-match-before-prepend** | Rerunning the same write reaches the same Drive state. That's the property an orchestrator's retry-on-transient-error loop needs to avoid silently duplicating content the first time the network blips. | Low |
-| 9 | **State.json breadcrumbs for resume-from-interruption** | The breadcrumb file lets the next dispatch detect that a previous write died mid-cascade and recover the doc before layering a fresh write on top of a half-styled state. | High |
+| 6 | **Markdown-leak check after every markdown→Docs write** | Scan every `textRun.content` in the affected range for residual `^#{1,6}\s`, `\*\*[^*\n]+\*\*`, and standalone `^---$` paragraphs. Structure-only verification (heading count, per-paragraph style) passes when leaked markdown sits in a `NORMAL_TEXT` paragraph — but Rick still sees `# **Title**` rendered as visible characters on the page. The structural checks and the content check are independent; both have to pass. | Low |
+| 7 | **Edit existing docs in place — never recreate to "prepend"** | Editing in place keeps the `doc_id` stable, so every external bookmark, Asana comment, and briefing link keeps working. Recreate-to-prepend is the canonical way to accumulate four files with the same title. | Low |
+| 8 | **Treat all existing human content as load-bearing** | Inspecting the JSON for `inlineObjectElement`, `richLink`, `person`, and any unauthored text runs before any range replace preserves pasted images, smart chips, comments, and manual edits that would otherwise vanish into a wholesale replace. | Medium |
+| 9 | **Idempotency: search-before-create, body-match-before-update, date-match-before-prepend** | Rerunning the same write reaches the same Drive state. That's the property an orchestrator's retry-on-transient-error loop needs to avoid silently duplicating content the first time the network blips. | Low |
+| 10 | **State.json breadcrumbs for resume-from-interruption** | The breadcrumb file lets the next dispatch detect that a previous write died mid-cascade and recover the doc before layering a fresh write on top of a half-styled state. | High |
 
-Most readers should adopt items 1–5 and stop. Items 6–9 are amplification, mostly relevant once you're running document writes from an unattended orchestrator.
+Most readers should adopt items 1–6 and stop. Items 7–10 are amplification, mostly relevant once you're running document writes from an unattended orchestrator.
 
 ### Pattern 1 — Edit existing documents in place
 
@@ -345,7 +349,50 @@ After any `replaceDocumentWithMarkdown` write, apply styling in **exactly this o
 
 Skipping any step produces a visually broken doc. Reordering the steps produces the same. The order is the pattern; treat it as load-bearing.
 
-### Pattern 6 — Idempotency
+### Pattern 6 — Markdown-leak check after every markdown→Docs write
+
+Style verification (Pattern 2) and cascade-check (Pattern 4) both inspect structure: per-paragraph `namedStyleType`, per-textRun font / size / color / bold. Neither inspects whether the **content** of those textRuns still carries leaked markdown syntax. The markdown→Docs converters that ship inside `replaceDocumentWithMarkdown`, `replaceRangeWithMarkdown`, and (the forbidden) `insertText`-on-markdown-payload all fail this way: the converter returns success, the structural checks pass, the doc renders `# **Title**` and `**Format:**` as visible characters on the page.
+
+**A real incident** (2026-05-27, client running-notes doc). Two consecutive writer-agent runs against the same Doc:
+
+1. **First run** used the forbidden `insertText(index=1)` path with a markdown payload. `insertText` is literal — the `#` and `**` chars landed as plain text. Verification was `readDocument(text) — PASS: "Return Analysis" at position 0` — it confirmed the title string was present, not that markdown syntax was absent.
+2. **Second run** used the correct `replaceDocumentWithMarkdown`. Verification was `cascade check passed — H1 count within expected (1 title + 3 H2 sections = 4 headings)` — it counted paragraph styles.
+
+Both runs returned `{type: "updated"}`. Both passed every structural check the writer agent's playbook mandated. The doc was left with **46 lines starting with literal `**`** and **58 lines starting with literal `#`**, spanning a dozen historical sections going back days. The visible breakage fell between the structural checks because:
+
+- Heading-count check passed (the actual headings WERE styled correctly; the leaked paragraphs were NOT counted as headings)
+- Per-paragraph style check passed (the leaked paragraphs were `NORMAL_TEXT` with Open Sans 11pt regular — exactly what body text should be)
+- Char count check passed (no truncation)
+
+A reader looking at the doc saw garbage. A verifier looking at the JSON saw a well-styled document.
+
+**The check that closes the gap:**
+
+```python
+for paragraph in doc.body.content:
+    text = "".join(run.textRun.content for run in paragraph.elements if run.textRun)
+    stripped = text.rstrip("\n")
+    if re.match(r"^#{1,6}\s", stripped):
+        FAIL("leaked heading marker", paragraph.startIndex, stripped[:60])
+    if re.search(r"\*\*[^*\n]+\*\*", stripped):
+        FAIL("leaked bold pair", paragraph.startIndex, stripped[:60])
+    if stripped == "# ---":
+        FAIL("leaked HR", paragraph.startIndex, stripped[:60])
+```
+
+Run it after every markdown→Docs write, on every paragraph in the affected range. On match, repair atomically:
+
+1. **Parse the leaked syntax to recover the intended structure.**
+   - `^#{N}\s+(.*)` → HEADING_N with content `$1` (strip any wrapping `\*\*…\*\*` first)
+   - `^\*\*([A-Z][^*]*:)\*\*\s*(.*)` → NORMAL_TEXT with `$1` bold (brand-heading font + color) + `$2` body
+   - Standalone `# ---` → delete the paragraph entirely
+2. **Apply via `batchUpdate`** — `deleteContentRange` + `insertText` + `updateParagraphStyle` + `updateTextStyle` in one atomic request. Process paragraphs **bottom-up by `startIndex`** so each edit doesn't shift the indices of subsequent edits.
+3. **Do NOT call `replaceDocumentWithMarkdown` again** — it's what leaked in the first place. Going back through the same converter risks the same leak on the repaired paragraphs.
+4. **Re-read JSON and re-scan.** Cannot declare the write `done` with any residual leaks in the affected range.
+
+The check costs one `getDocumentInfo` call and a regex sweep. The cost of skipping it is the failure mode above: structurally-perfect verification of a doc that renders raw markdown.
+
+### Pattern 7 — Idempotency
 
 Every write mode has an idempotency rule. Apply it before the write, not after.
 
