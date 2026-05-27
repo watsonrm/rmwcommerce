@@ -24,6 +24,7 @@ Who this is for: someone running a non-technical business who wants to use Claud
 >
 > - **Not installed yet:** jump to [Your First Session](claude-code-non-developers-first-session.md) — the **Right Now** block at the top installs Claude Code and gets you to a prompt in ten minutes.
 > - **Installed but haven't built anything:** jump to [Your First Project: A Paste-Along Tutorial](claude-code-non-developers-first-tutorial.md) — 45 minutes, exact prompts to paste, a one-page personal site you can show in your browser, and a deliberate break-and-recover exercise so you feel the safety net work.
+> - **Built something but it's only on your laptop:** jump to [Back It Up to GitHub](claude-code-non-developers-github-tutorial.md) — 30 minutes, push your project into a private repo, then deliberately `rm -rf` the local folder and clone it back. Backup, portability, and fearless experimentation, without learning git commands.
 >
 > Come back to this guide once you have a commit on the board. The mindset below lands better after you've felt the tool work.
 >

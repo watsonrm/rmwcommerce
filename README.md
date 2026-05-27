@@ -31,7 +31,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 
 | You are… | Start with |
 |---|---|
-| **New to Claude Code, not a developer** | [Your First Session](claude-code-non-developers-first-session.md) → [Your First Project Tutorial](claude-code-non-developers-first-tutorial.md) → [Field Guide](claude-code-for-non-developers.md) |
+| **New to Claude Code, not a developer** | [Your First Session](claude-code-non-developers-first-session.md) → [Your First Project Tutorial](claude-code-non-developers-first-tutorial.md) → [Back It Up to GitHub](claude-code-non-developers-github-tutorial.md) → [Field Guide](claude-code-for-non-developers.md) |
 | **Already using Claude Code, want it cheaper or faster** | [Workflow Optimizer](claude-code-optimizer.md) → [Making Claude Faster](guides/making-claude-faster.md) |
 | **Drowning in noise or permission prompts** | [Why Claude Code Is So Noisy](claude-code-noise.md) → [Stop the Interruption Hell](claude-permissions-guide.md) |
 | **Building skills, agents, or multi-agent systems** | [Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) → [Multi-Agent Fan-Out](multi-agent-fan-out-and-verification.md) |
@@ -47,7 +47,8 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 **Getting started (non-developers welcome):**
 - [Your First Session](claude-code-non-developers-first-session.md) — start here if you haven't installed Claude Code yet. Install, conservative permissions, and the **Right Now** ten-minute on-ramp at the top.
 - [Your First Project: A Paste-Along Tutorial](claude-code-non-developers-first-tutorial.md) — 45-minute hands-on walkthrough. Build a one-page personal site, see it in your browser, commit it, then deliberately break it and recover with one English prompt. The fastest way to feel the Claude Code approval loop work.
-- [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md) — the *why* behind the tutorial. Mindset, the seven question templates, the common failure modes. Read after your first session, not before. Written by a non-developer who runs a 20+ skill agent system daily.
+- [Make Your Work Survive Your Laptop: Your First Private GitHub Repo](claude-code-non-developers-github-tutorial.md) — 30-minute paste-along. Install `gh`, authenticate, push the project from the first tutorial into a private repo, then deliberately `rm -rf` the local folder and clone it back. Backup + portability + history-on-your-phone, without learning git commands.
+- [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md) — the *why* behind the tutorials. Mindset, the seven question templates, the common failure modes. Read after your first two sessions, not before. Written by a non-developer who runs a 20+ skill agent system daily.
 - [Why Claude Code Is So Noisy](claude-code-noise.md) — your terminal looks like a wall of text by design. The four sources of noise and the tactics for filtering what matters from what's just volume.
 
 **Cost + speed optimization:**

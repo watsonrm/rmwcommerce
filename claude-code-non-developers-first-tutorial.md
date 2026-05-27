@@ -215,10 +215,10 @@ That is everything a non-developer needs to use Claude Code productively. The ne
 
 Pick one. Not several.
 
-- **Read the why.** [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md) explains the mindset behind what you just did. It's the right thing to read on the couch after the first session, not before.
-- **Pick a second project.** Section 4 of [Your First Session](claude-code-non-developers-first-session.md#section-4-pick-a-contained-first-project) has three second-project options (a CLI script, a CSV transform, a personal automation). Pick the one that maps to a real chore in your week.
+- **Back it up to GitHub.** [Make Your Work Survive Your Laptop: Your First Private GitHub Repo](claude-code-non-developers-github-tutorial.md) is the natural session 2. Same paste-along format, 30 minutes, ends with your project safely in a private GitHub repo plus the muscle memory for `rm -rf`-and-recover. This is the most important next step — your project is currently one disk crash away from gone.
+- **Read the why.** [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md) explains the mindset behind what you just did. The right thing to read on the couch after the first session, not before.
+- **Pick a second project.** Section 4 of [Your First Session](claude-code-non-developers-first-session.md#section-4-your-first-project-is-already-chosen) has three second-project options (a CLI script, a CSV transform, a personal automation). Pick the one that maps to a real chore in your week.
 - **Add a photo to your page.** Drop a JPG into the `my-first-site` folder and ask Claude: *"Add this photo to the page, centered above my name, sized so it fits nicely. Show me the diff."* That's the next rep of the same approval loop. (Then commit.)
-- **Deploy the page.** When you're ready, ask: *"What's the simplest way to put this page on the public internet?"* Claude will walk you through GitHub Pages, Netlify, or similar. Save that for session two — you don't need it today.
 
 When permission prompts start interrupting you constantly, that's the signal to read [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md). Not before.
 
