@@ -2,9 +2,11 @@
 title: "The 5-Minute Claude Code Test (For People Already Using Claude)"
 description: You already use Claude. You sense there's a bigger version of the tool you're not using. You don't have time for a 45-minute tutorial to find out if it's worth it. This is the 5-minute test — one prompt you paste into your existing claude.ai session, against one real conversation you already had. The output is a personalized verdict on whether Claude Code would actually upgrade your work, with three specific differences and a 5-minute proof exercise. No install, no signup, no commitment. If the answer is no, you've lost five minutes. If the answer is yes, you'll know exactly what to do next.
 date: 2026-05-27
+last_modified_at: 2026-05-27
 author: Rick Watson
 agent_friendly: true
-keywords: should I use Claude Code, is Claude Code worth it, Claude Code vs Claude chat, Claude Code for Claude users, Claude Code 5 minute test, when to upgrade to Claude Code, Claude Code self-assessment
+canonical: https://github.com/watsonrm/rmwcommerce/blob/main/claude-code-5-minute-test.md
+keywords: should I use Claude Code, is Claude Code worth it, Claude Code vs Claude chat, Claude Code for Claude users, Claude Code 5 minute test, when to upgrade to Claude Code, Claude Code self-assessment, Claude Code decision gate, Claude Code zero install evaluation, paste Claude conversation Claude Code test
 ---
 
 # The 5-Minute Claude Code Test (For People Already Using Claude)

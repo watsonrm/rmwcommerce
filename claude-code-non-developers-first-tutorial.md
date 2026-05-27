@@ -2,9 +2,11 @@
 title: "Your First Claude Code Project: A Paste-Along Tutorial for Non-Developers"
 description: Most "first project" advice tells non-developers to pick something. Choosing the project is the hardest part for someone who has never built anything. This guide hands you one specific project (a one-page personal site), gives you the exact prompts to paste, tells you what to look for at each step, and walks you through a deliberate break-and-recover exercise so you feel the safety net work. About 45 minutes start to finish. You will end with a working page, a commit history, and the muscle memory for the approval loop.
 date: 2026-05-27
+last_modified_at: 2026-05-27
 author: Rick Watson
 agent_friendly: true
-keywords: Claude Code tutorial non-developer, first Claude Code project, paste-along Claude Code, Claude Code HTML site tutorial, Claude Code beginner project, what to build first Claude Code, Claude Code approval loop tutorial, Claude Code commit tutorial, recover from a mistake Claude Code
+canonical: https://github.com/watsonrm/rmwcommerce/blob/main/claude-code-non-developers-first-tutorial.md
+keywords: Claude Code tutorial non-developer, first Claude Code project, paste-along Claude Code, Claude Code HTML site tutorial, Claude Code beginner project, what to build first Claude Code, Claude Code approval loop tutorial, Claude Code commit tutorial, recover from a mistake Claude Code, install Claude Code non-developer, Claude Code break and recover exercise
 ---
 
 # Your First Claude Code Project: A Paste-Along Tutorial for Non-Developers
@@ -41,7 +43,7 @@ You don't need to read more before starting. Skip to Step 1.
 
 If `claude --version` already returns a version number in your terminal, jump to **Step 1**. Otherwise, get installed now.
 
-**1. You need a paid Claude account.** Pro, Max, Team, or Enterprise — the free Claude.ai tier does not include Claude Code. ([upgrade page](https://claude.ai/upgrade)) Don't skip this check; if your account isn't paid, the install will complete but the tool won't run.
+**1. You need a paid Claude account.** Pro, Max, Team, Enterprise, or a Console (API platform) account — the free Claude.ai tier does not include Claude Code. ([upgrade page](https://claude.ai/upgrade)) Don't skip this check; if your account isn't paid, the install will complete but the tool won't run.
 
 **2. Install the binary.** Open a terminal — macOS: `⌘+Space`, type "Terminal"; Windows: Start, type "PowerShell"; Linux: you know where it lives — and paste:
 
@@ -265,7 +267,7 @@ When permission prompts start interrupting you constantly, that's the signal to 
 
 **"I lost track of what state the project is in."** Type *"Walk me through the current state of the project — what files exist, what the last commit was, and what's uncommitted."* Claude will summarize. This is also the answer when you come back to the project a week later.
 
-**"I want to start over."** Quit Claude Code (`Ctrl+C` twice or type `/exit`), delete the `my-first-site` folder from your Desktop, and restart from Step 1. The whole tutorial fits in under an hour even on a second pass — there's no cost to starting over.
+**"I want to start over."** Quit Claude Code by typing `/exit` (or pressing `Ctrl+C` twice), delete the `my-first-site` folder from your Desktop, and restart from Step 1. The whole tutorial fits in under an hour even on a second pass — there's no cost to starting over.
 
 ---
 

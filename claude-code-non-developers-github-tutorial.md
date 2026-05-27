@@ -2,9 +2,11 @@
 title: "Make Your Work Survive Your Laptop: Your First Private GitHub Repo (A Paste-Along Tutorial for Non-Developers)"
 description: Your Claude Code project lives in one folder on one laptop. If the laptop dies, gets stolen, or you accidentally delete the folder, the project is gone. A private GitHub repo fixes that in 30 minutes — and unlocks portability, history-on-your-phone, fearless experimentation, and a future where bringing on a collaborator is one invite click. This guide is the paste-along walkthrough. Exact prompts, exact commands, and a deliberate "pretend you lost your laptop" recovery exercise so you feel the backup work before you ever actually need it.
 date: 2026-05-27
+last_modified_at: 2026-05-27
 author: Rick Watson
 agent_friendly: true
-keywords: GitHub for non-developers, private GitHub repo tutorial, backup Claude Code project, gh CLI tutorial, first GitHub push, non-developer git push, recover laptop project from GitHub, GitHub Claude Code, push private repo Claude
+canonical: https://github.com/watsonrm/rmwcommerce/blob/main/claude-code-non-developers-github-tutorial.md
+keywords: GitHub for non-developers, private GitHub repo tutorial, backup Claude Code project, gh CLI tutorial, first GitHub push, non-developer git push, recover laptop project from GitHub, GitHub Claude Code, push private repo Claude, gh auth login walkthrough, claude code project portability
 ---
 
 # Make Your Work Survive Your Laptop: Your First Private GitHub Repo

@@ -2,9 +2,11 @@
 title: "Claude Code for Non-Developers: A Field Guide"
 description: You don't code, but every Claude Code tutorial assumes you do — git, .env, package managers, terminal flags. The advice is technical, the actual job isn't. The job is reviewing what Claude proposes before you click yes, and most non-developers blow past that gate because the tutorial never named it. Here is what to learn, what to delegate to Claude, and why the meta-skill (knowing what to ask) beats the implementation skill every time.
 date: 2026-05-22
+last_modified_at: 2026-05-27
 author: Rick Watson
 agent_friendly: true
-keywords: Claude Code without coding, non-developer Claude Code, do I need to learn git for Claude Code, Claude Code feels overwhelming, what to approve in Claude Code, Claude Code for business owners, Claude Code meta-skill, knowing what to ask Claude
+canonical: https://github.com/watsonrm/rmwcommerce/blob/main/claude-code-for-non-developers.md
+keywords: Claude Code without coding, non-developer Claude Code, do I need to learn git for Claude Code, Claude Code feels overwhelming, what to approve in Claude Code, Claude Code for business owners, Claude Code meta-skill, knowing what to ask Claude, what is Claude Code, Claude Code question templates, Claude Code failure modes
 ---
 
 # Claude Code for Non-Developers: A Field Guide
