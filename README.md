@@ -31,6 +31,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 
 | You are… | Start with |
 |---|---|
+| **Already use Claude, wondering if Claude Code is worth your time** | [The 5-Minute Test](claude-code-5-minute-test.md) — one prompt, paste a real conversation, get a personalized YES/NO before you install anything |
 | **New to Claude Code, not a developer** | [Your First Session](claude-code-non-developers-first-session.md) → [Your First Project Tutorial](claude-code-non-developers-first-tutorial.md) → [Back It Up to GitHub](claude-code-non-developers-github-tutorial.md) → [Field Guide](claude-code-for-non-developers.md) |
 | **Already using Claude Code, want it cheaper or faster** | [Workflow Optimizer](claude-code-optimizer.md) → [Making Claude Faster](guides/making-claude-faster.md) |
 | **Drowning in noise or permission prompts** | [Why Claude Code Is So Noisy](claude-code-noise.md) → [Stop the Interruption Hell](claude-permissions-guide.md) |
