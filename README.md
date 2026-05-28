@@ -41,6 +41,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 | **Automating QuickBooks Online from Claude — reads, writes, AP gap, anti-patterns** | [QuickBooks Automation Using Claude Code](guides/quickbooks-automation-using-claude-code.md) |
 | **Making your own site readable by AI agents** | [Marketing to Agents](guides/marketing-to-agents.md) |
 | **Reading GA4 data with Claude — picking the right surface, BigQuery guardrails, observed vs modeled** | [GA4 with Claude — Data API, BigQuery, and the Multi-Source Warehouse](guides/ga4-with-claude.md) |
+| **Reading YouTube Analytics with Claude — which of three APIs to use, the auth trap, BigQuery DTS** | [YouTube Analytics with Claude — Two Analytics APIs, Not One](guides/youtube-analytics-with-claude.md) |
 | **Just need a definition** | [Glossary](glossary.md) |
 
 ### The full library by topic
@@ -68,6 +69,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 - [Operating Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude](guides/operating-google-workspace-from-claude.md) — the patterns, hard limits, and anti-patterns of writing to all six Workspace surfaces from an agent. Covers PAGE_NUMBER auto-text limits, `valueInputOption=USER_ENTERED` for Sheets, Slides object-ID instability, the `sendUpdates` silent-add failure in Calendar, base64url vs base64 in Gmail, threading headers, and the single-writer agent pattern for resume-from-interruption. 60-second map → what's possible → what's NOT possible → priority + TL;DR per surface; deep dives in Parts 1–10.
 - [QuickBooks Automation Using Claude Code](guides/quickbooks-automation-using-claude-code.md) — the bundled MCP's real tool inventory (50 tools, 0 AP writes), the bill-in API gap and why it is the right design, the prep-pack architecture for AP that survives every Intuit policy change, and six anti-patterns to recognize before they corrupt your books.
 - [GA4 with Claude — Data API, BigQuery, and the Multi-Source Warehouse](guides/ga4-with-claude.md) — which of GA4's four surfaces to point an agent at, when the Data API is enough and when you need the BigQuery export, the observed-vs-modeled distinction that explains most agent errors, read-only wiring with cost guardrails, and an honest assessment of which "GA4 to BigQuery" connectors actually deliver the native export.
+- [YouTube Analytics with Claude — Two Analytics APIs, Not One](guides/youtube-analytics-with-claude.md) — which of YouTube's three APIs answers your question (Data API v3 for metadata, Analytics API for ad-hoc and the audience-retention curve, Reporting API for recurring bulk work), why service accounts don't work on YouTube and how to solve it once, and why BigQuery's Data Transfer Service is the cleanest unattended-agent setup.
 
 **Publishing for AI agents:**
 - [Marketing to Agents](guides/marketing-to-agents.md) — the authoritative playbook for making any website readable, citable, and operable across every class of AI agent: indexer bots, AI search surfaces, chat assistants, and agentic browsers. Every claim sourced; 22-item checklist impact-ordered by evidence weight.
