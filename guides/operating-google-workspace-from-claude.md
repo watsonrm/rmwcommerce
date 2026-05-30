@@ -2,10 +2,10 @@
 title: Operating Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude
 description: The patterns, hard limits, and anti-patterns of writing to Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude or any AI agent. Workarounds for what the APIs simply cannot do, plus surface-specific deep dives (Docs styling cascade; Sheets USER_ENTERED + values-vs-structure split; Slides object-ID stability + the under-served MCP surface; Calendar sendUpdates silent-add failure; Gmail base64url vs base64 and the threading-headers gap). Every claim grounded in a specific failure mode.
 date: 2026-05-25
-last_modified_at: 2026-05-27
+last_modified_at: 2026-05-30
 author: Rick Watson
 agent_friendly: true
-keywords: Google Drive, Google Docs, Google Sheets, Google Slides, Google Calendar, Gmail, Sheets API, Slides API, Calendar API, Gmail API, MCP, model context protocol, AI agents, Claude, automation, document automation, OAuth, Drive API, Docs API, valueInputOption, developer metadata, objectId, presentations batchUpdate, applyTextStyle bold lost, tool success not task success, google docs renders wrong, replaceDocumentWithMarkdown styling lost, weightedFontFamily weight 400, silent style failure, sendUpdates default none, base64url Gmail, threading headers In-Reply-To
+keywords: Google Drive, Google Docs, Google Sheets, Google Slides, Google Calendar, Gmail, Sheets API, Slides API, Calendar API, Gmail API, MCP, model context protocol, AI agents, Claude, automation, document automation, OAuth, Drive API, Docs API, valueInputOption, developer metadata, objectId, presentations batchUpdate, applyTextStyle bold lost, tool success not task success, google docs renders wrong, replaceDocumentWithMarkdown styling lost, weightedFontFamily weight 400, silent style failure, sendUpdates default none, base64url Gmail, threading headers In-Reply-To, stdlib helper family, cloud-secret-proxy, env-var-first credentials, Keychain fallback, A1 range URL-encode, Unable to parse range, header-schema verify, calendar transparency MCP gap, transparency opaque busy, REST PATCH side-channel, Slides template denylist, replaceAllText dry-run template drift, HTML import brand styling pass
 ---
 
 # Operating Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude
@@ -54,6 +54,25 @@ That six-step skeleton catches the largest share of real-world failure modes. Th
 
 ---
 
+## Why can't I just use MCP and forget the rest?
+
+This is the first question every operator asks, so here is the direct answer: **MCP is the default and it handles the common case on a developer's machine. It is not sufficient on its own.** Six named situations drop you below the MCP layer — to direct REST, to a small stdlib helper, to Apps Script, or to the Drive UI. Five of them (situations 1, 2, 3, 5, and 6 in the table below) are gaps you route around. The sixth — situation 4, where the tool reports success but the document is actually wrong — isn't a gap you route around at all; it's the verify-after-write discipline you never skip, even when MCP works perfectly.
+
+If you adopt one mental model from this guide, adopt this layering: **MCP for the common write, REST for the field or surface the MCP wrapper doesn't expose, a stdlib helper when there is no MCP at all (cloud / headless), the UI or Apps Script for what no API can do — and verify-after-write across all of them.**
+
+| # | The situation | Why MCP alone fails | What you drop to | Covered in |
+|---|---|---|---|---|
+| 1 | **Cloud / headless / scheduled run** | MCP servers need OAuth credentials in the machine's Keychain; a cloud function or cron routine has no Keychain and can't reach the local MCP | A stdlib helper that reads creds from env vars, or a cloud-secret-proxy in front of it | [Limit 2](#limit-2--mcp-availability-differs-by-environment), [Part 5](#part-5--architecture-the-single-writer-pattern) |
+| 2 | **The wrapper doesn't expose the field** | The Calendar MCP wrappers don't expose `transparency` or a meaningful `colorId` on create/update — so an agent-created hold block lands `opaque` (busy) no matter what you ask for | A Calendar REST `PATCH` side-channel that sets the field the wrapper omits | [Part 9 — transparency](#deep-dive--transparency-busyfree-and-how-an-event-appears-in-freebusy) |
+| 3 | **There's no MCP tool for the surface at all** | The production MCP servers expose ~7 Slides tools and no `replaceAllText` / `applyTextStyle` — Slides is structurally under-served even on servers with 100+ Docs/Sheets/Calendar/Gmail tools | Raw `presentations.batchUpdate`, or a thin stdlib helper that wraps it | [Part 8](#part-8--operating-google-slides) |
+| 4 | **MCP returns success but the doc is wrong** | The markdown converter leaks `#` / `**` as literal characters, cascades a heading across 116 paragraphs, or overwrites bold runs — and the tool still returns `{type: "updated"}` | Read the JSON, verify per-paragraph, repair with a REST `batchUpdate` if needed | [Parts 2](#part-2--patterns-that-work)–[4](#part-4--patterns-to-avoid-drive--docs) |
+| 5 | **No API — MCP or REST — can do it** | `PAGE_NUMBER` auto-text in an existing doc, blob images in Sheet cells, Slides transitions / animations: the capability is absent from every programmatic surface | `copyFile` from a pre-built template, Apps Script, or a one-time UI action | [Part 3](#part-3--hard-limits--workarounds-drive--docs), [Slides limits](#hard-limits--workarounds--slides) |
+| 6 | **Connector parity differs by environment** | The same MCP server name behaves differently in claude.ai vs Claude Code vs a skill dispatch — Shared Drive reads regress in one context and work in another | Pull a local copy via whatever read path works, edit locally, sync back | [Part 1 — connector parity](#connector-parity-is-not-guaranteed) |
+
+The honest summary: on a developer's laptop, for a single styled doc or a calendar invite, MCP plus a verify-after-write loop is the whole job. The moment you run unattended, touch Slides, need a field the wrapper hides, or hit a capability no API exposes, you are operating the lower layers — and the rest of this guide is the map of exactly when and how. The [stdlib helper family in Part 5](#the-stdlib-helper-family--a-reference-architecture-you-can-size-to-your-own-needs) is what that lower layer looks like once it's built out.
+
+---
+
 ## Master priority map — highest-leverage pattern per surface
 
 One row per surface. The top pattern on each row is the single decision that closes the largest share of real-world breakage for that surface; the per-Part `Where to spend your time` tables that follow expand items 2 through N. **If you adopt only the six patterns in this table, you ship the bulk of the wins this guide is about.**
@@ -79,7 +98,7 @@ The capabilities the Workspace APIs deliver at the present production state. Eac
 |---|---|---|
 | Create a Doc from markdown content | `replaceDocumentWithMarkdown` on a newly-created file | Apply brand styling AFTER — markdown imports leave Arial / default heading sizes |
 | Update a Doc body | Same tool, existing `doc_id` | Scan for embedded human content first (smart chips, pasted images, comments) |
-| Prepend a styled section to a Doc | Read existing → assemble → full-body replace | NOT raw `insertText` at index 1 — markdown tokens land as literal characters. Also: run the [markdown-leak check](#pattern-6--markdown-leak-check-after-every-markdownDocs-write) after every prepend — even `replaceDocumentWithMarkdown` silently leaves `#` and `**` chars in some paragraphs |
+| Prepend a styled section to a Doc | Read existing → assemble → full-body replace | NOT raw `insertText` at index 1 — markdown tokens land as literal characters. Also: run the [markdown-leak check](#pattern-6--markdown-leak-check-after-every-markdowndocs-write) after every prepend — even `replaceDocumentWithMarkdown` silently leaves `#` and `**` chars in some paragraphs |
 | Insert an image | Pre-resize source with `sips` → `insertImage` with `localImagePath` | API `width`/`height` parameters are unreliable; pre-resize is the constraint |
 | Read a Doc as data | `readDocument` with `format: "json"` | Walk paragraphs; inspect `textRun`, `inlineObjectElement`, `richLink`, `person` |
 | Style a Doc per brand | 5-step sequence: body sweep → cascade check → paragraph styles → text styles → inline bold | Part 2 — the only order that works |
@@ -119,7 +138,7 @@ A handful of capabilities the Workspace APIs simply do not expose today. Each ro
 
 If you read nothing else, internalize these five. Each leads with the decision that produces the win; the watch-out follows. The five surfaces are deliberately mixed — none of these are obvious from reading Google's docs.
 
-1. **Verify every Docs style write by reading the JSON — both structure AND content.** After every `applyTextStyle` / `applyParagraphStyle` call, read the doc as JSON and confirm the values landed per paragraph. Then walk `textRun.content` for residual `^#{1,6}\s` / `\*\*[^*\n]+\*\*` / `^---$` markdown syntax the converter silently left behind ([Pattern 6](#pattern-6--markdown-leak-check-after-every-markdownDocs-write)). The JSON is the contract — tool-call success isn't, and structure-only verification passes through leaked markdown chars unnoticed.
+1. **Verify every Docs style write by reading the JSON — both structure AND content.** After every `applyTextStyle` / `applyParagraphStyle` call, read the doc as JSON and confirm the values landed per paragraph. Then walk `textRun.content` for residual `^#{1,6}\s` / `\*\*[^*\n]+\*\*` / `^---$` markdown syntax the converter silently left behind ([Pattern 6](#pattern-6--markdown-leak-check-after-every-markdowndocs-write)). The JSON is the contract — tool-call success isn't, and structure-only verification passes through leaked markdown chars unnoticed.
 2. **Pass `USER_ENTERED` explicitly on every Sheets write.** Sheets parses input the way the UI does — formulas become formulas, `Mar 1 2026` becomes a date. Without the explicit flag, `=SUM(A1:A10)` lands as a literal string starting with `=` and downstream math reads zero.
 3. **Pass `sendUpdates=all` on every Calendar insert / update / delete with attendees.** The documented default is `false` (= no notifications fire). Without the explicit flag, attendees get added silently and never see the invite — the most common reason an agent-created meeting "didn't go through."
 4. **Draft, don't send, from Gmail — and use base64url on every `raw` field.** `drafts.create` keeps a reviewable artifact in the user's drafts folder before mail goes on the wire. The MIME `raw` field is base64url-encoded (URL-safe alphabet, no `+` or `/`) per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending); standard base64 passes plaintext tests and fails the first HTML or binary payload with `400 invalidArgument`.
@@ -168,6 +187,8 @@ In practice you'll work through the Model Context Protocol layer rather than the
 Decision rule: prefer `mcp__google-docs__*` for any automation that writes. Reach for `mcp__claude_ai_Google_Drive__*` when you need to read arbitrary user-authenticated Drive content from inside a conversation and you don't have an OAuth-backed server registered.
 
 **A naming note for the rest of this article.** Tool names like `replaceDocumentWithMarkdown`, `copyFile`, `applyTextStyle`, `insertImage`, and `getDocumentInfo` are **MCP server tool names**, not Google REST API methods. Each wraps one or more underlying Google API calls. `replaceDocumentWithMarkdown` is a server-side wrapper that uploads markdown via [`files.update`](https://developers.google.com/workspace/drive/api/reference/rest/v3) with the right mimeType; `applyTextStyle` wraps the Docs API's [`updateTextStyle`](https://developers.google.com/workspace/docs/api/reference/rest/v1/documents/batchUpdate) request type. The canonical production MCP that exposes these is [taylorwilsdon/google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp) (~2.5k stars, OAuth 2.1, actively maintained); other implementations exist. When this article mentions a tool name, assume it's the server-side wrapper. When it cites a Google API field or method, the link goes to Google's own reference. The distinction matters only when you're reading code or filing a bug against the right project.
+
+**A 2026-05-30 note on how fast the surface is moving.** The MCP landscape has expanded materially since this guide first shipped. The production Google Workspace MCP this article's author now runs day-to-day exposes well over 100 fine-grained tools spanning Docs, Sheets, Drive, Calendar, and Gmail — `writeSpreadsheet`, `addConditionalFormatting`, `insertChart`, `createDraft`, `sendDraft`, `createEvent`, `insertTableWithData`, and dozens more — far past the "~80 operations" this guide cited at launch. Two things did **not** change, and both are load-bearing for the rest of this article. First, **Slides is still served by zero tools on that same server** — every Slides mutation still goes through raw `presentations.batchUpdate` or a stdlib helper ([Part 8](#part-8--operating-google-slides)). Second, **a bigger tool count does not change the "MCP is necessary but not sufficient" answer above** — the cloud/headless gap, the omitted-field gap (Calendar transparency), and the verify-after-write discipline are all orthogonal to how many tools the server exposes. The surface grew; the six reasons you still drop below it did not.
 
 ### Connector parity is not guaranteed
 
@@ -428,11 +449,11 @@ The Google Workspace MCP server typically runs locally with credentials in Keych
 
 **Workarounds:**
 
-1. **Stdlib helper.** Write a small Python (or equivalent) helper that talks to the Drive + Docs REST APIs directly, with credentials from environment variables instead of Keychain. The helper handles `create`, `update`, `prepend` against the same logical contract as the MCP. Limited to body content; **the helper does not apply brand styling** (no MCP-grade paragraph/text-style calls). The styling step waits until an interactive run on the human's machine picks the doc up.
-2. **Cloud-secret-proxy.** Stand up a small HTTPS endpoint backed by Google Cloud Secret Manager. The proxy holds the Drive/Docs OAuth credentials and exposes narrow write endpoints (`POST /drive-doc/write`, `POST /drive-doc/prepend`). The cloud automation calls the proxy; the proxy talks to the Google APIs. This separates credential storage from execution and works without Keychain.
-3. **Mode marker on the input.** Whichever path you take, mark the doc's freshness: cloud-rendered docs are unstyled at the cascade level, and the next interactive run by the human reapplies brand styling. Mention this explicitly in the agent's return: `"created via cloud proxy; brand cascade pending interactive run"`.
+1. **Stdlib helper.** Write a small Python (or equivalent) helper that talks to the Drive + Docs REST APIs directly, with credentials from environment variables instead of Keychain. The helper handles `create` / `update` against the same logical contract as the MCP. The original version of this guide said such a helper "does not apply brand styling" — that turned out to be solvable. **The production helper now applies a baseline brand pass without the MCP at all:** it converts markdown to inline-CSS HTML, uploads it via Drive's `files.create` / `files.update` multipart import (`mimeType=application/vnd.google-apps.document`, which preserves headings / bold / links / lists / tables natively but assigns Arial-black), then runs one `documents.batchUpdate` that walks `body.content` and applies `weightedFontFamily` + `foregroundColor` + `fontSize` + `bold` per `namedStyleType`. What still genuinely can't happen in cloud is the `prepend` mode (no styled-prepend path without the MCP) and the Watson-Weekly page-number footer (needs `copyFile` from a template). Both are refused explicitly rather than half-done.
+2. **Cloud-secret-proxy.** Stand up a small HTTPS endpoint backed by Google Cloud Secret Manager. The proxy holds the Drive / Docs / Calendar OAuth credentials and exposes narrow write endpoints (`POST /drive-doc/write`, `POST /drive-doc/prepend`, `POST /calendar/prep-block`). The cloud automation calls the proxy; the proxy talks to the Google APIs. This separates credential storage from execution and works without Keychain. See [the stdlib helper family in Part 5](#the-stdlib-helper-family--a-reference-architecture-you-can-size-to-your-own-needs) for the built-out shape.
+3. **Pending-marker on the return, not "unstyled."** Whichever path you take, the typed return should name what *didn't* run rather than blanket-labeling the doc "unstyled." The production helper returns `created_pending_interactive` / `updated_pending_interactive` with an explicit `pending: ["brand_cascade_verify"]` (and `watson_weekly_footer_verify` where relevant). The baseline brand pass already ran; what's deferred is the cascade *verification* and the footer — not the styling itself. A later interactive run dispatches on the `pending` list and only does the missing work.
 
-The asymmetry is annoying. It exists because Anthropic's claude.ai Google Workspace connector doesn't yet have a writer-side org-level deployment. Until it does, the workaround stack is the cost of running Drive automation outside the human's laptop.
+The asymmetry is real but shrinking. It exists because Anthropic's claude.ai Google Workspace connector doesn't yet have a writer-side org-level deployment. Until it does, the helper stack is the cost of running Drive automation outside the human's laptop — and, as item 1 shows, that stack can carry more of the styling load than it first appears.
 
 **Plan-tier caveat:** both workarounds above use OAuth user-token credentials. The conceptually-cleaner alternative — a service account with domain-wide delegation — is **Workspace-only**: DWD authorization requires a Workspace super admin and impersonation only works against managed Workspace users. Personal `@gmail.com` accounts cannot use this path. See [Workspace plans + personal accounts: what's different](#workspace-plans--personal-accounts-whats-different) in Part 1.
 
@@ -609,9 +630,9 @@ The next dispatch against the same doc looks for `state.json` files with `status
 
 Layering a fresh write on top of a half-styled doc compounds the damage. The recovery path prevents that.
 
-### The four-layer post-write verify
+### The five-layer post-write verify
 
-Before declaring the write done, the writer runs four checks in order. Failure of any check triggers a single reapply attempt; persistent failure surfaces in the return.
+Before declaring the write done, the writer runs five checks in order. Failure of any check triggers a single reapply attempt; persistent failure surfaces in the return. (This was a four-layer verify when the guide first shipped; the markdown-leak layer was added after the [2026-05-27 incident in Pattern 6](#pattern-6--markdown-leak-check-after-every-markdowndocs-write) — structure-only verification shipped a doc rendering raw `#` and `**` characters, so a content-scan layer is now mandatory.)
 
 | Layer | Check | What it catches |
 |---|---|---|
@@ -619,6 +640,7 @@ Before declaring the write done, the writer runs four checks in order. Failure o
 | 2 | **Per-paragraph style** — confirm font, size, color, bold per heading/body | Silent style overwrites from missing `bold` flags or wrong cascade |
 | 3 | **Metadata-row collapse** — scan for paragraphs with > 1 `**Label:**` run | The markdown-collapse case |
 | 4 | **Named-style sanity** — inspect doc-level `namedStyles.NORMAL_TEXT`; if Arial / wrong size, flag in prose | Drive UI fix needed; surface to the human |
+| 5 | **Markdown-leak scan** — walk every `textRun.content` for residual `^#{1,6}\s`, `\*\*[^*\n]+\*\*`, standalone `^---$` | Leaked markdown syntax rendering as literal characters — invisible to layers 1–4, which inspect structure not content |
 
 These run after the brand sequence, not in place of it. A doc that passes all four checks is healthy. A doc that fails any check ships with a flag in the agent's return so the human or the next orchestrator knows.
 
@@ -682,6 +704,40 @@ type DriveDocWriterResult =
 ```
 
 The `*_pending_interactive` variants carry an explicit list of what didn't run. A later interactive run can dispatch on that list and only do the missing work, instead of re-running the full styling pass blindly.
+
+### The stdlib helper family — a reference architecture you can size to your own needs
+
+Everything above tells you *that* you sometimes drop below MCP. This section is about *how to structure that fallback layer well* — and, importantly, how much of it you actually need, which depends entirely on what you're doing. Treat what follows as a reference architecture and a set of design principles, not a prescription. Most readers will build a fraction of it.
+
+**Start by sizing the problem to your needs.** The fallback layer is not all-or-nothing; build only the rung you're standing on:
+
+| If your situation is… | You need… | Don't build… |
+|---|---|---|
+| One styled doc or a calendar invite, on your own laptop | MCP + a verify-after-write loop. Nothing else. | A helper, a proxy, any of this |
+| MCP works but drops one field (e.g. Calendar `transparency`) | One REST call as a side-channel after the MCP write | A whole helper |
+| You write to **one** surface from an unattended/cloud context | **One** stdlib helper for that surface, reading creds from env vars | The full family, the proxy |
+| You write to **several** surfaces unattended, repeatedly | A small family of helpers sharing one auth module, possibly behind a proxy | Per-script auth, per-script secret storage |
+
+Only the bottom row justifies the full pattern below. The principles, though, are worth understanding even if you build one helper — they're *why* the one helper should look the way it does.
+
+**The design principles (these are the transferable part).** A fallback layer earns the name "family" rather than "pile of scripts" when it holds four properties. Each exists for a reason you can apply to your own stack regardless of language or secret store:
+
+1. **One OAuth client; per-surface refresh tokens scoped to need.** *Why:* minimize the consent surface and the blast radius. Register a single OAuth client once; mint a refresh token per scope-bundle the work actually requires (e.g. one for Drive+Docs+Sheets+Slides, a separate one for `calendar.events`), rather than one all-powerful token. Store them however your platform stores secrets — macOS Keychain, a cloud secret manager, an encrypted file — behind a single shared auth module so token exchange lives in exactly one place. The principle is "one client, least-privilege tokens, one auth chokepoint," not any specific keystore.
+2. **Env-var-first, secret-store-fallback credential resolution — so one file runs everywhere.** *Why:* the single biggest source of "works on my machine" pain is code that hardcodes where credentials live. Resolve creds in a fixed order — environment variables first, local secret store second — and the *identical* helper runs unmodified on a laptop (creds from the keystore) and in a cloud function (creds from env vars injected from a secret manager). Deploying to cloud becomes "mirror the secrets into env vars," not "fork the code."
+3. **Typed, discriminated-union returns end to end.** *Why:* an unattended caller needs to branch on outcomes without parsing prose. Every helper returns the same `{type: ...}` shape the [Part 5 contract](#the-typed-inputoutput-contract) defines — `ok` / `created` / `updated` / `schema_drift` / `*_pending_interactive` / `failed` with a *closed* `reason` enum — so orchestrators dispatch on `type` and humans read `message`. A "verify" operation that returns `schema_drift` lets a caller **stop before** writing into a renamed tab.
+4. **If you add a proxy, make it a thin shell — the logic and the refusals live in the helper.** *Why:* you don't want two places that both decide whether a write is safe. A cloud-secret-proxy should import the helper's entry function and return its typed result verbatim; auth and HTTP are the proxy's only jobs. Whatever the helper refuses (empty content, a doc full of human-curated embedded objects, a denylisted template id), the proxy refuses for free, because the safety rule has exactly one home.
+
+**A worked example of the bottom rung.** For concreteness, here is what the full family looks like when all four surfaces are written unattended — five single-file, dependency-free helpers (so the same code runs under a cloud function's bare interpreter and a laptop without a virtualenv), each closing a *specific, named* gap from the [why-not-MCP table](#why-cant-i-just-use-mcp-and-forget-the-rest). Read it as "what the principles produce at full scale," and take only the rows your own needs call for:
+
+| Helper role | Surface | What it does | The specific gap it closes |
+|---|---|---|---|
+| Docs writer | Drive + Docs | Markdown → branded Doc via HTML-import + a per-`namedStyleType` styling pass; idempotent create / update; refuses overwrite when the doc holds `inlineObjectElement` / `richLink` / `person` | No Docs MCP in cloud |
+| Sheets editor | Sheets | `read` / `update` / `batch-update` / `append` / `verify`, with `USER_ENTERED` + `UNFORMATTED_VALUE` as defaults | No Sheets MCP in cloud; header-drift gate |
+| Slides editor | Slides | `replaceAllText` swaps against a template copy; `dry_run` occurrence count; template-id denylist | There is **no** `replaceAllText` MCP tool anywhere ([Part 8](#production-mcp-coverage-for-slides-is-shallow)) |
+| Calendar writer | Calendar | REST `insert` / idempotent upsert of a hold block with `transparency` + `colorId` set inline | No Calendar MCP write in cloud |
+| Calendar transparency patch | Calendar | REST `PATCH` that flips an MCP-created block to `transparent` + enforces `colorId` | The MCP wrapper omits `transparency` ([Part 9](#deep-dive--transparency-busyfree-and-how-an-event-appears-in-freebusy)) |
+
+Notice the family is two helpers for Calendar, not one — because the two Calendar gaps are different shapes (no-MCP-in-cloud vs. wrapper-omits-a-field), and a clean fallback layer matches the *gap*, not the surface. That's the generalizable move: **build a helper per gap you actually hit, share one auth module across all of them, and stop there.** A reader who only ever needs branded docs in cloud builds exactly the first row and is done.
 
 ---
 
@@ -775,6 +831,12 @@ The durable answer to "the sheet keeps moving and my pipeline breaks." [`AddDeve
 
 The pattern: tag the header row of a data range with `key: "primary_data"` once at setup. Every subsequent read filters by that key. The tab can be renamed, the sheet reordered, rows can be inserted above — the metadata anchor survives all of it.
 
+### Pattern S5 — header-schema verify gate (the lightweight cousin of developer metadata)
+
+Developer metadata is the durable answer, but it requires tagging the sheet at setup time — which you can't do for a sheet someone else owns, or one that already exists and you can't re-provision. The cheaper defense, which works on any sheet you can read, is a **header-schema verify gate**: before any structural write, read row 1 of the target range and assert the column headers match the exact list you expect. If they don't, return a typed `schema_drift` outcome and **stop** — surface it to a human rather than writing into the wrong columns.
+
+This catches the same failure developer metadata protects against — a tab renamed, a column inserted, a header reordered — for sheets you don't own end-to-end. The production `sheets_edit` helper exposes it as a first-class `verify` mode and returns `{type: "schema_drift", expected: [...], actual: [...]}` so an orchestrator can gate on it. Run it as the first step of any pipeline that writes to a sheet a human also edits; the cost is one `values.get` of a single row.
+
 ### The mental model — two endpoint families, one spreadsheet
 
 Per Google's [Sheets API concepts](https://developers.google.com/sheets/api/guides/concepts), a Spreadsheet contains an array of Sheet resources, each a 2D grid of Cells keyed by row and column index (not stable IDs). The API splits into two surface families and **mixing them is the #1 mental-model error**:
@@ -791,7 +853,9 @@ Two parallel addressing schemes coexist:
 - **A1 notation** for `values.*`: `Sheet1!A1:B2`, `'Class Data'!A2:A4`. Sheet names with spaces or special characters **must** be single-quoted.
 - **GridRange** for structural requests: `{sheetId, startRowIndex, endRowIndex, startColumnIndex, endColumnIndex}`. Per the [GridRange reference](https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/other#GridRange), "All indexes are zero-based. Indexes are half open, i.e. the start index is inclusive and the end index is exclusive — `[startIndex, endIndex)`. Missing indexes indicate the range is unbounded on that side."
 
-`endRowIndex: 5` means rows 0–4 inclusive, equivalent to A1 `A1:A5`. Off-by-one between the two systems is the most common bug in Sheets automation. The `"Unable to parse range"` 400 response — the single most-reported Sheets API error — is almost always one of: a sheet renamed since the config was written, missing single quotes around a name with a space, or a tab that was deleted.
+`endRowIndex: 5` means rows 0–4 inclusive, equivalent to A1 `A1:A5`. Off-by-one between the two systems is the most common bug in Sheets automation. The `"Unable to parse range"` 400 response — the single most-reported Sheets API error — is almost always one of: a sheet renamed since the config was written, missing single quotes around a name with a space, a tab that was deleted, or — if you're calling REST directly rather than through an SDK — **an A1 range that wasn't URL-encoded in the request path.**
+
+**The A1-URL-encode gotcha (REST callers only).** When you hit `values/{range}` on the REST endpoint by hand, the A1 range goes into the URL *path*, and a real A1 range is full of characters a URL path won't tolerate raw: the `!` in `Sheet1!A1`, the `:` in `A1:E10`, the space and single quotes in `'Class Data'!A2:A4`. Pass them unencoded and you get `Unable to parse range` or a silently wrong range — a bug that surfaces on the very first call against any multi-word tab. The fix is to percent-encode the entire range segment (`quote(range, safe='')` in Python — note `safe=''`, so even `/` and `:` are encoded). SDKs do this for you; hand-rolled `urllib` / `fetch` REST calls do not. This was caught the first time a stdlib Sheets helper ran against a real tab and is now the first line of every range-bearing call.
 
 ### Hard limits + workarounds — Sheets
 
@@ -885,6 +949,14 @@ This matters and deserves to be named explicitly. As of mid-2026:
 - The Slides MCP path funnels every mutation through `batch_update_presentation`, so the agent ends up authoring raw `Request` JSON. There is no `insertImage`-style convenience tool, no `applyTextStyle`, no `replaceAllText` shortcut.
 
 **Practical implication:** building decks from an agent today means either (a) authoring raw `presentations.batchUpdate` payloads directly, or (b) writing a thin local helper that exposes higher-level operations (create slide with layout, insert text into placeholder, etc.) on top of the REST API. The latter is the right shape for any operator who builds more than a handful of decks programmatically.
+
+### Three guardrails the thin Slides helper should carry
+
+Once you've built the helper, three guardrails turn it from "works on the happy path" into "safe to run unattended." All three come out of running a `replaceAllText`-based template-swap helper in production.
+
+1. **A template-id denylist, enforced before any `batchUpdate`.** Google's rule is "copy the template, mutate the copy, never the template" (item L5 / [A-L5](#patterns-to-avoid--slides)). The reliable way to enforce it is not discipline — it's a hardcoded denylist of your canonical template file IDs that the helper checks first and refuses with a typed `template_protected` outcome. One fat-fingered file id pointed at the master template otherwise silently rewrites the thing every future deck is cloned from. The denylist makes that class of mistake unreachable rather than merely discouraged.
+2. **A `dry_run` mode that counts occurrences without mutating — your template-drift smoke detector.** Before spending a write, fetch the presentation, walk every shape's `textRun.content`, and count how many times each `find` string actually appears. The point isn't to preview the write; it's that **a known-good swap returning zero occurrences is the leading indicator that the source template drifted** — someone edited the master and your `find` text no longer exists. Zero-match-on-a-swap-that-used-to-work is a louder, earlier signal than a successful-but-empty mutation, which looks identical to success.
+3. **Order multi-swap lists longest-match-first — `replaceAllText` consumes as it goes.** Swapping `"SHOPTALK 2026" → "RETAILCLUB 2026"` *then* `"SHOPTALK" → "RETAILCLUB"` is correct: the first swap consumes the longer match, so the second legitimately finds zero. Reverse the order and the second swap mangles text the first should have owned. When a later swap in a known-good list reports zero occurrences, that's expected if an earlier swap already consumed the substring — distinguish it from guardrail 2's drift signal by tracking which swaps are supposed to overlap.
 
 ### Hard limits + workarounds — Slides
 
@@ -1109,6 +1181,13 @@ Two production patterns hinge on this field.
 
 **Pattern B — reverting a previously-busy event to Free, or vice versa.** A patch payload that doesn't include `transparency` leaves the existing value alone (patch is field-mask aware). An `events.update` payload that omits `transparency` resets it to the default `opaque` per the [update reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/update). The read-mutate-write rule (see the code block above) applies here too: an update that intended to change the title and forgot to carry `transparency` forward flips the event from Free to Busy and breaks every downstream scheduler that was treating it as available time.
 
+**Pattern C — the MCP wrapper that can't set `transparency` at all.** This is the one that bites in practice, and it's a tooling gap, not an API gap. Several production Calendar MCP wrappers — including the ones Claude reaches by default — **do not expose `transparency` (or a meaningful Free-vs-Busy `colorId`) on their create / update tools.** You ask the agent to drop a "Free" hold block; the wrapper has no field to carry the request; the block lands `opaque` (busy) and quietly blocks time you meant to leave open. The tool returns success. Nothing in the agent's transcript says the field was dropped. The defense is to **set the field through a channel the wrapper doesn't gate**, and there are exactly two:
+
+- **REST `PATCH` side-channel, after the MCP create.** Let the MCP create the event normally, then immediately fire a Calendar REST `events.patch` with `{"transparency": "transparent", "colorId": "<n>"}` against the returned event id. This is the cheapest retrofit when the rest of your create path already goes through the MCP — one extra REST call flips the one field the wrapper couldn't. It's also idempotent: a `PATCH` that finds the event already `transparent` is a no-op, so you can run it defensively after every create.
+- **REST `events.insert` instead of the MCP, when you're already in cloud.** The REST insert body accepts `transparency` and `colorId` inline, so a single POST creates the Free / colored block with no follow-up needed. If you're in a headless context that has no MCP anyway ([Limit 2](#limit-2--mcp-availability-differs-by-environment)), skip straight to REST insert — the gap that forces the PATCH side-channel only exists *because* the MCP wrapper is in the path.
+
+The general rule this instances: **when an MCP tool returns success but a field you set didn't take, suspect the wrapper's field coverage before you suspect the API.** Diff what you asked for against the JSON the API actually stored. A field the wrapper silently drops looks identical to success right up until a downstream scheduler treats your "free" block as busy.
+
 A related watch-out is the `eventType` field. Events typed `outOfOffice`, `focusTime`, and `workingLocation` carry their own visibility semantics independent of `transparency` — `outOfOffice` events block invitations during the window per the [Event resource reference](https://developers.google.com/workspace/calendar/api/v3/reference/events#resource). Treat the type and the transparency as orthogonal but interacting: a `default` event with `transparency: "transparent"` is the generic "block on calendar, don't show as busy" shape; a typed event has additional side effects.
 
 ### Deep dive — conferenceData, the async Meet link, and the polling loop
@@ -1290,6 +1369,7 @@ The most common watch-out: **the SA is configured but the OAuth Client ID was ne
 | Atomically update a recurring series AND following exceptions | The two-call split (trim `UNTIL` + insert new series) **resets any exceptions** occurring after the target instance, per the [recurring events guide](https://developers.google.com/workspace/calendar/api/guides/recurringevents) | Snapshot the exceptions via `events.instances` first, replay them onto the new series |
 | Guarantee invitation delivery even with `sendUpdates=all` | The [insert reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert) qualifies the parameter: "Note that some emails might still be sent." Calendar-side notification settings can override in both directions | For mission-critical sends, pass `sendUpdates=all` AND fire a parallel Gmail message outside the Calendar pipeline |
 | Hardcode a UTC offset in `start.dateTime` and trust it across DST | Offsets become wrong on DST transitions and political changes. Recurring events with no `timeZone` field can't be expanded reliably | Always populate `start.timeZone` with an [IANA Time Zone Database](https://www.iana.org/time-zones) ID (`America/New_York`), never `-05:00` |
+| Set an event's `transparency` (Free/Busy) or a meaningful `colorId` through the MCP | Several Calendar MCP wrappers don't expose `transparency` / `colorId` on create / update; the tool returns success and the block silently lands `opaque` (busy). A tooling gap, not an API gap (see [Pattern C](#deep-dive--transparency-busyfree-and-how-an-event-appears-in-freebusy)) | REST `events.patch` side-channel right after the MCP create, or REST `events.insert` (which accepts both fields inline) when you're already off the MCP path |
 | Get a guaranteed `hangoutLink` on the create-event response | `conferenceData.createRequest` is async per the [create-events guide](https://developers.google.com/workspace/calendar/api/guides/create-events): the initial response has `status: pending` and no `hangoutLink` populated | Poll `events.get` until `conferenceData.createRequest.status.statusCode == "success"` |
 | Filter `events.list` by `q` + sync incrementally in one call | `syncToken` is incompatible with most filters per the [sync guide](https://developers.google.com/workspace/calendar/api/guides/sync); combining returns `400 invalidParameter` | Two parallel pipelines: filtered full-list reads, plus a separate unfiltered sync-token pipeline |
 | Subscribe to push notifications indefinitely without re-registration | `events.watch` channels expire; the response carries an `expiration` field as a millisecond Unix timestamp. Per the [push guide](https://developers.google.com/workspace/calendar/api/guides/push), "there's no automatic way to renew a notification channel" | Schedule a re-watch before expiration; persist + re-issue any active `syncToken` on the new channel |
