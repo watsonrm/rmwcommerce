@@ -40,7 +40,7 @@ If you're just getting started with permissions configuration, these five moves 
 
 Most readers should do steps 1–3 today and return to 4–5 over the next few weeks. Steps 1–3 eliminate the most common interruptions with the least risk.
 
-This article focuses primarily on Claude Code, which has the most complex permission model. For the short version on claude.ai web and Claude Desktop, see [Section 1](#section-1-the-three-environments). For the full Claude Code model, see [Section 2](#section-2-the-claude-code-permission-model-in-depth).
+This article focuses primarily on Claude Code, which has the most complex permission model. For the short version on claude.ai web and Claude Desktop, see [Section 1](#section-1-the-three-environments-and-how-they-differ). For the full Claude Code model, see [Section 2](#section-2-the-claude-code-permission-model-in-depth).
 
 ---
 
@@ -138,7 +138,7 @@ One important caveat the docs call out explicitly:
 
 > *"Bash permission patterns that try to constrain command arguments are fragile."* ([source](https://code.claude.com/docs/en/permissions))
 
-A pattern like `Bash(curl http://github.com/ *)` won't cover variations in argument order, protocols, or redirects. For constraining network access, use `WebFetch(domain:github.com)` plus a `Bash` deny rule for curl, rather than trying to constraint curl's arguments with a pattern.
+A pattern like `Bash(curl http://github.com/ *)` won't cover variations in argument order, protocols, or redirects. For constraining network access, use `WebFetch(domain:github.com)` plus a `Bash` deny rule for curl, rather than trying to constrain curl's arguments with a pattern.
 
 ### MCP wildcards
 

@@ -1,3 +1,19 @@
+---
+name: operating-google-workspace-from-claude
+description: >
+  Audit and debug an AI agent's Google Workspace automation across Drive, Docs,
+  Sheets, Slides, Calendar, and Gmail, against the operating-google-workspace-
+  from-claude guide's checklist. Diagnoses why a doc, sheet, deck, calendar
+  invite, or email write went wrong — leaked markdown, lost brand styling,
+  USER_ENTERED vs RAW, unstable Slides object IDs, sendUpdates not firing
+  invites, transparency landing opaque/busy, Gmail base64url errors, shared-
+  drive read failures — and returns prioritized fixes. Trigger when the user
+  says "audit my google docs/sheets/slides/drive/calendar/gmail automation",
+  "is my doc automation safe", "my agent broke a google doc/sheet/deck", "why is
+  my drive skill failing on shared drives", "USER_ENTERED vs RAW question",
+  "sendUpdates not sending invites", or "gmail base64 encoding error".
+---
+
 # operating-google-workspace-from-claude skill
 
 **Trigger phrases (say any of these to Claude):**

@@ -87,7 +87,7 @@ The fix: pipe long outputs through `head` or `tail` in Bash commands, and add a 
 
 When Claude is running subagents — or doing multi-step investigation inside a single session — it narrates. You see the reasoning chain, the intermediate summaries, the "I found X, now checking Y." For complex work, that narration is useful context. For work you've delegated and just want the answer on, it's noise.
 
-Subagents address this structurally: when Claude uses the Agent tool to dispatch work, the subagent runs in its own context. Your main session sees only what the subagent returns. The narration never enters your main thread. ([source](https://code.claude.com/docs/en/best-practices)) See [Claude Code Workflow Optimizer Pillar 5](claude-code-optimizer.md) for how to configure this, and the [multi-agent guide Pillar 1](multi-agent-fan-out-and-verification.md#pillar-1-typed-return-contracts) for the typed-return pattern that keeps subagent output compact.
+Subagents address this structurally: when Claude uses the Agent tool to dispatch work, the subagent runs in its own context. Your main session sees only what the subagent returns. The narration never enters your main thread. ([source](https://code.claude.com/docs/en/best-practices)) See [Claude Code Workflow Optimizer Pillar 2](claude-code-optimizer.md) for how to configure this, and the [multi-agent guide Pillar 1](multi-agent-fan-out-and-verification.md#pillar-1-typed-return-contracts) for the typed-return pattern that keeps subagent output compact.
 
 ### Source 3: Status and reminder churn
 
@@ -123,7 +123,7 @@ The cadence that works: `/clear` when switching to a different task, `/compact` 
 
 The structural fix for investigation noise. When you ask Claude to explore a large codebase, parse logs, or run a test suite, that work floods your main session with raw output. Routing it to a subagent means your main session only sees what you asked for: a summary, a typed result, a list of findings.
 
-Subagents run in their own context window. ([source](https://code.claude.com/docs/en/best-practices)) The parent session never sees the intermediate noise — only the return. This is covered in [Claude Code Workflow Optimizer Pillar 5](claude-code-optimizer.md) for the single-agent version and in [Multi-Agent Fan-Out and Verification Pillar 1](multi-agent-fan-out-and-verification.md#pillar-1-typed-return-contracts) for the multi-agent version.
+Subagents run in their own context window. ([source](https://code.claude.com/docs/en/best-practices)) The parent session never sees the intermediate noise — only the return. This is covered in [Claude Code Workflow Optimizer Pillar 2](claude-code-optimizer.md) for the single-agent version and in [Multi-Agent Fan-Out and Verification Pillar 1](multi-agent-fan-out-and-verification.md#pillar-1-typed-return-contracts) for the multi-agent version.
 
 To use it: `"Use a subagent to analyze the logs in /var/log/app/ and return a summary of errors in the last 24 hours."` Claude dispatches the subagent, lets it do the noisy work, and returns you a clean summary.
 
@@ -198,7 +198,7 @@ Before adjusting settings, check these patterns. They're the most common sources
 
 ## Where to go next
 
-**[Claude Code Workflow Optimizer](claude-code-optimizer.md)** — Pillar 1 (context discipline) and Pillar 5 (subagents) are the foundation this article builds on. That guide covers the full optimization picture; this article is the noise-experience companion.
+**[Claude Code Workflow Optimizer](claude-code-optimizer.md)** — Pillar 1 (context discipline) and Pillar 2 (subagents) are the foundation this article builds on. That guide covers the full optimization picture; this article is the noise-experience companion.
 
 **[Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md)** — when the noise problem is at the multi-agent level. Pillar 1's typed-return contracts and the orchestrator context section address the same dynamic at scale.
 
@@ -221,7 +221,7 @@ Before adjusting settings, check these patterns. They're the most common sources
 **Related work in this series:**
 
 - [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md) — the Matrix framing for why transparency means noise.
-- [Claude Code Workflow Optimizer](claude-code-optimizer.md) — Pillar 1 (context discipline) and Pillar 5 (subagents) are the primary tactics referenced here.
+- [Claude Code Workflow Optimizer](claude-code-optimizer.md) — Pillar 1 (context discipline) and Pillar 2 (subagents) are the primary tactics referenced here.
 - [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) — Pillar 1 (typed return contracts) is the multi-agent extension of subagent noise reduction.
 - [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md) — the permission-prompt complement to this guide.
 

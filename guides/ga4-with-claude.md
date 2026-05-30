@@ -35,7 +35,7 @@ Jump to: [TL;DR](#tldr) · [How to use this](#how-to-use-this) · [The four surf
 <a name="how-to-use-this"></a>
 ## How to use this
 
-The operational form of this guide is the Claude skill at [`skills/ga4-with-claude/`](skills/ga4-with-claude/). Install it once:
+The operational form of this guide is the Claude skill at [`skills/ga4-with-claude/`](../skills/ga4-with-claude/). Install it once:
 
 ```bash
 # from a clone of this repo

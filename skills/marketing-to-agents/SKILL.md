@@ -1,3 +1,17 @@
+---
+name: marketing-to-agents
+description: >
+  Audit a website for AI-agent friendliness and AI-search citation readiness.
+  Works through the 22-item checklist from Rick Watson's Marketing to Agents
+  guide, asks targeted questions about the site's current setup, and produces a
+  tier-by-tier gap report (Tier 1 / the 80-20 first), prioritized fixes with
+  effort estimates, and a robots.txt template customized to the chosen training
+  opt-out stance. Trigger when the user says "audit my site for agent-
+  friendliness", "run the marketing-to-agents checklist on my site", "how well
+  does my site work for AI agents", "agent-readiness audit", or "am I getting
+  cited by AI search".
+---
+
 # marketing-to-agents skill
 
 **Trigger phrases (say any of these to Claude):**

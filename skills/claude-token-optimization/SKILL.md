@@ -96,4 +96,3 @@ This skill is the cost-focused companion to the `claude-code-optimizer` skill (w
 ---
 
 Source article: https://tokenmin.ai/guides/claude-token-optimization
-Full guide: https://github.com/watsonrm/tokenmin-site/blob/main/guides/claude-token-optimization.md
