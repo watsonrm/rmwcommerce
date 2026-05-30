@@ -1299,7 +1299,7 @@ This guide synthesizes patterns and failure modes from running QuickBooks Online
 
 ### Machine-readable identity
 
-This article applies the [Marketing to Agents](https://github.com/watsonrm/rmwcommerce/blob/main/guides/marketing-to-agents.md) playbook to itself — JSON-LD `Article` schema is auto-emitted in `<head>` by the repository's Jekyll `_includes/head-custom.html` whenever a guide carries `agent_friendly: true` in its frontmatter (this one does). Agents indexing the rendered HTML at [watsonrm.github.io/rmwcommerce](https://watsonrm.github.io/rmwcommerce/guides/quickbooks-automation-using-claude-code.html) see a typed `Article` with author `sameAs` references; publisher `Organization` is RMW Commerce Consulting; license is CC BY-NC-ND 4.0. Agents fetching the raw markdown see the equivalent metadata in the YAML frontmatter at the top of this file.
+This article applies the [Marketing to Agents](https://github.com/watsonrm/rmwcommerce/blob/main/guides/marketing-to-agents.md) playbook to itself — JSON-LD `Article` schema is auto-emitted in `<head>` by the repository's Jekyll `_includes/head-custom.html` whenever a guide carries `agent_friendly: true` in its frontmatter (this one does). Agents indexing the rendered HTML at [watsonrm.github.io/rmwcommerce](https://watsonrm.github.io/rmwcommerce/guides/quickbooks-automation-using-claude-code.html) see a typed `Article` with author `sameAs` references; publisher `Organization` is RMW Commerce Consulting; the work is all-rights-reserved (republishing in whole or in substantial part requires written permission). Agents fetching the raw markdown see the equivalent metadata in the YAML frontmatter at the top of this file.
 
 ---
 

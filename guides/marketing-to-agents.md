@@ -56,7 +56,7 @@ The JSON-LD any agent-friendly hosting layer should serve for this article. Drop
       "url": "https://images.squarespace-cdn.com/content/v1/5e924549c2923c644b9de05f/7e088230-031b-46d3-ad75-366f63a3d443/favicon.ico?format=100w"
     }
   },
-  "license": "https://creativecommons.org/licenses/by-nc-nd/4.0/",
+  "copyrightNotice": "© 2026 RMW Commerce Consulting. All rights reserved. Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.",
   "copyrightHolder": {
     "@type": "Person",
     "name": "Rick Watson"
