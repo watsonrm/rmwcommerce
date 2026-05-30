@@ -413,9 +413,6 @@ All source URLs verified live before publication.
 - Simon Willison — *Using LLMs as the first line of support in Open Source* (Apr 2025). Cited for: practitioner implementation of llms.txt-style tooling and adoption commentary. Verified HTTP 200: https://simonwillison.net/2025/Apr/14/llms-as-the-first-line-of-support/
 
 **Corrections from prior circulating versions:** The context brief for this article mentioned an "agents convert ~4x better than human shoppers" statistic attributed to Danny Smith / Stripe. That figure does not appear in the publicly citable Stripe technical field guide — the guide discusses agent purchase intent qualitatively but does not publish a conversion multiplier. The claim is not used here. Similarly, the brief mentioned "<800ms checkout" as a Stripe/Danny Smith figure — this also does not appear in the field guide. Neither figure is cited. If Rick has a citable source for these statistics, they can be added with attribution in a future revision.
-
-**TBD placeholder:** The Watson Weekly episode 271W with Danny Smith (scheduled 2026-06-10 air date) is referenced in this article. The YouTube URL will be added when the episode publishes. Search: `[TBD: link when episode 271W airs on 2026-06-10]`
-
 **Attribution:** The framing (priority ranking, Tier 1/2/3 deployment tiers, convergence verdict taxonomy, first-person deployment notes), the editorial hype/reality analysis, and the synthesis of how these formats relate to each other are Rick Watson's original work. The underlying technical definitions — MCP (Anthropic), A2A (Google), llms.txt (Howard/Answer.AI), OpenAPI (OpenAPI Initiative), function calling (OpenAI), WebMCP (W3C/community) — are the property of their respective organizations and cited with attribution throughout.
 
 ---
