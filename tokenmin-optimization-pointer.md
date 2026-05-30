@@ -4,7 +4,7 @@
 
 *By [Rick Watson](https://rmwcommerce.com) · 2026-05-23 · Roughly 2 min read*
 
-Who this is for: anyone running Claude in production who wants the short version of which three levers actually move token cost.
+Who this is for: anyone running Claude in production who wants the short version of which three levers actually move token cost — the three highest-ROI of the six covered in the full guide.
 
 > © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved. Quoting brief excerpts with attribution is fine. Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 

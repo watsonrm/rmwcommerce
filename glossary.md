@@ -90,6 +90,7 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 - **What's in it for you:** Real gains on parallelizable research and breadth-first workflows. Anthropic's internal system — Claude Opus 4 as lead agent, Claude Sonnet 4 subagents — outperformed single-agent Claude Opus 4 by 90.2% on their research evaluation. ([source](https://www.anthropic.com/engineering/multi-agent-research-system))
 - **What's hype:** Treating multi-agent as a destination to aim for. It's the right tool when work has genuine fan-out, genuine specialization needs, or a context-window overflow problem — not otherwise.
 - **What to do:** Read [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) before building. Implement typed return contracts and intermediate-state logging before adding fan-out.
+- **See also:** [Multi-agent collaboration (Ng pattern 4)](#multi-agent-collaboration-ng-pattern-4) — the design pattern this architecture implements. Rung 4 is the architecture on the ladder; Ng's pattern 4 is the named design pattern it realizes.
 - **Source:** [Anthropic — Multi-Agent Research System](https://www.anthropic.com/engineering/multi-agent-research-system); [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md)
 
 ---
@@ -110,7 +111,7 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 - **What's in it for you:** Parallel fan-out for reads. Context isolation (noisy work stays out of the orchestrator's context). Independent testability and replaceability.
 - **What's hype:** n/a — engineering building block with clear utility when used correctly.
 - **What to do:** Give each subagent a narrow scope, a tool allowlist, and a typed return contract. Use general-purpose models (Sonnet, Haiku) for subagents; reserve Opus for the orchestrator on complex reasoning.
-- **Source:** [Multi-Agent Fan-Out and Verification — Pillar 4](multi-agent-fan-out-and-verification.md#pillar-4-orchestrator-shape)
+- **Source:** [Multi-Agent Fan-Out and Verification — Pillar 4](multi-agent-fan-out-and-verification.md#pillar-4-orchestrator-shape) (subagent dispatch and specialization are covered within Pillar 4)
 
 ---
 
@@ -157,6 +158,7 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 - **What's in it for you:** Connects the model to real-world state. Without tool use, agents are reasoning about static knowledge; with it, they act on live data.
 - **What's hype:** n/a — foundational capability. The hype is in calling something "agentic" when it only has tool use (that's a skill, not an agent, unless it has planning or reflection on top).
 - **What to do:** Define narrow tool interfaces. Each tool should do one thing and return a typed result. Broad, poorly-scoped tool interfaces are the most common source of agent unpredictability.
+- **See also:** [Function calling](#function-calling) — the same mechanism named as an API capability rather than a design pattern. Tool use is Ng's pattern; function calling is the vendor primitive it runs on.
 - **Source:** [Ng / DeepLearning.AI — Agentic Design Patterns (Mar 2024)](https://www.deeplearning.ai/the-batch/how-agents-can-improve-llm-performance/)
 
 ---
@@ -177,6 +179,7 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 - **What's in it for you:** Parallel throughput on breadth-first tasks. Specialization that makes each agent independently testable.
 - **What's hype:** Useful for specific workloads (parallelizable research, breadth-first reads with typed returns); overhyped as a general design pattern. The failure mode is using multi-agent collaboration for decision-composition tasks where subagents need to merge outputs into a coherent whole — that's where it breaks down. Cognition's "Don't Build Multi-Agents" identifies this failure mode precisely. ([source](https://cognition.ai/blog/dont-build-multi-agents)) See [`multi-agent-fan-out-and-verification.md`](multi-agent-fan-out-and-verification.md) for when it actually applies.
 - **What to do:** Use for reads with typed returns, not for decisions that compose. Typed return contracts are the boundary mechanism. Build Rungs 1–3 first before reaching for this.
+- **See also:** [Multi-agent system (Rung 4)](#multi-agent-system-rung-4) — the architecture this pattern describes, placed on the ladder. Ng's pattern 4 is the design pattern; Rung 4 is the architecture that realizes it.
 - **Audience:** Rung 4 builders only. If you're still building your first agent, this pattern is premature.
 - **Source:** [Ng / DeepLearning.AI — Agentic Design Patterns (Mar 2024)](https://www.deeplearning.ai/the-batch/how-agents-can-improve-llm-performance/); [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md)
 
@@ -608,6 +611,7 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 - **What's hype:** Positioning function calling as a strategy. It's a capability, not a strategy. The strategy decisions are about what tools to expose, how to define them, and what protocol to use for discovery and invocation.
 - **What to do:** Use SDK function-calling primitives directly when building single-agent systems. Use MCP when you want a standardized discovery and invocation surface across multiple consumers.
 - **Audience:** Relevant only to agent system builders and SaaS engineers building API integrations. Non-developers: not actionable.
+- **See also:** [Tool use (Ng pattern 2)](#tool-use-ng-pattern-2) — the same mechanism named as one of Ng's agentic design patterns. Function calling is the API capability; tool use is the design pattern that builds on it.
 - **Source:** [OpenAI — Function Calling announcement (Jun 2023)](https://openai.com/index/function-calling-and-other-api-updates/); [Anthropic — Tool Use overview](https://platform.claude.com/docs/en/docs/build-with-claude/tool-use/overview)
 
 ---

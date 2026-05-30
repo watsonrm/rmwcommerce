@@ -74,9 +74,10 @@ The most complex permission model of the three, and where most practitioners spe
 1. **`~/.claude/settings.json`** — user settings, apply to every project
 2. **`.claude/settings.json`** — shared project settings, checked into source control
 3. **`.claude/settings.local.json`** — personal project settings, not checked in (Claude Code configures git to ignore this when it creates the file) ([source](https://code.claude.com/docs/en/settings))
-4. **Managed settings** — organization-wide, cannot be overridden
+4. **Command line arguments** — temporary session overrides
+5. **Managed settings** — organization-wide, cannot be overridden
 
-Precedence runs from managed (highest) → local project → shared project → user (lowest). A deny rule at any level blocks even an allow rule at a lower level. ([source](https://code.claude.com/docs/en/permissions))
+Precedence runs from managed (highest) → command line arguments → local project → shared project → user (lowest). A deny rule at any level blocks even an allow rule at a lower level. ([source](https://code.claude.com/docs/en/permissions))
 
 The permission UI inside Claude Code: run `/permissions` to see all active rules, which file they're sourced from, and what's being allowed or denied.
 

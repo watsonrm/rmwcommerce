@@ -1,4 +1,4 @@
-# YouTube Analytics with Claude — Two Analytics APIs, Not One
+# YouTube Analytics with Claude — Three APIs, Two of Them Analytics
 
 **Which of YouTube's three APIs answers your question — the ad-hoc Analytics API, the bulk Reporting API, or the metadata Data API — and the one auth constraint that quietly breaks every unattended agent.**
 
@@ -181,7 +181,7 @@ What you get and what it costs:
 
 ### Why this is the cleanest agent setup
 
-The setup needs a **one-time interactive OAuth grant**, signed in as the human Google Account that owns the channel or content owner (a federated identity or service account can't create the transfer — same YouTube ownership rule as everywhere else). After that, DTS runs the transfer on its schedule unattended. The agent never holds a YouTube token: it reads BigQuery, which is exactly the read-only, cost-capped surface the [GA4 guide](ga4-with-claude.md) already covers. Reuse that wiring directly — the [read-only service account, byte cap, and dry-run guardrails](ga4-with-claude.md#wire-claude-to-bigquery-read-only) are identical for a YouTube dataset. And if you're also landing GA4 and ad spend, you're already building the [multi-source warehouse](ga4-with-claude.md#path-3) where YouTube becomes one more lens. (One hedge: the docs describe scheduled recurring runs but don't promise zero re-auth forever — a revoked grant breaks runs, so monitor it.)
+The setup needs a **one-time interactive OAuth grant**, signed in as the human Google Account that owns the channel or content owner (a federated identity or service account can't create the transfer — same YouTube ownership rule as everywhere else). After that, DTS runs the transfer on its schedule unattended. The agent never holds a YouTube token: it reads BigQuery, which is exactly the read-only, cost-capped surface the [GA4 guide](ga4-with-claude.md) already covers. The minimum to wire it safely is three things: grant the agent a read-only IAM role (`roles/bigquery.dataViewer` plus job-user), set a maximum-bytes-billed cap on every query, and run a dry-run to confirm scanned bytes before billing a real query. Reuse that wiring directly — the [read-only service account, byte cap, and dry-run guardrails](ga4-with-claude.md#wire-claude-to-bigquery-read-only) are identical for a YouTube dataset. And if you're also landing GA4 and ad spend, you're already building the [multi-source warehouse](ga4-with-claude.md#path-3) where YouTube becomes one more lens. (One hedge: the docs describe scheduled recurring runs but don't promise zero re-auth forever — a revoked grant breaks runs, so monitor it.)
 
 This is the path that turns the [no-service-account trap](#auth) from a blocker into a non-issue: pay the interactive-OAuth cost once at setup, and the agent side stays a plain BigQuery reader.
 
@@ -194,7 +194,7 @@ This is the constraint that breaks unattended agents, so it gets its own section
 
 And the part that surprises people building automation: **YouTube does not support service accounts.** "Since there is no way to link a Service Account to a YouTube account, attempts to authorize requests with this flow will generate a `NoLinkedYouTubeAccount` error" ([authentication](https://developers.google.com/youtube/v3/guides/authentication)). The device flow is unsupported too. Everywhere else in Google Cloud you'd hand an agent a service-account key file and move on; here that path is closed.
 
-The pattern that works: complete an **interactive OAuth user-consent flow once**, capture the **refresh token**, and store it where the agent can read it (a secret manager, or your platform's keychain). The agent exchanges that refresh token for short-lived access tokens unattended, forever, without a human present again. The relevant read scopes:
+The pattern that works: complete an **interactive OAuth user-consent flow once**, capture the **refresh token**, and store it where the agent can read it (a secret manager, or your platform's keychain). The agent exchanges that refresh token for short-lived access tokens unattended, until the grant is revoked, without a human present again. The relevant read scopes:
 
 - `https://www.googleapis.com/auth/youtube.readonly` — Data API, owned reads
 - `https://www.googleapis.com/auth/yt-analytics.readonly` — non-monetary analytics

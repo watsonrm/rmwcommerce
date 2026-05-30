@@ -55,7 +55,7 @@ If you already speak this vocabulary, skip past. If not, the rest of the article
 5. Human reviews the queue, decides, pastes into QBO UI in two clicks per row
 ```
 
-That five-step skeleton is the AP equivalent of the workspace article's verify-by-JSON pattern: the agent writes an artifact, the human verifies the artifact, the human commits. It survives every Intuit policy change, every connector regression, every MCP surface adjustment — because it never crosses the API boundary. [Part 7](#part-7--architecture-of-the-prep-pack) is the typed-contract version of this skeleton, ready to drop into a Claude Code skill.
+That five-step skeleton is the AP equivalent of the verify-by-JSON pattern from [the workspace article](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md) (RMW's companion guide to operating Google Workspace from Claude): the agent writes an artifact, the human verifies the artifact, the human commits. It survives every Intuit policy change, every connector regression, every MCP surface adjustment — because it never crosses the API boundary. [Part 7](#part-7--architecture-of-the-prep-pack) is the typed-contract version of this skeleton, ready to drop into a Claude Code skill.
 
 > © 2026 Rick Watson / RMW Commerce Consulting. This compilation, its ranking, and the original commentary are copyrighted. The underlying techniques originate from Anthropic's published research on agent autonomy, Intuit's QuickBooks Online developer documentation, and the practitioner sources listed in [Sources & Attribution](#sources--attribution). Quoting brief excerpts with attribution is fine. Republishing the compilation in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
@@ -258,7 +258,7 @@ Total: **50 tools** — 33 reads, 15 writes (13 sales + 2 identity), 2 admin, 0 
 
 ### 1.3 — The Intuit official MCP server inventory
 
-[`intuit/quickbooks-online-mcp-server`](https://github.com/intuit/quickbooks-online-mcp-server) — Apache-2.0, ~238 GitHub stars at the time of writing — exposes **~144 tools across 29 entity types** plus **11 financial reports**. The README states "complete CRUD operations are available for all entity types" with five operations per entity (Create, Get, Update, Delete, Search) except for a handful where specific operations don't apply (Account / Class / Department / Term / Payment Method have no Delete; Tax Code / Tax Rate / Tax Agency are read-only; Company Info supports Get + Update only).
+[`intuit/quickbooks-online-mcp-server`](https://github.com/intuit/quickbooks-online-mcp-server) — Apache-2.0, ~238 GitHub stars as of May 2026 (a figure that drifts; not load-bearing) — exposes **~144 tools across 29 entity types** plus **11 financial reports**. The README states "complete CRUD operations are available for all entity types" with five operations per entity (Create, Get, Update, Delete, Search) except for a handful where specific operations don't apply (Account / Class / Department / Term / Payment Method have no Delete; Tax Code / Tax Rate / Tax Agency are read-only; Company Info supports Get + Update only).
 
 **Entity coverage:**
 
@@ -573,7 +573,7 @@ It is worth being precise about what is missing where.
 
 The QuickBooks Online REST API fully supports POSTing a Bill entity. The endpoint is documented at [`developer.intuit.com/app/developer/qbo/docs/api/accounting/all-entities/bill`](https://developer.intuit.com/app/developer/qbo/docs/api/accounting/all-entities/bill). Creating a Bill requires a VendorRef (the vendor must exist first — see [Vendor entity reference](https://developer.intuit.com/app/developer/qbo/docs/api/accounting/all-entities/vendor)). The OAuth scope is `com.intuit.quickbooks.accounting`, the same one the sales-out tools use. Bills, BillPayments, Vendors, JournalEntries — all of it, all in the same API.
 
-There is also an official Intuit-published MCP server: [`intuit/quickbooks-online-mcp-server`](https://github.com/intuit/quickbooks-online-mcp-server). Apache-2.0. ~238 GitHub stars at the time of writing. ~144 tools across 29 entity types with full CRUD plus 11 reports (Part 1 §1.3). Bill creation is one of them. Vendor creation is one of them. BillPayment is one of them. The path is fully available; the surface exists.
+There is also an official Intuit-published MCP server: [`intuit/quickbooks-online-mcp-server`](https://github.com/intuit/quickbooks-online-mcp-server). Apache-2.0. ~144 tools across 29 entity types with full CRUD plus 11 reports (Part 1 §1.3). Bill creation is one of them. Vendor creation is one of them. BillPayment is one of them. The path is fully available; the surface exists.
 
 **What is missing is the path from "click Add QuickBooks in claude.ai" to "create a bill in production."** That path stops at the bundled connector. To get from there to bill writes, walk the specific journey:
 
@@ -648,7 +648,7 @@ The counter-counter-argument is the same data Part 4 §4.5 leans on. Across roug
 
 Three operational realities the category mostly papers over:
 
-1. **Vendor identity write errors compound.** Creating "Acme Hosting" as a new vendor when "Acme Hosting Inc." already exists splits the spend across two records; six months later the AP aging report misrepresents both. Autonomous tools catch this through fuzzy-match heuristics that are right ~95% of the time, which means one in twenty bills creates a duplicate the human will eventually have to unwind. The prep-pack catches it through the human's read at one-screen review.
+1. **Vendor identity write errors compound.** Creating "Acme Hosting" as a new vendor when "Acme Hosting Inc." already exists splits the spend across two records; six months later the AP aging report misrepresents both. Autonomous tools catch this through fuzzy-match heuristics that are usually right but occasionally split a vendor on a near-miss name, creating a duplicate the human will eventually have to unwind. The prep-pack catches it through the human's read at one-screen review.
 2. **GL coding requires business context the model doesn't have.** The same vendor invoice can be "Software Subscriptions" for one client engagement and "Cost of Revenue" for another, depending on whether it's billable through to the client. The model can guess from prior coding; the operator knows from the current engagement context. The autonomous tool's accuracy on this category is bounded by what's encoded in QBO; the prep-pack's accuracy is bounded by what's in the operator's head.
 3. **The fix-the-error workflow is slower than the prevent-the-error workflow.** Discovering a misposted bill in QBO requires opening the entity, identifying the error, deleting or voiding the bill, recreating it correctly, and reconciling any payments that flowed through it. For an operator who would have caught the error in two seconds at prep-pack-review time, the autonomous loop is net-negative even at perfect uptime.
 
@@ -839,7 +839,7 @@ Calling `quickbooks-transaction-import` on a CSV of vendor invoices does not fil
 
 Fix: if you want to create bills, use `create_bill` (Intuit MCP / REST) or the prep-pack-and-UI-paste path. If you want bank-feed reconciliation, that lives in a separate Intuit FDP-only path most readers will never touch from an agent. The tool name is the source of the confusion; the underlying surface is unrelated to bill creation.
 
-**Operator-side enforcement.** The cleanest defense against this anti-pattern is at the skill-definition layer: every bill-related skill should carry an explicit "never call `quickbooks-transaction-import`" rule in its `## Rules` section, alongside the existing "never write to QBO" rule. The misleading name is the failure attractor; an explicit prohibition on the tool name is what stops a future model invocation from reaching for it. This is the same shape as the workspace article's "validators don't write either" rule — name the forbidden tool by exact identifier, not by category. The bills-prep skill at the working consulting firm referenced throughout this article carries this rule verbatim.
+**Operator-side enforcement.** The cleanest defense against this anti-pattern is at the skill-definition layer: every bill-related skill should carry an explicit "never call `quickbooks-transaction-import`" rule in its `## Rules` section, alongside the existing "never write to QBO" rule. The misleading name is the failure attractor; an explicit prohibition on the tool name is what stops a future model invocation from reaching for it. This is the same shape as the workspace article's "validators don't write either" rule — name the forbidden tool by exact identifier, not by category. The bills-prep skill in the production instance referenced throughout this article carries this rule verbatim.
 
 ### Anti-pattern A-6 — A validator agent with QBO write tools
 
@@ -855,11 +855,13 @@ The risk if you skip this: a validator that finds a duplicate vendor and writes 
 
 The prep-don't-act principle (Part 4) is the conceptual frame. This section is the concrete implementation: the markdown queue file shape, the per-vendor category memory, the delta-vs-prior-month annotation, the one-screen-per-bill discipline, the human-approval contract, the state.json for resume, the single-writer rule. The architecture that makes prep-don't-act survive interruptions, resumes, and real production load.
 
+A note before you copy anything below: treat the FIELDS and the contract — the queue-entry shape, the `vendor_categories.json` schema, the typed input/output — as the transferable part. The specific paths (`~/wiki/07-operations/ap_queue.md`, `~/inbox/bills-queue.md`) and the production-instance examples are one concrete instantiation, not the procedure. Wire the paths to wherever your own setup keeps its files; keep the reusable schema.
+
 ### 7.1 — The queue file shape
 
 A markdown file at a known path. One H3 section per bill. Each section is a one-screen-per-bill package: vendor matched, GL proposed, delta-vs-prior surfaced, PDF link, posted-as field for the post-confirm round-trip.
 
-The shape converged on in real practice (a working consulting firm's `~/wiki/07-operations/ap_queue.md`):
+The shape converged on in real practice (one production instance keeps this at `~/wiki/07-operations/ap_queue.md` — your path will differ):
 
 ```markdown
 ## Pending bills
@@ -899,7 +901,7 @@ The shape is deliberately scannable. A human reading the queue file on a Saturda
 
 ### 7.2 — Per-vendor category memory
 
-The "GL category suggested" line is load-bearing. Without it, the human is deciding from scratch every month; with it, the human is reviewing one suggestion that's right 95% of the time.
+The "GL category suggested" line is load-bearing. Without it, the human is deciding from scratch every month; with it, the human is reviewing one suggestion that's usually right and only correcting the exceptions.
 
 The mechanism: a small JSON file (canonical default `vendor_categories.json`) keyed by vendor display name. The shape that converged in real practice carries four fields beyond the obvious GL category, each earning its place:
 
@@ -986,7 +988,7 @@ The most tempting "improvement" a builder will reach for after seeing the prep-p
 Don't. The dollar amount is the one field that should stay a literal `[VERIFY from PDF]` placeholder. The reasoning:
 
 1. **The Amount is the irreversibility multiplier.** Every other field on the entry is recoverable cheaply if the prep-pack gets it wrong: a misclassified GL category re-codes in two clicks, a wrong invoice number gets corrected at post time, a wrong vendor surfaces in the AP aging the next day. A wrong Amount that the human approves on autopilot books the wrong number into AP — and from there propagates into cash forecasting, into the next month's variance analysis, into the tax return.
-2. **OCR and PDF text-extraction are right ~98% of the time on clean invoices and ~80% of the time on the ones that matter** (scanned receipts, hand-modified amounts, multi-page invoices with the total on a later page). The 2% / 20% failure mode is silent: the agent confidently fills in `$1,470` for a $14,700 bill and the human's eyes glide right past because the agent has filled in every other field correctly.
+2. **OCR and PDF text-extraction are reliable on clean invoices and often far less reliable on the ones that matter** (scanned receipts, hand-modified amounts, multi-page invoices with the total on a later page). The failure mode is silent: the agent confidently fills in `$1,470` for a $14,700 bill and the human's eyes glide right past because the agent has filled in every other field correctly.
 3. **The whole point of the prep-pack is to focus the human's attention.** Auto-filling the Amount defeats that focus. With the literal `[VERIFY from PDF]` placeholder, the human must open the PDF and read the number — which means the human's eyes are on the actual source of truth at the moment of the decision. With an OCR'd Amount pre-filled, the human's eyes are on the queue entry, treating it as ground truth.
 
 The general principle: **the prep-pack pre-fills every field that's cheap to fix and leaves a placeholder on every field that's expensive to fix.** Vendor, GL category, invoice number, due date, delta-vs-prior — all pre-filled, all easy to correct if wrong. Amount — placeholder, forcing the human to verify against the PDF.
@@ -1253,7 +1255,7 @@ This guide synthesizes patterns and failure modes from running QuickBooks Online
 
 ### Intuit — official MCP server
 
-- [intuit/quickbooks-online-mcp-server](https://github.com/intuit/quickbooks-online-mcp-server) — Intuit's Apache-2.0 MCP server, ~238 stars at the time of writing, exposing 144 tools across 29 entity types with full Bill / Vendor / BillPayment / JournalEntry CRUD. The reference implementation for path B. README verified by direct WebFetch on the canonical README.
+- [intuit/quickbooks-online-mcp-server](https://github.com/intuit/quickbooks-online-mcp-server) — Intuit's Apache-2.0 MCP server exposing 144 tools across 29 entity types with full Bill / Vendor / BillPayment / JournalEntry CRUD. The reference implementation for path B. README verified by direct WebFetch on the canonical README.
 - [intuit/quickbooks-online-mcp-server README](https://github.com/intuit/quickbooks-online-mcp-server/blob/main/README.md) — exact tool list and environment-variable requirements quoted in Part 1 §1.3.
 
 ### Documented limitations
@@ -1264,7 +1266,7 @@ This guide synthesizes patterns and failure modes from running QuickBooks Online
 - [Bank transactions reconciliation with QBO Bank Feeds (Codat docs)](https://docs.codat.io/bank-feeds/guides/bank-feeds-tutorial) — corroborating reference: documents QBO bank-feeds as a distinct integration category from the core accounting API.
 - [QuickBooks Bank Feeds: Integrate Bank Transactions (Rutter blog)](https://www.rutter.com/blog/introducing-quickbooks-bank-feeds-integrate-bank-transactions-with-your-accounting-platform) — corroborating reference: integrator-platform perspective on the bank-feed path as a distinct surface.
 - [QuickBooks Online API: Bill entity overview (Intuit help)](https://quickbooks.intuit.com/learn-support/global/help-articles/quickbooks-online-help-search/00/online-help-search) — QBO end-user help corroborating the Bill vs Invoice semantic distinction at the product level.
-- [Standard model: Vendor entity (Codat reference)](https://docs.codat.io/accounting-api/schemas/accounting-vendor) — third-party integrator's normalized view of the Vendor entity across accounting platforms; cross-checks the required-fields shape for `create_vendor`.
+- [Standard model: Supplier entity (Codat reference)](https://docs.codat.io/payables/sync/suppliers) — third-party integrator's normalized view of the Vendor entity (Codat models a vendor as a "Supplier") across accounting platforms; cross-checks the required-fields shape for `create_vendor`.
 - [QuickBooks Payments API overview](https://developer.intuit.com/app/developer/qbpayments/docs/learn/explore-the-quickbooks-payments-api) — the separate payments API (distinct from the accounting API); cited to clarify that payment links from the bundled MCP wrap the accounting-API surface, not the payments API.
 
 ### Practitioner sources on the QuickBooks app-assessment process

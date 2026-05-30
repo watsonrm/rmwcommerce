@@ -66,7 +66,7 @@ Before the practical lever-by-lever guidance, a short grounding in *why* these t
 
 ### The KV-cache and quadratic attention
 
-Every token an LLM produces requires attending to every token before it. Naïvely, the cost of generating the N-th token scales linearly with N (the cost of the full response is therefore quadratic). The **KV-cache** stores the key and value tensors from previously processed tokens so they don't need to be recomputed — but a naïve implementation reserves contiguous memory per request, wasting most of it.
+Every token an LLM produces requires attending to every token before it. Naïvely, the attention cost of generating the N-th token scales linearly with N (the attention cost of the full response is therefore quadratic). The **KV-cache** stores the key and value tensors from previously processed tokens so they don't need to be recomputed — but a naïve implementation reserves contiguous memory per request, wasting most of it.
 
 The vLLM project (Kwon et al., UC Berkeley) measured this:
 
@@ -127,7 +127,7 @@ If your workload is sporadic (one user query every 10 minutes, say), turning on 
 
 ### This is not Anthropic-specific
 
-Prompt caching is now industry-standard. Cross-vendor confirmation:
+Prompt caching is now industry-standard. Cross-vendor confirmation (cross-vendor figures as of 2024, per Willison; vendor pricing shifts, so re-check before relying on them):
 
 | Vendor | Cache hit discount | Minimum tokens | Default TTL |
 | :--- | :--- | :--- | :--- |
@@ -243,7 +243,7 @@ Anthropic's engineering team measured the wall-clock impact on their internal re
 >
 > — Anthropic, "[How we built our multi-agent research system](https://www.anthropic.com/engineering/built-multi-agent-research-system)" (Jun 13, 2025)
 
-That's a 10× wall-clock speedup on a real production workload, attributable to parallelism. The exact number won't transfer to your application — but the order of magnitude indicates how badly sequential execution under-performs on multi-step tasks.
+That's up to a 10× wall-clock speedup on a real production workload, attributable to parallelism. The exact number won't transfer to your application — but the order of magnitude indicates how badly sequential execution under-performs on multi-step tasks.
 
 ### Getting Claude to use it
 

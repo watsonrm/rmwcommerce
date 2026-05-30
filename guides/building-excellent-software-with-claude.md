@@ -32,7 +32,7 @@ Who this is for: anyone shipping consequential work built with Claude — code, 
 | **1** | Be honest about cost and benefit | A contextually wrong metric damages trust in everything else | 1–2 hours at design |
 | **2** | Dogfood before you ship | Real use catches what spec reviews miss | Every release |
 | **3** | File the bug, then fix it | The issue defines acceptance before the fix begins | Every fix |
-| **4** | Encode every constraint as a test | Claude doesn't carry constraints across sessions — the test does | Every new constraint |
+| **4** | CI guards every behavior you care about | Claude doesn't carry constraints across sessions — the test does | Every new constraint |
 | **5** | Red-team your own work | The threat model is your job; Claude will find gaps if you ask | Once before launch |
 | **6** | Check the ranking, not just the output | A correct finding ranked first when it shouldn't be is a UX problem | Every release |
 | **7** | Build for survival | Software that only runs while you're watching isn't software yet | Once per project |

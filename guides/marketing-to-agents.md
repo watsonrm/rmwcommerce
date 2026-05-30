@@ -12,7 +12,7 @@ keywords: AI agents, AI search, LLM citation, robots.txt, llms.txt, AGENTS.md, M
 
 **Your traffic is starting to come from agents, not browsers, and most sites are invisible to them. ChatGPT cites a competitor instead of you because your page has no JSON-LD, no llms.txt, and a `<title>` tag the model can't parse. Indexer success isn't citation success: Perplexity can crawl you and still never quote you. This is the 22-item fix list, impact-ordered, every claim sourced.**
 
-*By [Rick Watson](https://rmwcommerce.com) · 2026-05-24 · Roughly 45 min read*
+*By [Rick Watson](https://rmwcommerce.com) · Published 2026-05-21 · Updated 2026-05-24 · Roughly 45 min read*
 
 Who this is for: site owners and marketers who want their content to land in ChatGPT, Perplexity, Google AI Overviews, and Claude citations, and to stay usable by agentic browsers.
 

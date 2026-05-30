@@ -39,7 +39,9 @@ The discoverability and protocol landscape looks fragmented but is actually cons
 | **6** | A2A | Read it, don't deploy | Cross-vendor agent interop. Interesting spec. No production use case for most readers. |
 | **7** | `/.well-known/ai-plugin.json` | Skip | No load-bearing consumer since ChatGPT Plugins wound down April 2024. ([source](https://community.openai.com/t/plugin-store-and-new-chats-with-plugins-closed-march-19-2024/689877)) |
 
-Most readers should handle rows 1–3 and check back on row 4 in six months. If you're a merchant or commerce operator, the four-file setup from Stripe's field guide (rows 1, 3, 4, and 7 — but skip 7) covers your discoverability baseline.
+Most readers should handle rows 1–3 and check back on row 4 in six months. If you're a merchant or commerce operator, the live members of Stripe's four-file setup (rows 1, 3, and 4) cover your discoverability baseline; the fourth file in Stripe's list, row 7, is dead — skip it.
+
+The deploy-priority column collapses into a three-tier scale used throughout this article: **Tier 1 = deploy now** (rows 1–3), **Tier 2 = track, don't deploy yet** (rows 5–6), **Tier 3 = read, don't deploy** (the cross-vendor specs you should understand but have no use case for). (This deployment-tier scale is unrelated to the Tier 1 / Tier 2 source-quality tiers used in [Sources & Attribution](#sources--attribution) — same word, different taxonomy.)
 
 ---
 
@@ -71,7 +73,7 @@ I've deployed MCP servers in my own infrastructure. I haven't deployed A2A, and 
 
 ### A note on Danny Smith's field guide
 
-Danny Smith leads global agentic commerce solution architecture at Stripe and authored their technical field guide solo. He appears on the Watson Weekly podcast in episode 271W: [TBD: link when the episode airs on 2026-06-10]. The merchant-side recommendations in this article draw heavily on his published field guide, which is the closest thing to a Tier 1 practitioner source on the commerce side of this stack.
+Danny Smith leads global agentic commerce solution architecture at Stripe and authored their technical field guide solo. He appears on the Watson Weekly podcast in episode 271W, airing 2026-06-10. The merchant-side recommendations in this article draw heavily on his published field guide, which is the closest thing to a Tier 1 practitioner source on the commerce side of this stack.
 
 ---
 
@@ -239,7 +241,7 @@ The other overclaim: treating MCP as a replacement for proper API design. MCP is
 
 If you maintain a service AI agents should be able to use: build an MCP server for it. Start with read-only tools. Use the official Python or TypeScript SDK. Define tool schemas carefully — the quality of your tool descriptions (the natural language explanations in the schema) directly affects whether agents invoke your tools correctly. Expect 1-2 days of dev time. Only worth it if your service is queried daily by your own agents or by external integrators.
 
-If you're a Claude Code user deploying agents internally: MCP servers for your own services (CRM, calendar, databases) are the infrastructure that makes Rung 3 and Rung 4 agents practical.
+If you're a Claude Code user deploying agents internally: MCP servers for your own services (CRM, calendar, databases) are the infrastructure that makes Rung 3 and Rung 4 agents — the upper rungs of the autonomy ladder, where agents run their own decision loop rather than waiting for a prompt — practical.
 
 **Audience tags:**
 - For a non-developer site owner: Not directly relevant. Your developer should evaluate whether your services need MCP exposure.
@@ -343,7 +345,7 @@ Positioning function calling as a strategy. It's a capability, not a strategy. T
 
 Use function calling directly when building single-agent workflows without a standardized discovery layer. Use MCP when you want that discovery and invocation surface shared across multiple agent consumers.
 
-Both the OpenAI function calling docs ([platform.openai.com/docs](https://developers.openai.com/api/docs/guides/function-calling)) and Anthropic tool use docs ([platform.claude.com](https://platform.claude.com/docs/en/docs/build-with-claude/tool-use/overview)) are Tier 1 primary sources.
+Both the OpenAI function calling docs ([developers.openai.com/api/docs](https://developers.openai.com/api/docs/guides/function-calling)) and Anthropic tool use docs ([platform.claude.com](https://platform.claude.com/docs/en/docs/build-with-claude/tool-use/overview)) are Tier 1 primary sources.
 
 ---
 

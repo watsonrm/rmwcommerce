@@ -96,7 +96,7 @@ Structuring your `CLAUDE.md` and packaging recurring workflows as skills is also
 
 - Reserve `CLAUDE.md` for: environment commands you run constantly, syntax conventions, non-negotiable architectural rules, and pointers to where more detail lives.
 - Move everything else to linked docs the model pulls on demand, or into **path-scoped rules** under `.claude/rules/` — these load only when matching files are open, so you get precision without the every-session tax.
-- Use `.gitignore` (with the `respectGitignore` setting enabled) to keep Claude out of `node_modules/`, `dist/`, `build/`, and large log files. *Note: an earlier widely-circulated guide referenced a `.claudeignore` file — this is not an official Claude Code feature. Use `.gitignore` plus the settings flag.*
+- Use `.gitignore` (with the `respectGitignore` setting in `settings.json` enabled) to keep Claude out of `node_modules/`, `dist/`, `build/`, and large log files. *Note: an earlier widely-circulated guide referenced a `.claudeignore` file — this is not an official Claude Code feature. Use `.gitignore` plus the settings flag.*
 
 ### 3. Verify before you generate
 
@@ -135,8 +135,8 @@ The `effort` parameter controls how many tokens Claude spends on a response, tra
 | Tier | Use it for |
 | :--- | :--- |
 | `low` | Subagent tasks, simple lookups, high-volume batch operations where latency matters most |
-| `medium` | Default for most application work — balanced cost and quality |
-| `high` | Default when parameter is omitted — complex reasoning, architectural decisions |
+| `medium` | Recommended for most application work — balanced cost and quality |
+| `high` | The API default when no effort is specified — complex reasoning, architectural decisions |
 | `xhigh` | Advanced coding and long-horizon agentic work (Claude Opus 4.7) |
 | `max` | Absolute maximum capability, no token constraints — cryptographic logic, financial math, or tasks where wrong-but-confident output is costly |
 
