@@ -73,6 +73,32 @@ The honest summary: on a developer's laptop, for a single styled doc or a calend
 
 ---
 
+## Do as little as possible: bootstrap once, then delegate
+
+If the layering above sounds like a lot of setup, here is the load-bearing reframe: **your job is the one-time bootstrap; everything after it is the agent's.** The goal isn't "automate Google Workspace" — it's "do the smallest thing a human is actually required to do, then let the agent do the rest." Run every setup step through one question — *does a human genuinely have to do this, or can the agent?* — and push every "no" onto the agent.
+
+Exactly three things require a human, and all three are one-time:
+
+- **Consent.** OAuth is built so a person clicks "Allow." An agent that could grant itself access would be a security hole, not a feature — so this stays human by design.
+- **Secrets.** Someone puts the credential somewhere the code can read it — a keychain entry, a secret-manager value, an env var — once.
+- **Privileged authorization.** Enabling the APIs in the cloud console, registering the MCP server in your client, and (for multi-user service accounts) authorizing domain-wide delegation — which Google requires a Workspace super admin to perform ([Part 9](#part-9--operating-google-calendar)).
+
+Everything downstream of those three is the agent's. The division of labor a well-built helper layer produces:
+
+| Bootstrap — human, once | Runs itself — agent, every time after |
+|---|---|
+| Click "Allow" in the consent screen (once per scope bundle) | Exchange the refresh token for an access token on every call |
+| Enable the APIs + create the OAuth client in the console | Reuse one credential across Drive, Docs, Sheets, and Slides — one consent, four surfaces |
+| Drop the secret into your keystore | Mirror that same secret to the cloud and run the *identical* code headless |
+| Register the MCP server in your client config | Create / update / brand-style docs, land live formulas, swap deck templates, set calendar transparency, draft mail — and verify every write |
+| (Multi-user only) a super admin authorizes DWD | Broaden to a new scope by re-running setup — never per-call work |
+
+The lever that makes the human's part *small* is a **one-time `setup` step that absorbs as much of the remaining human work as it can.** A good one runs the consent flow, writes the refresh token into your keystore for you, **and prints the exact environment variables to paste into your cloud secret store** — so a single "Allow" click provisions both your laptop and an unattended cloud routine at once. Adding a surface later is re-running setup with one more scope; it is never recurring work. This is the [stdlib helper family](#the-stdlib-helper-family--a-reference-architecture-you-can-size-to-your-own-needs)'s `--setup` flow in practice, and it generalizes to any language or keystore.
+
+**Be honest about the frontier.** You cannot delete the bootstrap — consent and privileged authorization are *supposed* to involve a human, and an agent that enrolled itself into your Workspace would be the bug. The win isn't a zero-human setup; it's shrinking the human's part to one small action you take once and never repeat, then letting the agent own every operation past it. Measure your setup by how little is left for you the *second* time you reach for it — if the answer isn't "nothing," that's the next thing to push onto the agent.
+
+---
+
 ## Master priority map — highest-leverage pattern per surface
 
 One row per surface. The top pattern on each row is the single decision that closes the largest share of real-world breakage for that surface; the per-Part `Where to spend your time` tables that follow expand items 2 through N. **If you adopt only the six patterns in this table, you ship the bulk of the wins this guide is about.**
@@ -1779,7 +1805,7 @@ This guide synthesizes patterns and case handling from running Google Drive + Do
 - [TextStyle reference (JavaDoc)](https://googleapis.dev/java/google-api-services-docs/latest/com/google/api/services/docs/v1/model/TextStyle.html) — confirms the `bold` + `weightedFontFamily` interaction documented in Pattern 2's "weight 400 even when bold: true" case
 - [Extract text from a Google Doc](https://developers.google.com/workspace/docs/api/samples/extract-text) — canonical `body.content` walking pattern
 - [Output document contents as JSON](https://developers.google.com/workspace/docs/api/samples/output-json) — the JSON-read habit baseline; supports the verification pattern
-- [Google Docs API release notes](https://developers.google.com/workspace/docs/api/release-notes) — where to watch for changes that would obsolete the workarounds in Part 3
+- [Google Docs API release notes](https://developers.google.com/workspace/docs/release-notes) — where to watch for changes that would obsolete the workarounds in Part 3
 - [Insert inline images how-to](https://developers.google.com/workspace/docs/api/how-tos/images) — confirms `objectSize` is optional with no guaranteed enforcement
 - [Drive files.copy reference](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/copy) — the underlying call behind the template-copy footer workaround
 - [Drive files.create reference](https://developers.google.com/workspace/drive/api/reference/rest/v3/files/create) — the upload-with-conversion path for `.docx` / `.xlsx` / `.pptx`
