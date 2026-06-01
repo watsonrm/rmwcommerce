@@ -1037,14 +1037,6 @@ The patterns that close the largest share of real-world Calendar cases to handle
 
 Most readers should fix patterns 1–4 and stop. Items 5–10 matter once agents are managing series, app-key state, or real-time calendar sync.
 
-### TL;DR — five non-obvious Calendar bits
-
-1. **`sendUpdates` default is `false` (= `none` behavior).** Per the [insert reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert), the literal documented default is the string `false`, which fires no notifications — equivalent to passing `none`. Every insert / update with attendees that doesn't pass `sendUpdates=all` adds them silently. The most common reason an agent-created meeting "didn't go through."
-2. **Recurring events need an explicit `timeZone`.** The API needs an IANA timezone to expand the recurrence rule. A field that looks optional is load-bearing.
-3. **`events.update` is a full replace.** The [update reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/update) is explicit: omitting `attendees` or `conferenceData` wipes them. Read first, mutate, write the full object back — or use `events.patch`.
-4. **The Meet link is async.** `conferenceData.createRequest` returns `status: pending` on the initial response. Poll until `success` before reporting the link.
-5. **Use ETag + `If-Match` on read-modify-write.** Calendar implements optimistic concurrency per the [version-resources guide](https://developers.google.com/workspace/calendar/api/guides/version-resources). Skip the ETag and concurrent writers silently overwrite each other — no error, no warning, the second write wins.
-
 ### Deep dive — recurrence, time zones, and the four ways to break a series
 
 Recurrence is where Calendar production bugs concentrate. The data model has four interacting pieces, and every common case to handle comes from confusing two of them.
@@ -1412,14 +1404,6 @@ The Gmail API surface ([Gmail API v1 REST reference](https://developers.google.c
 
 Most readers should implement items 1–4 first. Items 5–10 matter once agents are doing bulk send, monitoring inboxes, or processing attachments.
 
-### TL;DR — five non-obvious Gmail bits
-
-1. **Base64 ≠ base64url.** The `raw` field on `messages.send` and the `data` field on `messages.attachments.get` are base64url-encoded per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending) — URL-safe alphabet, no `+` or `/`. Standard base64 fails on payloads containing characters that map to those symbols.
-2. **Labels are addressed by ID, not display name.** System labels look like `INBOX`. User labels are opaque per-mailbox strings. The display name is not a valid `labelId` per the [labels guide](https://developers.google.com/workspace/gmail/api/guides/labels).
-3. **Threading needs three things.** Per the [threads guide](https://developers.google.com/workspace/gmail/api/guides/threads), an in-thread reply requires `threadId` on the resource, matching `Subject`, and `In-Reply-To` + `References` headers (per RFC 2822, which the threads guide cites by name). The first governs the sender's mailbox; the headers govern recipient-side threading.
-4. **Watch expires every 7 days.** Push notifications via Pub/Sub silently stop receiving after a week without re-registration per the [push guide](https://developers.google.com/workspace/gmail/api/guides/push). Renew daily.
-5. **Multipart messages put the body in `payload.parts[]`, not `payload.body.data`.** Code that always reads `payload.body.data` returns empty bodies on any HTML / attachment-bearing message. Walk the parts tree recursively; the body is in a leaf with `mimeType: "text/plain"` or `"text/html"`.
-
 ### Deep dive — multipart MIME assembly, HTML + plain-text + attachment
 
 The `raw` field on `messages.send` is a base64URL-encoded RFC 2822 message per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending) (which states verbatim "The Gmail API requires MIME email messages compliant with RFC 2822"; [RFC 5322](https://www.rfc-editor.org/info/rfc5322/) is the obsoleting current spec, same headers). The casual plaintext case fits in five lines:
@@ -1655,9 +1639,7 @@ The setup is mostly identical to the Calendar walkthrough per Google's [service-
 - **Scope grants matter exactly.** The Admin Console DWD entry authorizes the SA for specific scopes only. Adding `https://www.googleapis.com/auth/gmail.send` does NOT also authorize `gmail.modify` — every scope the agent uses must be listed. Mismatch returns `unauthorized_client` with no helpful message about which scope is missing.
 - **The `subject` parameter is the impersonated user's email.** Gmail-via-DWD acts as that user — the resulting tokens are scoped to their mailbox, watch channels register on their mailbox, etc. The SA itself has no mailbox; calls without `subject` return 400.
 
-The same most-common watch-out as Calendar applies: the Admin Console authorization step is easy to skip ("the SA exists in GCP, why is auth failing?"). Verify in the Admin Console under Security → Access and data control → API Controls → Domain-wide delegation that the SA's numeric Client ID (not email) is listed with the exact scopes the agent requests. Propagation can take up to 24 hours.
-
-DWD does not work for consumer `@gmail.com` accounts — it's a Workspace-only mechanism. For consumer Gmail, OAuth-user is the only option.
+The same-as-Calendar watch-out (the Admin Console authorization is the easy step to skip — verify the SA's numeric Client ID, not its email, is listed there with the exact scopes the agent requests) and the consumer-`@gmail.com` exclusion both apply here unchanged. See the [Calendar deep dive](#deep-dive--service-account-auth-and-domain-wide-delegation-calendar) for the full walkthrough and the 24-hour propagation note.
 
 ### Hard limits + workarounds — Gmail
 
@@ -1884,7 +1866,6 @@ This guide synthesizes patterns and case handling from running Google Drive + Do
 
 - [googleapis/google-api-ruby-client #145](https://github.com/googleapis/google-api-ruby-client/issues/145) — symmetric decode-side base64url bug on `messages.get` with `format=raw` (calling `Base64.decode64` instead of `Base64.urlsafe_decode64`). Community-observed; the authoritative source is the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending).
 - [googleapis/google-api-nodejs-client #1938](https://github.com/googleapis/google-api-nodejs-client/issues/1938) — threading-headers gotcha. Community-observed; the authoritative source is the [threads guide](https://developers.google.com/workspace/gmail/api/guides/threads).
-- [Restricted-scope OAuth verification](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification) — App Defense Alliance / CASA security-assessment gate for external apps requesting restricted scopes.
 
 ### Google Slides — primary references
 
