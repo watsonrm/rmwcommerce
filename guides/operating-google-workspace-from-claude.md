@@ -12,70 +12,53 @@ keywords: Google Drive, Google Docs, Google Sheets, Google Slides, Google Calend
 
 **Six Workspace surfaces — Drive, Docs, Sheets, Slides, Calendar, Gmail — are now reachable from Claude as production write targets. Done well, an agent ships a branded doc from a markdown payload, lands formulas as live formulas, builds decks from templates, schedules meetings with working Meet links, and drafts mail a human can review and send in one click. The connective tissue between those wins is the verify-after-write habit: read the JSON, confirm what landed, dispatch the next step against ground truth. This guide names the patterns that produce reliable output on each surface, the workarounds for the things the APIs genuinely cannot do, and the few high-leverage decisions that close the largest share of real-world breakage.**
 
-**Published:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Last updated:** <time datetime="2026-05-27">2026-05-27</time>  ·  **Author:** [Rick Watson](https://www.rmwcommerce.com/), Principal, RMW Commerce Consulting  ·  **Canonical URL:** [`github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md`](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md)  ·  **Reading time:** 10-min skim · 75-min deep read
+**Published:** <time datetime="2026-05-25">2026-05-25</time>  ·  **Last updated:** <time datetime="2026-05-30">2026-05-30</time>  ·  **Author:** [Rick Watson](https://www.rmwcommerce.com/), Principal, RMW Commerce Consulting  ·  **Canonical URL:** [`github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md`](https://github.com/watsonrm/rmwcommerce/blob/main/guides/operating-google-workspace-from-claude.md)  ·  **Reading time:** 10-min skim · 75-min deep read
 
 Who this is for: developers and operators using Claude (or any AI agent) to read and write Google Drive files, Google Docs, Google Sheets, Google Slides, Google Calendar events, and Gmail messages at scale. Anyone who wants an agent to produce branded docs, live-formula sheets, template-driven decks, working calendar invites, and reviewable mail — without watching the agent overwrite styled formatting, create four files with the same title, write a formula that lands as a literal string, hand-craft a `batchUpdate` for a deck because the MCP didn't expose it, add attendees silently with no invitation email, or get `400 invalidArgument` from Gmail because standard base64 isn't base64url.
 
-**Jump to:** [60-second map](#the-60-second-map--what-youre-actually-working-with) · [Master priority map](#master-priority-map--highest-leverage-pattern-per-surface) · [What you can do today](#what-you-can-do-today--capability-inventory) · [Hard limits + workarounds](#hard-limits--workarounds) · [TL;DR](#tldr--the-five-highest-leverage-decisions) · [Sheets (Part 7)](#part-7--operating-google-sheets) · [Slides (Part 8)](#part-8--operating-google-slides) · [Calendar (Part 9)](#part-9--operating-google-calendar) · [Gmail (Part 10)](#part-10--operating-gmail) · [Full TOC](#whats-in-this-article)
+**Jump to:** [The six surfaces](#the-six-surfaces-and-the-part-youll-get-wrong) · [The whole guide in six decisions](#the-whole-guide-in-six-decisions) · [How to think about the work](#how-to-think-about-the-work-bootstrap-once-layer-down-only-when-you-must) · [Sheets (Part 7)](#part-7--operating-google-sheets) · [Slides (Part 8)](#part-8--operating-google-slides) · [Calendar (Part 9)](#part-9--operating-google-calendar) · [Gmail (Part 10)](#part-10--operating-gmail) · [Full TOC](#whats-in-this-article)
 
 ---
 
-## The 60-second map — what you're actually working with
+## The six surfaces, and the part you'll get wrong
 
-Six surfaces, six different mental models. The most common production bug is confusing them.
+Six surfaces, six addressing models. The most common production bug is reaching for the wrong one — editing a file when you meant its content, or hardcoding a character index that has since moved. The first two columns you can mostly guess; the addressing column is the part you can't.
 
-| Surface | What it is | What it's good for | Addressing model |
-|---|---|---|---|
-| **Drive** | The file system | List, search, copy, move, share, manage permissions. File metadata. **Never content.** | File ID |
-| **Docs** | The document editor | Read body, write text, apply styles, insert images, manage comments. | Character index into body |
-| **Sheets** | The spreadsheet | Cells, ranges, formulas, formatting, conditional rules, charts. | A1 ranges OR zero-based GridRange |
-| **Slides** | The presentation editor | Slides, shapes, tables, images, charts, speaker notes. | String `objectId` per element |
-| **Calendar** | The scheduling surface | Events, recurring series, freebusy, ACL sharing, push notifications. | `(calendarId, eventId)` OR `(calendarId, iCalUID)` |
-| **Gmail** | The mail surface | Send, draft, label, search, thread, push notifications, filter management. | `messageId` / `threadId` / `labelId` (opaque strings) |
+| Surface | What it is | How you address a thing in it |
+|---|---|---|
+| **Drive** | The file system: list, search, copy, move, share, permissions. Never content. | File ID |
+| **Docs** | The document editor: body text, styles, images, comments. | Character index into the body — shifts on every write |
+| **Sheets** | The spreadsheet: cells, formulas, formatting, charts. | A1 range *or* zero-based GridRange |
+| **Slides** | The presentation editor: shapes, tables, images, speaker notes. | String `objectId` per element — not stable across edits |
+| **Calendar** | The scheduling surface: events, series, freebusy, ACLs. | `(calendarId, eventId)` or `(calendarId, iCalUID)` |
+| **Gmail** | The mail surface: send, draft, label, thread, filters. | `messageId` / `threadId` / `labelId` — opaque strings |
 
-You reach Drive through `mcp__google-docs__searchDriveFiles`, the lighter `mcp__claude_ai_Google_Drive__*` family, or the [Drive REST API v3](https://developers.google.com/workspace/drive/api/reference/rest/v3) directly. Docs (~80 tools) and Sheets (~20 tools) go through `mcp__google-docs__*`. Slides has the shallowest MCP coverage — production servers expose ~7 tools, most agents end up authoring raw `presentations.batchUpdate` payloads. Calendar and Gmail both have MCP coverage in the canonical Google Workspace MCP but production agents regularly need REST for edge cases (sync tokens, push channels, ACL writes, MIME assembly). [Part 1](#part-1--the-toolset-and-the-mental-model) covers connector / scope / write-path trade-offs; [Part 8](#part-8--operating-google-slides) covers the Slides shape; [Part 9](#part-9--operating-google-calendar) covers Calendar; [Part 10](#part-10--operating-gmail) covers Gmail.
+You reach Drive through `searchDriveFiles` or the Drive REST API, Docs and Sheets through `mcp__google-docs__*`, Slides through raw `presentations.batchUpdate` (the MCP barely covers it), and Calendar and Gmail through the Workspace MCP — dropping to REST for the edges. [Part 1](#part-1--the-toolset-and-the-mental-model) covers the write-path trade-offs.
 
-### If you read nothing else, this is the minimum viable pattern
+## The whole guide in six decisions
 
-```
-1. readDocument(doc_id, format: "json")        // baseline JSON
-2. replaceDocumentWithMarkdown(doc_id, markdown)  // body write
-3. applyTextStyle / applyParagraphStyle          // brand styling (mandatory — markdown imports leave defaults)
-4. readDocument(doc_id, format: "json")        // verify the styles landed
-5. Compare expected vs actual per paragraph    // tool success ≠ task success
-6. Scan every textRun.content for leaked markdown syntax (^#{1,6}\s, \*\*[^*\n]+\*\*, ^---$)
-                                               // structure-only checks miss literal `#` and `**` chars that the converter
-                                               // silently left behind — Pattern 6 in Part 2
-```
+If you read nothing else, internalize these six — one load-bearing call per surface. Each closes the largest share of real-world breakage on its surface, and none is obvious from Google's docs. The machine-readable form of this list is the [priority matrix](#machine-readable-summary) at the foot of the article.
 
-That six-step skeleton catches the largest share of real-world failure modes. The rest of this guide is the named failures it prevents, the architectural pattern that makes it survive interruptions, and the Sheets equivalent.
+1. **Verify every Docs style write by reading the JSON.** `applyTextStyle` returns success while overwriting bold runs, leaving bullets unstyled, or setting the wrong font weight. Read the doc back as JSON and confirm the values landed per paragraph — tool-success is not task-success. Then scan the text for leaked `#` / `**` the markdown converter left behind ([Pattern 6](#pattern-6--markdown-leak-check-after-every-markdowndocs-write)).
+2. **Pass `USER_ENTERED` on every Sheets write.** Without it, `=SUM(A1:A10)` lands as a literal string and downstream math reads zero. With it, formulas become formulas and `Mar 1 2026` becomes a date.
+3. **Pass `sendUpdates=all` on every Calendar write with attendees.** The documented default fires no notification — attendees get added silently and never see the invite. It is the single most common reason an agent-created meeting "never went out."
+4. **Draft, don't send, from Gmail — and base64url every `raw` field.** `drafts.create` leaves a reviewable artifact before mail hits the wire; standard base64 passes plaintext tests and fails the first HTML or binary payload with `400 invalidArgument`.
+5. **`copyFile` a template for any page-numbered Doc.** The Docs API cannot author `PAGE_NUMBER` auto-text into an existing doc. Page numbers come from cloning a template that already carries the footer — that is the path, not a missing call.
+6. **Pre-assign your own `objectId` when you create a Slides element.** The IDs the API returns are not stable across editor edits per Google's own docs, so durable lookups need a handle you control — or a lookup by text / alt-text on each batch.
+
+Everything past this point is the named failures these six prevent, the workarounds for what the APIs genuinely cannot do, and the architecture that makes it all survive an unattended run.
 
 > © 2026 Rick Watson / RMW Commerce Consulting. This compilation, its ranking, and the original commentary are copyrighted. The underlying techniques originate from the public Google Workspace APIs and Anthropic's Model Context Protocol. See [Sources & Attribution](#sources--attribution). Quoting brief excerpts with attribution is fine. Republishing the compilation in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
 ---
 
-## Why can't I just use MCP and forget the rest?
+## How to think about the work: bootstrap once, layer down only when you must
 
-This is the first question every operator asks, so here is the direct answer: **MCP is the default and it handles the common case on a developer's machine. It is not sufficient on its own.** Six named situations drop you below the MCP layer — to direct REST, to a small stdlib helper, to Apps Script, or to the Drive UI. Five of them (situations 1, 2, 3, 5, and 6 in the table below) are gaps you route around. The sixth — situation 4, where the tool reports success but the document is actually wrong — isn't a gap you route around at all; it's the verify-after-write discipline you never skip, even when MCP works perfectly.
+Two mental models carry the whole job, and both push work off the human and onto the agent.
 
-If you adopt one mental model from this guide, adopt this layering: **MCP for the common write, REST for the field or surface the MCP wrapper doesn't expose, a stdlib helper when there is no MCP at all (cloud / headless), the UI or Apps Script for what no API can do — and verify-after-write across all of them.**
+**MCP is the default — and not sufficient alone.** On a developer's laptop, for one styled doc or a calendar invite, MCP plus a verify-after-write loop *is* the whole job. Two situations reliably drop you beneath it. A **headless or scheduled run** has no Keychain for the MCP server's OAuth credentials, so you fall to a stdlib helper that reads them from env vars. And **a tool can report success while the document is wrong**, so you read the JSON and verify every time — the one discipline you never skip, even when MCP works perfectly. A few narrower cases push you lower still: a wrapper that omits a field (Calendar `transparency` lands `opaque` no matter what you ask), a surface with almost no MCP tools (Slides), a capability no API exposes (`PAGE_NUMBER`), or a connector whose parity differs by environment — each covered in its Part. The layering, in one line: **MCP for the common write, REST for the field the wrapper hides, a stdlib helper when there's no MCP at all, the UI or Apps Script for what no API can do — and verify-after-write across all of them.**
 
-| # | The situation | Why MCP alone fails | What you drop to | Covered in |
-|---|---|---|---|---|
-| 1 | **Cloud / headless / scheduled run** | MCP servers need OAuth credentials in the machine's Keychain; a cloud function or cron routine has no Keychain and can't reach the local MCP | A stdlib helper that reads creds from env vars, or a cloud-secret-proxy in front of it | [Limit 2](#limit-2--mcp-availability-differs-by-environment), [Part 5](#part-5--architecture-the-single-writer-pattern) |
-| 2 | **The wrapper doesn't expose the field** | The Calendar MCP wrappers don't expose `transparency` or a meaningful `colorId` on create/update — so an agent-created hold block lands `opaque` (busy) no matter what you ask for | A Calendar REST `PATCH` side-channel that sets the field the wrapper omits | [Part 9 — transparency](#deep-dive--transparency-busyfree-and-how-an-event-appears-in-freebusy) |
-| 3 | **There's no MCP tool for the surface at all** | The production MCP servers expose ~7 Slides tools and no `replaceAllText` / `applyTextStyle` — Slides is structurally under-served even on servers with 100+ Docs/Sheets/Calendar/Gmail tools | Raw `presentations.batchUpdate`, or a thin stdlib helper that wraps it | [Part 8](#part-8--operating-google-slides) |
-| 4 | **MCP returns success but the doc is wrong** | The markdown converter leaks `#` / `**` as literal characters, cascades a heading across 116 paragraphs, or overwrites bold runs — and the tool still returns `{type: "updated"}` | Read the JSON, verify per-paragraph, repair with a REST `batchUpdate` if needed | [Parts 2](#part-2--patterns-that-work)–[4](#part-4--patterns-to-avoid-drive--docs) |
-| 5 | **No API — MCP or REST — can do it** | `PAGE_NUMBER` auto-text in an existing doc, blob images in Sheet cells, Slides transitions / animations: the capability is absent from every programmatic surface | `copyFile` from a pre-built template, Apps Script, or a one-time UI action | [Part 3](#part-3--hard-limits--workarounds-drive--docs), [Slides limits](#hard-limits--workarounds--slides) |
-| 6 | **Connector parity differs by environment** | The same MCP server name behaves differently in claude.ai vs Claude Code vs a skill dispatch — Shared Drive reads regress in one context and work in another | Pull a local copy via whatever read path works, edit locally, sync back | [Part 1 — connector parity](#connector-parity-is-not-guaranteed) |
-
-The honest summary: on a developer's laptop, for a single styled doc or a calendar invite, MCP plus a verify-after-write loop is the whole job. The moment you run unattended, touch Slides, need a field the wrapper hides, or hit a capability no API exposes, you are operating the lower layers — and the rest of this guide is the map of exactly when and how. The [stdlib helper family in Part 5](#the-stdlib-helper-family--a-reference-architecture-you-can-size-to-your-own-needs) is what that lower layer looks like once it's built out.
-
----
-
-## Do as little as possible: bootstrap once, then delegate
-
-If the layering above sounds like a lot of setup, here is the load-bearing reframe: **your job is the one-time bootstrap; everything after it is the agent's.** The goal isn't "automate Google Workspace" — it's "do the smallest thing a human is actually required to do, then let the agent do the rest." Run every setup step through one question — *does a human genuinely have to do this, or can the agent?* — and push every "no" onto the agent.
+**Your job is the one-time bootstrap; everything after it is the agent's.** The goal isn't "automate Google Workspace" — it's "do the smallest thing a human is actually required to do, then let the agent do the rest." Run every setup step through one question — *does a human genuinely have to do this, or can the agent?* — and push every "no" onto the agent.
 
 Exactly three things require a human, and all three are one-time:
 
@@ -96,79 +79,6 @@ Everything downstream of those three is the agent's. The division of labor a wel
 The lever that makes the human's part *small* is a **one-time `setup` step that absorbs as much of the remaining human work as it can.** A good one runs the consent flow, writes the refresh token into your keystore for you, **and prints the exact environment variables to paste into your cloud secret store** — so a single "Allow" click provisions both your laptop and an unattended cloud routine at once. Adding a surface later is re-running setup with one more scope; it is never recurring work. This is the [stdlib helper family](#the-stdlib-helper-family--a-reference-architecture-you-can-size-to-your-own-needs)'s `--setup` flow in practice, and it generalizes to any language or keystore.
 
 **Be honest about the frontier.** You cannot delete the bootstrap — consent and privileged authorization are *supposed* to involve a human, and an agent that enrolled itself into your Workspace would be the bug. The win isn't a zero-human setup; it's shrinking the human's part to one small action you take once and never repeat, then letting the agent own every operation past it. Measure your setup by how little is left for you the *second* time you reach for it — if the answer isn't "nothing," that's the next thing to push onto the agent.
-
----
-
-## Master priority map — highest-leverage pattern per surface
-
-One row per surface. The top pattern on each row is the single decision that closes the largest share of real-world breakage for that surface; the per-Part `Where to spend your time` tables that follow expand items 2 through N. **If you adopt only the six patterns in this table, you ship the bulk of the wins this guide is about.**
-
-| Surface | Highest-leverage pattern | Why this pattern wins |
-|---|---|---|
-| **Drive** | Search-before-create + `copyFile` from templates for any doc needing footers / page numbers | Idempotent runs reach the same Drive state instead of accumulating duplicates; templates carry the `PAGE_NUMBER` auto-text and footer structure the Docs API genuinely cannot author from scratch |
-| **Docs** | Brand-styling sequence: body sweep → cascade check → paragraph styles → heading text styles → inline bold prefixes | The only call order that produces a doc rendering the way the markdown intended; every other order leaves Arial body, missing headings, or overwritten bold runs |
-| **Sheets** | `valueInputOption=USER_ENTERED` on writes; `valueRenderOption=UNFORMATTED_VALUE` on compute reads | Formulas land as formulas and dates land as dates; compute paths read typed values instead of locale-rendered strings, eliminating the round-trip mangle |
-| **Slides** | Pre-assign your own `objectId` at create time; look up shapes by text content or alt-text on each batch | Object IDs returned by the API are not stable across editor edits per Google's docs; durable lookups need a stable handle the caller controls |
-| **Calendar** | Pass `sendUpdates=all` explicitly on every insert / update / delete with attendees | The documented default is `false` (= no notifications fire) per the [insert reference](https://developers.google.com/workspace/calendar/api/v3/reference/events/insert); attendees get added silently otherwise — the most common reason an agent-created meeting "never went out" |
-| **Gmail** | `drafts.create` for outbound; humans review and send via `drafts.send` | Agent-authored drafts are reviewable and revocable before delivery; the alternative is direct `messages.send`, which puts mail on the wire before any human sees it |
-
-Each per-Part `Where to spend your time` table below expands its surface's row into the full priority stack. Drive does not get its own deep dive Part — Drive operations are folded into the Docs Part because almost every Drive write is in service of a Docs / Sheets / Slides body change.
-
----
-
-## What you can do today — capability inventory
-
-The capabilities the Workspace APIs deliver at the present production state. Each row pairs the result with the tool that produces it; notes carry the load-bearing flag or option that decides whether the call ships the result or a near-miss.
-
-| You want to... | Tool you reach for | Notes |
-|---|---|---|
-| Create a Doc from markdown content | `replaceDocumentWithMarkdown` on a newly-created file | Apply brand styling AFTER — markdown imports leave Arial / default heading sizes |
-| Update a Doc body | Same tool, existing `doc_id` | Scan for embedded human content first (smart chips, pasted images, comments) |
-| Prepend a styled section to a Doc | Read existing → assemble → full-body replace | NOT raw `insertText` at index 1 — markdown tokens land as literal characters. Also: run the [markdown-leak check](#pattern-6--markdown-leak-check-after-every-markdowndocs-write) after every prepend — even `replaceDocumentWithMarkdown` silently leaves `#` and `**` chars in some paragraphs |
-| Insert an image | Pre-resize source with `sips` → `insertImage` with `localImagePath` | API `width`/`height` parameters are unreliable; pre-resize is the constraint |
-| Read a Doc as data | `readDocument` with `format: "json"` | Walk paragraphs; inspect `textRun`, `inlineObjectElement`, `richLink`, `person` |
-| Style a Doc per brand | 5-step sequence: body sweep → cascade check → paragraph styles → text styles → inline bold | Part 2 — the only order that works |
-| Create a Sheet | `createSpreadsheet` | |
-| Write Sheet cell values | `writeSpreadsheet` with `valueInputOption=USER_ENTERED` | `RAW` lands `=SUM(...)` as a literal string starting with `=` |
-| Read Sheet values for computation | `readSpreadsheet` with `valueRenderOption=UNFORMATTED_VALUE` | `FORMATTED_VALUE` returns locale-rendered strings; round-trip risk |
-| Search / find / copy Drive files | `searchDriveFiles` or `mcp__claude_ai_Google_Drive__search_files` | Connector parity differs; test in both contexts |
-| Copy a templated file | `copyFile` (Drive `files.copy`) | The only path for docs needing page numbers or footers |
-| Convert `.docx` / `.xlsx` / `.pptx` to native | Upload via `files.create` with target mimeType (e.g. `application/vnd.google-apps.document`) | The original Office file stays untouched |
-| Read non-native file content | `download_file_content` (Drive) | `readDocument` errors on non-native; check `mimeType` before reading |
-
----
-
-## Hard limits + workarounds
-
-A handful of capabilities the Workspace APIs simply do not expose today. Each row names the workaround that closes the gap. Scan this table before assuming you've found a new bug — most "the API can't do X" reports land on a known limit with a documented path forward.
-
-| You want to... | Reality | Workaround |
-|---|---|---|
-| Create `PAGE_NUMBER` / `PAGE_COUNT` auto-text in an existing Doc | No `CreateAutoTextRequest` exists; `createFooter` makes an empty footer only | `copyFile` from a template that already has the footer baked in |
-| Resize an image via `insertImage` parameters | The width/height fields don't reliably constrain rendered size | Pre-resize the source file (`sips --resampleWidth`); cache canonical variants |
-| Edit doc-level named styles via API | `NamedStyles` is read-only | Drive UI: Format → Paragraph styles → "Update Normal text to match" |
-| Avoid the consecutive-`**Label:**` collapse on markdown import | The markdown converter collapses adjacent label lines into one paragraph, stripping bold | Blank line between every `**Label:**` row in source |
-| Edit a table in a tab-enabled Doc | `listDocumentTables`, `updateTableBorders`, `updateTableCellStyle`, `updateTableColumnWidth` fail with a field-mask error on any doc with the `tabs` field | Drive UI, or `.docx` export → edit → re-import as native Doc |
-| Insert blob images (`CellImage`) into Sheet cells | No API insert method | Apps Script `SpreadsheetApp.newCellImage()`, OR `IMAGE()` formula with a public URL |
-| Partially edit a pivot table | No fields-mask path | Rewrite the entire `pivotTable` value via `UpdateCellsRequest` |
-| Style Sheets charts comprehensively | API exposes limited chart settings | Apps Script for advanced styling, or render the chart elsewhere + `IMAGE()` |
-| Concurrent Sheets writes without races | No If-Match / ETag concurrency on values | Serialize dependent writes in one `batchUpdate` |
-| Trigger on cell edit / render Sheets sidebar UI | API has no triggers or UI surface | Apps Script (`onEdit`, `onChange`, time-driven), or external orchestration |
-| Read Shared Drive content from a skill (Cowork) | Works in direct prompt; fails in skill context | [Tracked as anthropics/claude-code#53442](https://github.com/anthropics/claude-code/issues/53442). Local-first workflow until fixed: pull file via working read path, edit locally, sync back |
-| Insert page-number footer into an existing Watson Weekly–style doc | Same root limit as PAGE_NUMBER above; can only flag and surface | Doc swap (`copyFile` template → overlay body → trash old → rename) OR one-click UI fix in the Drive editor |
-| Trust tool-call success without verification | `applyTextStyle` returns success while overwriting bold runs, leaving bullets as `textStyle: {}`, or setting `weightedFontFamily.weight: 400` even when `bold: true` was set | Read JSON, walk paragraphs, verify per-paragraph values explicitly after every style write |
-
----
-
-## TL;DR — the five highest-leverage decisions
-
-If you read nothing else, internalize these five. Each leads with the decision that produces the win; the watch-out follows. The five surfaces are deliberately mixed — none of these are obvious from reading Google's docs.
-
-1. **Verify every Docs style write by reading the JSON — both structure AND content.** After every `applyTextStyle` / `applyParagraphStyle` call, read the doc as JSON and confirm the values landed per paragraph. Then walk `textRun.content` for residual `^#{1,6}\s` / `\*\*[^*\n]+\*\*` / `^---$` markdown syntax the converter silently left behind ([Pattern 6](#pattern-6--markdown-leak-check-after-every-markdowndocs-write)). The JSON is the contract — tool-call success isn't, and structure-only verification passes through leaked markdown chars unnoticed.
-2. **Pass `USER_ENTERED` explicitly on every Sheets write.** Sheets parses input the way the UI does — formulas become formulas, `Mar 1 2026` becomes a date. Without the explicit flag, `=SUM(A1:A10)` lands as a literal string starting with `=` and downstream math reads zero.
-3. **Pass `sendUpdates=all` on every Calendar insert / update / delete with attendees.** The documented default is `false` (= no notifications fire). Without the explicit flag, attendees get added silently and never see the invite — the most common reason an agent-created meeting "didn't go through."
-4. **Draft, don't send, from Gmail — and use base64url on every `raw` field.** `drafts.create` keeps a reviewable artifact in the user's drafts folder before mail goes on the wire. The MIME `raw` field is base64url-encoded (URL-safe alphabet, no `+` or `/`) per the [sending guide](https://developers.google.com/workspace/gmail/api/guides/sending); standard base64 passes plaintext tests and fails the first HTML or binary payload with `400 invalidArgument`.
-5. **Use `copyFile` from a template for any Doc that needs page numbers.** The Docs API cannot insert `PAGE_NUMBER` auto-text into an existing doc. Page-numbered docs come from cloning a template you built — that's the path, not a missing API.
 
 ---
 
@@ -193,15 +103,26 @@ If you read nothing else, internalize these five. Each leads with the decision t
 
 Drive plus Docs together are the canonical "agent writes a document a human will read" surface. From a markdown payload you can land a branded company doc, prepend a dated section to an existing running-notes file, copy a templated proposal that carries its own page-number footer, or convert an inbound `.docx` to a native Google Doc for further editing. Drive provides idempotent addressing (file IDs) and the templating mechanism; Docs provides the body and styling surface. The patterns in Parts 2 through 6 show exactly how to make those writes land the way the markdown intended, on the first attempt, with verification baked in.
 
-### Three APIs, three mental models
+### What you can do today — Drive & Docs
 
-| Surface | What it is | What it gives you |
+The capabilities the Drive + Docs APIs deliver at the present production state. Each row pairs the result with the tool that produces it; the note carries the load-bearing flag that decides whether the call ships the result or a near-miss. (Sheets, Slides, Calendar, and Gmail each carry their own inventory in their Part.)
+
+| You want to... | Tool you reach for | Notes |
 |---|---|---|
-| **Drive** | The filesystem | List, search, copy, move, delete, share. File-level metadata. No content editing. |
-| **Docs** | The document editor | Read, write, structure, style, comments, suggestions. Content lives here. |
-| **Sheets** | The spreadsheet editor | Cells, ranges, formulas, formatting, conditional formatting. Parallel surface to Docs. |
+| Create a Doc from markdown content | `replaceDocumentWithMarkdown` on a newly-created file | Apply brand styling AFTER — markdown imports leave Arial / default heading sizes |
+| Update a Doc body | Same tool, existing `doc_id` | Scan for embedded human content first (smart chips, pasted images, comments) |
+| Prepend a styled section to a Doc | Read existing → assemble → full-body replace | NOT raw `insertText` at index 1 — markdown tokens land as literal characters. Also: run the [markdown-leak check](#pattern-6--markdown-leak-check-after-every-markdowndocs-write) after every prepend — even `replaceDocumentWithMarkdown` silently leaves `#` and `**` chars in some paragraphs |
+| Insert an image | Pre-resize source with `sips` → `insertImage` with `localImagePath` | API `width`/`height` parameters are unreliable; pre-resize is the constraint |
+| Read a Doc as data | `readDocument` with `format: "json"` | Walk paragraphs; inspect `textRun`, `inlineObjectElement`, `richLink`, `person` |
+| Style a Doc per brand | 5-step sequence: body sweep → cascade check → paragraph styles → text styles → inline bold | Part 2 — the only order that works |
+| Search / find / copy Drive files | `searchDriveFiles` or `mcp__claude_ai_Google_Drive__search_files` | Connector parity differs; test in both contexts |
+| Copy a templated file | `copyFile` (Drive `files.copy`) | The only path for docs needing page numbers or footers |
+| Convert `.docx` / `.xlsx` / `.pptx` to native | Upload via `files.create` with target mimeType (e.g. `application/vnd.google-apps.document`) | The original Office file stays untouched |
+| Read non-native file content | `download_file_content` (Drive) | `readDocument` errors on non-native; check `mimeType` before reading |
 
-Most production failures come from confusing these. A `copyFile` operation is a Drive call. A `replaceDocumentWithMarkdown` is a Docs call. The Drive call on a Doc duplicates the file; the Docs call on the duplicate edits its body. Reading code that mixes these up tells you the author hasn't thought through whether they're operating on the file or the content.
+### Drive call or Docs call — which surface am I on?
+
+The orientation table up top draws the line; this is why it bites. Most production failures come from confusing the two surfaces. A `copyFile` is a Drive call; a `replaceDocumentWithMarkdown` is a Docs call. Run the Drive call on a Doc and you duplicate the file; run the Docs call on the duplicate and you edit its body. Code that mixes these up tells you the author hasn't thought through whether they're operating on the file or the content.
 
 ### MCP tool families
 
@@ -214,7 +135,7 @@ Decision rule: prefer `mcp__google-docs__*` for any automation that writes. Reac
 
 **A naming note for the rest of this article.** Tool names like `replaceDocumentWithMarkdown`, `copyFile`, `applyTextStyle`, `insertImage`, and `getDocumentInfo` are **MCP server tool names**, not Google REST API methods. Each wraps one or more underlying Google API calls. `replaceDocumentWithMarkdown` is a server-side wrapper that uploads markdown via [`files.update`](https://developers.google.com/workspace/drive/api/reference/rest/v3) with the right mimeType; `applyTextStyle` wraps the Docs API's [`updateTextStyle`](https://developers.google.com/workspace/docs/api/reference/rest/v1/documents/batchUpdate) request type. The canonical production MCP that exposes these is [taylorwilsdon/google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp) (~2.5k stars, OAuth 2.1, actively maintained); other implementations exist. When this article mentions a tool name, assume it's the server-side wrapper. When it cites a Google API field or method, the link goes to Google's own reference. The distinction matters only when you're reading code or filing a bug against the right project.
 
-**A 2026-05-30 note on how fast the surface is moving.** The MCP landscape has expanded materially since this guide first shipped. The production Google Workspace MCP this article's author now runs day-to-day exposes well over 100 fine-grained tools spanning Docs, Sheets, Drive, Calendar, and Gmail — `writeSpreadsheet`, `addConditionalFormatting`, `insertChart`, `createDraft`, `sendDraft`, `createEvent`, `insertTableWithData`, and dozens more — far past the "~80 operations" this guide cited at launch. Two things did **not** change, and both are load-bearing for the rest of this article. First, **Slides is still served by zero tools on that same server** — every Slides mutation still goes through raw `presentations.batchUpdate` or a stdlib helper ([Part 8](#part-8--operating-google-slides)). Second, **a bigger tool count does not change the "MCP is necessary but not sufficient" answer above** — the cloud/headless gap, the omitted-field gap (Calendar transparency), and the verify-after-write discipline are all orthogonal to how many tools the server exposes. The surface grew; the six reasons you still drop below it did not.
+**A 2026-05-30 note on how fast the surface is moving.** The MCP landscape has expanded materially since this guide first shipped. The production Google Workspace MCP this article's author now runs day-to-day exposes well over 100 fine-grained tools spanning Docs, Sheets, Drive, Calendar, and Gmail — `writeSpreadsheet`, `addConditionalFormatting`, `insertChart`, `createDraft`, `sendDraft`, `createEvent`, `insertTableWithData`, and dozens more — far past the "~80 operations" this guide cited at launch. Two things did **not** change, and both are load-bearing for the rest of this article. First, **Slides is still served by zero tools on that same server** — every Slides mutation still goes through raw `presentations.batchUpdate` or a stdlib helper ([Part 8](#part-8--operating-google-slides)). Second, **a bigger tool count does not change the "MCP is necessary but not sufficient" answer above** — the cloud/headless gap, the omitted-field gap (Calendar transparency), and the verify-after-write discipline are all orthogonal to how many tools the server exposes. The surface grew; the reasons you still drop below it did not.
 
 ### Connector parity is not guaranteed
 
@@ -753,7 +674,7 @@ Only the bottom row justifies the full pattern below. The principles, though, ar
 3. **Typed, discriminated-union returns end to end.** *Why:* an unattended caller needs to branch on outcomes without parsing prose. Every helper returns the same `{type: ...}` shape the [Part 5 contract](#the-typed-inputoutput-contract) defines — `ok` / `created` / `updated` / `schema_drift` / `*_pending_interactive` / `failed` with a *closed* `reason` enum — so orchestrators dispatch on `type` and humans read `message`. A "verify" operation that returns `schema_drift` lets a caller **stop before** writing into a renamed tab.
 4. **If you add a proxy, make it a thin shell — the logic and the refusals live in the helper.** *Why:* you don't want two places that both decide whether a write is safe. A cloud-secret-proxy should import the helper's entry function and return its typed result verbatim; auth and HTTP are the proxy's only jobs. Whatever the helper refuses (empty content, a doc full of human-curated embedded objects, a denylisted template id), the proxy refuses for free, because the safety rule has exactly one home.
 
-**A worked example of the bottom rung.** For concreteness, here is what the full family looks like when all four surfaces are written unattended — five single-file, dependency-free helpers (so the same code runs under a cloud function's bare interpreter and a laptop without a virtualenv), each closing a *specific, named* gap from the [why-not-MCP table](#why-cant-i-just-use-mcp-and-forget-the-rest). Read it as "what the principles produce at full scale," and take only the rows your own needs call for:
+**A worked example of the bottom rung.** For concreteness, here is what the full family looks like when all four surfaces are written unattended — five single-file, dependency-free helpers (so the same code runs under a cloud function's bare interpreter and a laptop without a virtualenv), each closing a *specific, named* gap from the [layering rule](#how-to-think-about-the-work-bootstrap-once-layer-down-only-when-you-must). Read it as "what the principles produce at full scale," and take only the rows your own needs call for:
 
 | Helper role | Surface | What it does | The specific gap it closes |
 |---|---|---|---|
@@ -1780,6 +1701,52 @@ DWD does not work for consumer `@gmail.com` accounts — it's a Workspace-only m
 ## Machine-readable identity (this article's own schema)
 
 This article applies the [Marketing to Agents](marketing-to-agents.md) playbook to itself — JSON-LD `Article` schema is auto-emitted in `<head>` by the repository's Jekyll `_includes/head-custom.html` whenever a guide carries `agent_friendly: true` in its frontmatter (this one does). Agents indexing the rendered HTML at [watsonrm.github.io/rmwcommerce](https://watsonrm.github.io/rmwcommerce/guides/operating-google-workspace-from-claude.html) see a typed `Article` with author `sameAs` references to Rick's LinkedIn, X, GitHub, and Watson Weekly profiles; publisher `Organization` is RMW Commerce Consulting; the work is all-rights-reserved (republishing in whole or in substantial part requires written permission). Agents fetching the raw markdown see the equivalent metadata in the YAML frontmatter at the top of this file.
+
+## Machine-readable summary
+
+The block below is this guide's priority-and-limits matrix as structured data — the single source of truth that the [six-decision roll-up](#the-whole-guide-in-six-decisions) and each Part's *Where to spend your time* table render in prose. It is deliberately **visible and in the content stream**, not hidden in an HTML comment or pushed into `<head>`. The reason is a point worth stating in a guide read mostly by agents: a reasoning model comprehends a clean labeled block here as well as it comprehends anything, while the `<head>` JSON-LD does a *different* job — discovery and entity disambiguation by crawlers and knowledge graphs, not comprehension by the agent doing the work. A visible block also survives a raw-markdown fetch and a comment-stripping text extractor intact, where a `<!-- -->` block would not.
+
+```yaml
+# Priority + limits matrix. The six-decision list and the per-Part "Where to spend your time"
+# tables are the human-prose views of this; keep this block as the single source of truth.
+priorities:
+  docs:
+    do: verify every style write by reading the JSON
+    why: applyTextStyle returns success while overwriting bold runs or setting the wrong weight; tool-success != task-success
+  sheets:
+    do: pass valueInputOption=USER_ENTERED on every write
+    why: RAW lands =SUM(...) as a literal string and downstream math reads zero
+  calendar:
+    do: pass sendUpdates=all on every insert/update/delete with attendees
+    why: the documented default fires no notification, so attendees are added silently
+  gmail:
+    do: drafts.create for outbound, and base64url every raw field
+    why: a draft is reviewable before the wire; standard base64 fails the first HTML/binary payload with 400 invalidArgument
+  drive:
+    do: copyFile from a template for any page-numbered doc
+    why: the Docs API cannot author PAGE_NUMBER auto-text into an existing doc
+  slides:
+    do: pre-assign your own objectId at create time
+    why: API-returned object IDs are not stable across editor edits; otherwise look up by text or alt-text per batch
+limits:
+  - want: PAGE_NUMBER / PAGE_COUNT auto-text in an existing Doc
+    fix: copyFile from a template that already carries the footer
+  - want: resize an image via insertImage width/height params
+    fix: pre-resize the source with sips --resampleWidth; cache canonical variants
+  - want: edit doc-level named styles via API
+    fix: Drive UI only — NamedStyles is read-only
+  - want: edit a table in a tab-enabled Doc
+    fix: Drive UI, or .docx export -> edit -> re-import as native Doc
+  - want: blob images (CellImage) in Sheet cells
+    fix: Apps Script newCellImage(), or an IMAGE() formula with a public URL
+  - want: concurrent Sheets writes without races
+    fix: serialize dependent writes into one batchUpdate (no ETag concurrency on values)
+  - want: Slides transitions / animations / private images
+    fix: no API path; a one-time UI action
+  - want: trust a tool's success message without verifying
+    fix: read the JSON and verify per-paragraph after every write
+verify_after_write: the load-bearing discipline across every surface — the JSON is the contract, not the tool's success message
+```
 
 ---
 
