@@ -450,7 +450,7 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 - **What it is:** Rick's framework for building permission rules: start tight (per-call approval), broaden specifically as trust is established, and consolidate to wildcards when patterns are clear. A deliberate risk-calibration approach rather than a one-time configuration.
 - **What's in it for you:** Avoids both extremes: approving everything (security risk, no checkpoints) and approving nothing (constant friction, agents can't run).
 - **What's hype:** n/a — this is Rick's working practice, not a vendor claim.
-- **What to do:** Apply the three tiers: Tier A (read MCP, allow globally), Tier B (write MCP, allow per-project), Tier C (Bash, wildcard once a category is proven safe).
+- **What to do:** Apply the three tiers — see [Tier A / B / C starter defaults](#tier-a--b--c-starter-defaults-ricks-framing) for definitions and starter JSON.
 - **Source:** [Claude Permissions Guide — Section 3](claude-permissions-guide.md#section-3-my-starter-defaults--the-working-set)
 
 ---
@@ -622,7 +622,7 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 
 ### Anthropic Skills (product)
 
-- **What it is:** Anthropic's named pattern (launched October 2025) for packaged, reusable Claude workflows — a folder with a `SKILL.md` file, optional scripts, and optional tool allowlists. The official term for Rung 2 on the prompts-to-agents ladder.
+- **What it is:** Anthropic's official name (launched October 2025) for the Rung 2 primitive — see [Skill (Rung 2)](#skill-rung-2) for the full structural definition.
 - **What's in it for you:** Reusable workflows without building a full agent. Load on demand via trigger phrases or slash commands.
 - **What's hype:** n/a — a named and documented pattern with clear utility.
 - **What to do:** This is the right default for most recurring workflows. Build skills before building agents.

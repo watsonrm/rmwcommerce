@@ -117,7 +117,7 @@ The discipline produces a traceable record: each issue has a description of the 
 
 ## 4. CI guards every behavior you care about
 
-Claude does not remember constraints across sessions. A decision made in session 1 — "install output must be quiet" — does not survive to session 12 without explicit encoding. The test suite is the only reliable mechanism for persistent constraints.
+As §3 noted, Claude doesn't carry constraints across sessions — so the test suite is the durable encoding of that intent. A decision made in session 1 — "install output must be quiet" — does not survive to session 12 without explicit encoding. The test suite is the only reliable mechanism for persistent constraints.
 
 Anthropic's evaluation guidance describes the same architecture for agent work: convert manual checks into test cases, run them on every commit, and graduate passing evals to regression suites that maintain a near-100% pass rate. ([Anthropic: Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)) The principle transfers directly to CI for software built with Claude.
 

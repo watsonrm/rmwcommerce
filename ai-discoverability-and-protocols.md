@@ -61,7 +61,7 @@ For the agent architecture patterns that consume these protocols on the receivin
 
 The agent ecosystem matured fast and in different directions at once. Between mid-2023 and mid-2026:
 
-- OpenAI wound down the ChatGPT Plugins beta, leaving `ai-plugin.json` without a primary consumer. The wind-down happened in phases: new plugin conversations ended March 19, 2024; all existing plugin chats shut down April 9, 2024. OpenAI's stated reason: "GPTs offer a better way to reach ChatGPT users." ([source](https://community.openai.com/t/plugin-store-and-new-chats-with-plugins-closed-march-19-2024/689877))
+- OpenAI wound down the ChatGPT Plugins beta in 2024, leaving `ai-plugin.json` without a primary consumer. (Wind-down timeline and OpenAI's stated rationale: see the `/.well-known/ai-plugin.json` section below.)
 - Anthropic launched MCP in November 2024 and donated it to the Agentic AI Foundation (under the Linux Foundation) in December 2025. It grew from a single-vendor protocol to 10,000+ servers and 97 million monthly SDK downloads in roughly one year. ([source](https://blog.modelcontextprotocol.io/posts/2025-11-25-first-mcp-anniversary/))
 - Google launched A2A in April 2025 and donated it to the Linux Foundation two months later in June 2025 — a timeline that suggests they wanted neutral governance fast.
 - Jeremy Howard proposed `llms.txt` in September 2024. Adoption is real (Anthropic, Cloudflare, Vercel all deploy it) but no major LLM provider has made a binding public commitment to consume it as canonical. ([source](https://llmstxt.org/))
@@ -350,23 +350,6 @@ Both the OpenAI function calling docs ([developers.openai.com/api/docs](https://
 ---
 
 ## Where this is converging — a verdict
-
-The priority table at the top is one view. Here's the sharper version, with a verdict per category:
-
-**Deploy now:**
-- **OpenAPI** — load-bearing, has been for a decade, will be for another. No legitimate alternative.
-- **MCP** — won the tool/data slot in the Anthropic ecosystem. OpenAI adoption broadening it. Linux Foundation governance is a credibility signal. Deploy servers for services agents should call.
-- **robots.txt with WAF rate-limiting** — long-standing plumbing, now critical for agent discovery. Fix it once and it's done.
-
-**Pragmatic adopt for some audiences:**
-- **llms.txt** — curated-content and documentation-heavy sites only. Low cost, plausible upside. No downside if your site genuinely has content agents want. Skip if you're a bare product catalog without editorial content.
-
-**Track, don't deploy:**
-- **WebMCP** — browser-side in-page AI interaction. Fragmenting across two incompatible proposals. Wait for W3C Candidate Recommendation.
-- **A2A** — cross-vendor agent delegation is a real future problem. The spec is still maturing. Most readers don't have the use case yet.
-
-**Already dead:**
-- **`/.well-known/ai-plugin.json`** — no meaningful consumer since ChatGPT Plugins wound down April 2024. ([source](https://community.openai.com/t/plugin-store-and-new-chats-with-plugins-closed-march-19-2024/689877)) Skip.
 
 The practical decision tree: for APIs, deploy the OpenAPI spec. For agent tool/data access, deploy an MCP server. For content discovery, configure robots.txt and optionally add llms.txt. For everything else, wait.
 

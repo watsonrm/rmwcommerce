@@ -38,7 +38,7 @@ Most readers should fix the first two and stop. They produce the bulk of the gai
 | **2** | **`CLAUDE.md` hygiene** — keep under 200 lines, prune on a schedule | Loads on every session. The official docs state: *"target under 200 lines per CLAUDE.md file. Longer files consume more context and reduce adherence."* Past the threshold, instructions get ignored. | 20 min once, 5 min quarterly |
 | **3** | **Verification-first workflow** — write the test, screenshot, or success criterion before asking for code | Anthropic calls this *"the single highest-leverage thing you can do."* Claude *"performs dramatically better when it can verify its own work."* Cuts correction rounds per task. | Upfront per task |
 | **4** | **Plan Mode for ambiguous work** — `Shift+Tab` to cycle into it | Separates "what should we build" from "build it." Prevents cascading misunderstandings in multi-file changes. | 2 min per complex task |
-| **5** | **Subagents for noisy investigation** — large codebase reads, log analysis, test suite parsing | Runs in a separate context. Your main session never sees the noise. | 5 min one-time setup |
+| **5** | **Subagents for noisy investigation** — large codebase reads, log analysis, test suite parsing | Isolates verbose work from your main session. See [Pillar 2 §3](#3-delegate-noisy-work-to-subagents). | 5 min one-time setup |
 | **6** | **Git worktree fleets** — parallel sessions on isolated branches | Real but narrower payoff. Only matters if you're juggling 3+ active branches at once. Don't start here. | Per-task |
 
 Pick model tier deliberately too (covered in [Pillar 2](#pillar-2-model-routing)) — Sonnet handles the bulk of daily work; reach for Opus on hard architecture or stateful debugging.
@@ -90,7 +90,7 @@ Anthropic's official memory docs are explicit: *"target under 200 lines per [CLA
 
 For a deeper treatment of how context bloat manifests as noise in your terminal output — and the full set of noise sources and filtering tactics — see [Why Is Claude Code So Noisy?](claude-code-noise.md).
 
-Structuring your `CLAUDE.md` and packaging recurring workflows as skills is also the move from Rung 1 to Rung 2 on [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) — the point where ad-hoc prompts become reusable, versioned artifacts.
+For where this fits on [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md), see [Pillar 2 §3](#3-delegate-noisy-work-to-subagents).
 
 **Execution:**
 
@@ -188,7 +188,7 @@ When Claude is doing engineering work, conversational filler is operational wast
 3. **Scope by coordinate.** Vague: *"look around the auth files and find the error."* Precise: *"Fix the session-expiration edge case in `src/auth/session.ts` lines 42–68."*
 4. **Use `@file` to reference, not `read this file`.** `@src/api.ts` is more token-efficient than describing the file or asking Claude to read it from scratch.
 
-If you're starting to wonder when Claude Code's single-session pattern stops being enough — when you want work to happen without you in the loop — read [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md). If you've decided to build a multi-agent system at the API level, [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) is the architecture playbook.
+If you've decided to build a multi-agent system at the API level, [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) is the architecture playbook.
 
 ---
 
@@ -247,12 +247,7 @@ ChatGPT Codex (chatgpt.com/codex) runs in OpenAI-managed containers. You can't t
 
 ### How to apply this guide as a Codex user
 
-1. Rename `CLAUDE.md` → `AGENTS.md`. Treat "under 200 lines" as "well under 32 KiB combined cascade."
-2. Use Default permissions as your baseline; reserve `danger-full-access` + `never` for worktrees.
-3. Define one or two named Profiles in `config.toml` — e.g., a deep-review profile pinning higher effort and the reviewer subagent. Skip if you only have one Claude Code workflow.
-4. Use `/review` instead of an ad-hoc review prompt. Same idea, built-in support.
-5. `SKILL.md` skills are portable across both tools — the [agentskills.io](https://agentskills.io) standard underlies both.
-6. On ChatGPT Codex specifically, skip the context-discipline pillars and focus on verification.
+The pillar-by-pillar mapping above is the translation guide. The Codex equivalents for each pillar — filename renames, permission model, Profiles, `/review`, skills portability, and the ChatGPT Codex caveat — are all in the Verdict column of that table.
 
 ---
 

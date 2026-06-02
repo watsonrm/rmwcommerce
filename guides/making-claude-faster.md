@@ -1,6 +1,6 @@
 ---
 title: Making Claude Respond Faster
-description: Claude takes 40 seconds to answer a question that should take 5, and the answer is three paragraphs when you wanted one sentence. Both problems are fixable, and most people fix neither because the levers are buried in API docs nobody reads. Prompt caching alone makes repeated input an order of magnitude cheaper on cache hits — Anthropic's documented number is 0.1x base input cost. This guide names every lever, cites every claim, and shows which two fixes produce most of the wall-clock gain.
+description: Six ranked levers — prompt caching, model selection, parallel tool calls, extended thinking, streaming, and context discipline — that measurably reduce Claude API wall-clock latency and cost, with every claim cited to primary sources.
 date: 2026-05-22
 author: Rick Watson
 agent_friendly: true
@@ -43,7 +43,7 @@ Most readers should act on the first two and stop. They handle the largest share
 
 | # | Lever | Why it matters | Effort |
 | :-- | :--- | :--- | :--- |
-| 1 | **Prompt caching** — put stable context before dynamic content, mark it with `cache_control` | Cache hits bill at 0.1× input; cache misses reprocess the entire prefix. Repeated workloads recover the write premium quickly. Skip if traffic <1 call per 5 min (negative ROI from cache writes) | 1–2 hrs one-time refactor |
+| 1 | **Prompt caching** — put stable context before dynamic content, mark it with `cache_control` | Cache hits bill at 0.1× input; cache misses reprocess the entire prefix. Repeated workloads recover the write premium quickly. (Caveat: see [Section 1 — low-traffic workloads](#the-caveat-anthropics-docs-dont-surface)) | 1–2 hrs one-time refactor |
 | 2 | **Right model for the task** — Haiku for mechanical work, Sonnet for daily driver, Opus only for hard reasoning | Anthropic's own latency labels: Haiku 4.5 "Fastest," Sonnet 4.6 "Fast," Opus 4.7 "Moderate." Pricing scales the same way | Per-task discipline |
 | 3 | **Parallel tool calls** — multiple `tool_use` blocks in one turn, all `tool_result` blocks in one user message | Anthropic engineering reports parallel-tool + subagent parallelism "cut research time by up to 90% for complex queries" on their internal research system | One prompt addition |
 | 4 | **Skip extended thinking on simple work** — leave it off (the default) unless the task is genuinely multi-step reasoning | Thinking tokens are billed; routine queries get no quality lift from thinking | API flag |
@@ -189,7 +189,7 @@ Practical takeaway: pick your model and connect MCP servers at the top of a sess
 
 *Applies to API-level builds; in Claude Code the runtime handles this for you.*
 
-Each subagent starts its own conversation with no cache hits on its first call. Subagents build their own cache across their turns, separate from the parent. Don't spawn a subagent to read two files — that cold-starts a fresh context for a task that doesn't warrant it. Reserve subagents for either (a) genuinely isolated work that would bloat your main context, or (b) parallelism you can't get from a single agent (see Section 3).
+See [Section 6 — Context size discipline](#section-6-context-size-discipline--dont-pay-for-what-youre-not-using) for the full cold-cache trade-off and decision rule.
 
 ---
 
@@ -389,7 +389,7 @@ Time-to-first-token scales with context size. A 200,000-token context takes long
 
 **CLAUDE.md size discipline.** The Claude Code memory docs say, verbatim: *"target under 200 lines per CLAUDE.md file. Longer files consume more context and reduce adherence."* Path-scoped rules (`.claude/rules/`) load only when matching files are accessed — use them instead of bloating the global file. ([source](https://docs.claude.com/en/docs/claude-code/memory))
 
-**Subagents for isolated, large reads.** A subagent in its own context keeps your main session compact. Worth it for genuinely large reads. Not worth it for two-file lookups where a direct call is faster — see Section 1's note on cold-start cost.
+**Subagents for isolated, large reads.** A subagent in its own context keeps your main session compact. Worth it for genuinely large reads. Not worth it for two-file lookups where a direct call is faster.
 
 Anthropic's engineering team framed subagent context isolation this way:
 
@@ -457,7 +457,7 @@ Run this **before** enabling caching, parallel tool calls, or a model downgrade 
 
 ## Anti-patterns — what slows you down
 
-**Spawning a subagent to read two files.** Subagents start with a cold cache. Use direct tool calls for small, bounded reads. Reserve subagents for genuinely isolated work or large reads that would otherwise bloat your main context.
+**Spawning a subagent to read two files.** Use direct tool calls for small, bounded reads. Reserve subagents for genuinely isolated work or large reads that would otherwise bloat your main context. (See [Section 6](#section-6-context-size-discipline--dont-pay-for-what-youre-not-using) for the full trade-off.)
 
 **Switching models mid-session in Claude Code.** Each switch is a cache miss on the full context. Decide your model at session start.
 

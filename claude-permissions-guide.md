@@ -1,6 +1,6 @@
 ---
 title: "Claude Permissions: Stop the Interruption Hell"
-description: "Every other turn, Claude stops to ask permission for something you already approved twice this session — and the prompt comes from three different permission systems depending on which environment you're in. That drift compounds for months until your flow is half waiting on dialogs. The fix is a layered allowlist: tight read-only defaults, specific broadening as trust builds, periodic consolidation into wildcards. Working starter configs for all three environments included."
+description: "A layered allowlist strategy for Claude Code, Claude Desktop, and claude.ai that stops permission-prompt drift before it compounds — with working starter configs for all three environments."
 date: 2026-05-22
 author: Rick Watson
 agent_friendly: true
@@ -69,15 +69,7 @@ The interruption pattern in Desktop is usually: a skill or MCP tool is trying to
 
 ### Claude Code
 
-The most complex permission model of the three, and where most practitioners spend their configuration time. Settings live in four places, with a defined precedence order:
-
-1. **`~/.claude/settings.json`** — user settings, apply to every project
-2. **`.claude/settings.json`** — shared project settings, checked into source control
-3. **`.claude/settings.local.json`** — personal project settings, not checked in (Claude Code configures git to ignore this when it creates the file) ([source](https://code.claude.com/docs/en/settings))
-4. **Command line arguments** — temporary session overrides
-5. **Managed settings** — organization-wide, cannot be overridden
-
-Precedence runs from managed (highest) → command line arguments → local project → shared project → user (lowest). A deny rule at any level blocks even an allow rule at a lower level. ([source](https://code.claude.com/docs/en/permissions))
+The most complex permission model of the three, and where most practitioners spend their configuration time. The layered file model, precedence order, and conflict rules are covered in full in [Section 2](#section-2-the-claude-code-permission-model-in-depth).
 
 The permission UI inside Claude Code: run `/permissions` to see all active rules, which file they're sourced from, and what's being allowed or denied.
 
@@ -261,44 +253,7 @@ Note: as documented above, `ls`, `cat`, `head`, `tail`, `grep`, `find`, and `wc`
 
 ### The combined starter JSON
 
-This is what you could drop into `~/.claude/settings.json` as a starting point. It combines Tier A (read MCP) and Tier C (safe Bash) — the categories with no meaningful side effects.
-
-Do not add Tier B (write MCP) to this file. Those belong in project-level settings after you've decided that project should automate those operations.
-
-```json
-{
-  "permissions": {
-    "allow": [
-      "mcp__claude_ai_Slack__slack_search_messages",
-      "mcp__claude_ai_Slack__slack_read_channel",
-      "mcp__claude_ai_Slack__slack_read_thread",
-      "mcp__claude_ai_Slack__slack_search_users",
-      "mcp__claude_ai_Google_Drive__search_files",
-      "mcp__claude_ai_Google_Drive__read_file_content",
-      "mcp__claude_ai_Google_Drive__get_file_metadata",
-      "mcp__claude_ai_Google_Calendar__list_events",
-      "mcp__claude_ai_Google_Calendar__list_calendars",
-      "mcp__claude_ai_Asana__get_my_tasks",
-      "mcp__claude_ai_Asana__get_projects",
-      "mcp__google-docs__readDocument",
-      "mcp__google-docs__searchDriveFiles",
-      "Bash(git *)",
-      "Bash(find:*)",
-      "Bash(grep:*)",
-      "Bash(ls:*)",
-      "Bash(head:*)",
-      "Bash(tail:*)",
-      "Bash(cat:*)",
-      "Bash(wc:*)",
-      "Bash(curl *)",
-      "Bash(gh *)",
-      "Bash(python3 *)"
-    ]
-  }
-}
-```
-
-Your MCP tool names may differ from these depending on how your MCP servers are configured. Check `/permissions` in a live session to see what names Claude Code is using for your tools.
+The combined Tier A + Tier C starter block — ready to drop into `~/.claude/settings.json` — is in [Section 7](#section-7-quick-reference-card). Do not add Tier B (write MCP) to that file; those belong in project-level settings.
 
 ---
 
@@ -409,6 +364,8 @@ Adjust MCP tool names to match how your MCP servers are actually configured. Run
 ---
 
 ## Where to go next
+
+**[Configuring Claude Code Permissions](configuring-claude-code-permissions.md)** — compound-command decomposition, process wrappers, and PreToolUse hooks that this guide does not cover.
 
 **[Why Is Claude Code So Noisy?](claude-code-noise.md)** — the noise half of the interruption problem. Permission prompts and verbose output are related but distinct. That article covers the output side; this one covers the prompt side.
 

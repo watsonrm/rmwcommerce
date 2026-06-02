@@ -1,6 +1,6 @@
 ---
 title: The Prompts-to-Agents Ladder
-description: "You're pasting the same setup into a fresh chat for the tenth time this week — and you've never packaged it as a skill. Or you went the other way — rebuilt a prompt as an agent, then as a multi-agent system, and now it's slower, more expensive, and no more correct than the prompt was. Both are wrong-rung failures on the same ladder. Each rung has an exact condition that justifies climbing it — or staying put. This is the decision table, with all four anti-patterns named."
+description: "Decision table for choosing between a prompt, a packaged skill, a single agent, and a multi-agent system — with exact trigger conditions for each rung and the four anti-patterns named."
 date: 2026-05-22
 last_modified_at: 2026-05-25
 author: Rick Watson
@@ -14,7 +14,7 @@ keywords: when to package a prompt as a skill, when to use an agent vs prompt, p
 
 *By [Rick Watson](https://rmwcommerce.com) · Published 2026-05-22 · Updated 2026-05-25 · 15 min read · sources verified live before publication*
 
-I run a production system of 20+ Claude skills and a multi-agent fleet across my consulting practice. The ladder below is what I apply to my own work before writing a single line of skill spec, and what I walk clients through before they spend money on the wrong shape. I have made all four of the failure modes below — both directions of wrong-rung — and watched others repeat them. The one I see in every consulting engagement is the quietest one: a recurring workflow that should have been a skill three months ago and isn't.
+I run a production system of 20+ Claude skills and a multi-agent fleet across my consulting practice. The ladder below is what I apply before writing a single line of skill spec, and what I walk clients through before they spend money on the wrong shape. I have made all four failure modes in both directions — the one I see in every engagement is the quietest: a recurring workflow that should have been a skill three months ago and isn't.
 
 Who this is for: anyone using LLMs who needs to decide whether the right shape is a prompt, a skill, a single agent, or a multi-agent system — whether that's deciding to finally package a workflow you've been re-typing for months, or deciding whether your next agent build is actually warranted.
 
@@ -48,9 +48,7 @@ Most readers are somewhere between Rung 1 and Rung 2. The highest-value move for
 
 ## The four rungs
 
-There is a four-rung ladder from single [prompt (Rung 1)](glossary.md#prompt-rung-1) to [multi-agent system (Rung 4)](glossary.md#multi-agent-system-rung-4). Each rung adds capability — and each adds cost: complexity, latency, and verification debt.
-
-The most common failure mode in AI use today is staying at Rung 1 when Rung 2 would have done the job — pasting the same setup into a fresh chat for months and never packaging it as a skill. The second most common, visible mainly among teams actively building agent infrastructure, is the opposite: reaching for Rung 3 (autonomous agent) when Rung 2 (packaged skill) would have sufficed, and then for Rung 4 (multi-agent system) when a single well-configured agent was sufficient. Both directions are wrong-rung failures. Anthropic's own guidance puts it directly: *"success in the LLM space isn't about building the most sophisticated system. It's about building the right system for your needs."* ([source](https://www.anthropic.com/engineering/building-effective-agents))
+There is a four-rung ladder from single [prompt (Rung 1)](glossary.md#prompt-rung-1) to [multi-agent system (Rung 4)](glossary.md#multi-agent-system-rung-4). Each rung adds capability — and each adds cost. As the lede says: both directions of wrong-rung failure are real. Anthropic's own guidance puts it directly: *"success in the LLM space isn't about building the most sophisticated system. It's about building the right system for your needs."* ([source](https://www.anthropic.com/engineering/building-effective-agents))
 
 Climbing unnecessarily compounds three costs:
 
@@ -114,7 +112,7 @@ At the API level, the loop is concrete: your application sends a request with a 
 
 Lilian Weng's taxonomy describes the three foundational components: planning (decompose the task, decide the next step), memory (track what's happened so far), and tool use (call external systems to gather information or take action). ([source](https://lilianweng.github.io/posts/2023-06-23-agent/)) The Ng four-pattern framing adds reflection explicitly and extends multi-agent as a fourth design axis; the two taxonomies are complementary. The line is sharp: when the model decides between steps rather than following a fixed path, you have crossed into agent territory.
 
-**What this costs.** Anthropic's guide is direct: *"agentic systems often trade latency and cost for better task performance."* ([source](https://www.anthropic.com/engineering/building-effective-agents)) Human oversight is also more expensive — the agent is doing more between check-ins, so each check-in has more to review. OpenAI's practical guide to building agents puts the same tradeoff in its framework for deciding whether an agent is warranted: the task needs to be complex enough and long-running enough that the benefit outweighs the added cost and latency. ([source](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf))
+**What this costs.** The three costs from [The four rungs](#the-four-rungs) — complexity, latency, verification debt — all compound here. Anthropic's guide is direct: *"agentic systems often trade latency and cost for better task performance."* ([source](https://www.anthropic.com/engineering/building-effective-agents)) Human oversight is also more expensive — the agent is doing more between check-ins, so each check-in has more to review.
 
 **The autonomy dimension.** Andrej Karpathy introduced the concept of the [autonomy slider](glossary.md#autonomy-slider-karpathy) at YC AI Startup School in June 2025: the same agent architecture can operate at very different levels of autonomy depending on how much approval it needs from a human. ([source](https://www.youtube.com/watch?v=LCEmiRjPEtQ)) Low on the slider: the agent proposes each action and a human approves before execution. High on the slider: the human reviews only the final output. Neither is wrong — the right position depends on how reversible the actions are and how much trust the agent has earned.
 
@@ -144,7 +142,7 @@ The one thing worth saying here: **Rung 4 is not a destination to aim for.** It'
 
 ## The four failure modes
 
-Most AI mistakes are not model selection errors or prompt quality errors. They're abstraction layer errors — work running on the wrong rung. Four failure modes, ordered by how often they come up in the wild:
+Most AI mistakes are not model selection errors or prompt quality errors. They're abstraction layer errors — work running on the wrong rung. The priority ranking is in the table above; what follows are the named anti-patterns and their diagnostic tests:
 
 ### Failure 1: Prompt where a skill would do
 

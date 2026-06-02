@@ -39,7 +39,7 @@ Most readers should implement the first two and stop. They address the noise pro
 | **5** | **Background agents** — long-running work that doesn't need real-time narration | Removes the narration from your foreground session while work runs. | Per-task |
 | **6** | **Output style configuration** — adjust verbosity in session settings | Marginal gain versus the above. Worth trying once the main levers are already pulled. | 5 min |
 
-Most readers should fix the first two and stop. Rows 3–4 pay off quickly once you've felt the improvement from rows 1–2.
+Rows 3–4 pay off quickly once you've felt the improvement from rows 1–2.
 
 For the permissions side of noise — repeated permission prompts that clutter your workflow — see [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md).
 
@@ -87,7 +87,7 @@ The fix: pipe long outputs through `head` or `tail` in Bash commands, and add a 
 
 When Claude is running subagents — or doing multi-step investigation inside a single session — it narrates. You see the reasoning chain, the intermediate summaries, the "I found X, now checking Y." For complex work, that narration is useful context. For work you've delegated and just want the answer on, it's noise.
 
-Subagents address this structurally: when Claude uses the Agent tool to dispatch work, the subagent runs in its own context. Your main session sees only what the subagent returns. The narration never enters your main thread. ([source](https://code.claude.com/docs/en/best-practices)) See [Claude Code Workflow Optimizer Pillar 2](claude-code-optimizer.md) for how to configure this, and the [multi-agent guide Pillar 1](multi-agent-fan-out-and-verification.md#pillar-1-typed-return-contracts) for the typed-return pattern that keeps subagent output compact.
+Subagents address this structurally: dispatch the work, and your main session sees only the return. See [Tactic 2](#2-subagents-for-noisy-investigation) for the full treatment.
 
 ### Source 3: Status and reminder churn
 
@@ -186,7 +186,7 @@ Before adjusting settings, check these patterns. They're the most common sources
 
 **Overstuffed `CLAUDE.md`.** If your `CLAUDE.md` is over 200 lines, the verbose output you're seeing is partly Claude trying to acknowledge a context it can barely hold. Trim first. The noise will drop before you touch any other setting.
 
-**Too many MCP servers connected.** Every connected MCP server loads its tool descriptions at session start. Check how many you actually use in a typical session. Disable the ones you don't use regularly.
+**Too many MCP servers connected.** See Tactics §4 for the ceiling and reasoning.
 
 **Prompts that ask for explanation rather than execution.** "Explain what you're doing as you go" is an instruction Claude takes literally. If you've got this in your `CLAUDE.md` or you say it in session, Claude will narrate. The fix is removing the instruction, not adjusting a verbosity setting.
 
@@ -218,12 +218,7 @@ Before adjusting settings, check these patterns. They're the most common sources
 - Anthropic Claude Code — *Settings*. Cited for: output style and verbosity configuration, `defaultMode`. Verified HTTP 200, 2026-05-22: https://code.claude.com/docs/en/settings
 - Anthropic Claude Code — *Permissions*. Cited for: permission model and tool approval behavior. Verified HTTP 200, 2026-05-22: https://code.claude.com/docs/en/permissions
 
-**Related work in this series:**
-
-- [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md) — the Matrix framing for why transparency means noise.
-- [Claude Code Workflow Optimizer](claude-code-optimizer.md) — Pillar 1 (context discipline) and Pillar 2 (subagents) are the primary tactics referenced here.
-- [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) — Pillar 1 (typed return contracts) is the multi-agent extension of subagent noise reduction.
-- [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md) — the permission-prompt complement to this guide.
+**Related work in this series:** See [Where to go next](#where-to-go-next) above.
 
 ---
 

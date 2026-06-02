@@ -36,6 +36,8 @@ Who this is for: Claude Code users editing `.claude/settings.local.json` who wan
 
 ## What's real
 
+*The full mechanics — layered file model, precedence and merge rules, MCP wildcard syntax, and drift — are covered in [claude-permissions-guide.md](claude-permissions-guide.md). This section documents what those mechanics mean for the cargo-cult audit specifically.*
+
 ### The built-in read-only auto-allowlist
 
 > Claude Code recognizes a built-in set of Bash commands as read-only and runs them without a permission prompt in every mode. These include `ls`, `cat`, `echo`, `pwd`, `head`, `tail`, `grep`, `find`, `wc`, `which`, `diff`, `stat`, `du`, `cd`, and read-only forms of `git`. The set is not configurable; to require a prompt for one of these commands, add an `ask` or `deny` rule for it. [^perms-readonly]
@@ -56,13 +58,7 @@ When a `cd /path && ls files/ && echo done` prompts, the matcher already split i
 
 ### Scope picks itself
 
-| File | Scope | Use for | Git status |
-|---|---|---|---|
-| `~/.claude/settings.json` | You, every project | Tool-class wildcards, MCP servers you always trust | Personal |
-| `.claude/settings.json` | Everyone on this repo | Team agreements; deny rules for secrets | Committed |
-| `.claude/settings.local.json` | You, this repo only | Project-specific paths, in-flight experimentation | Gitignored by default |
-
-Permission rules merge across scopes rather than override. A deny at any level beats an allow at any other level. [^perms-merge]
+For a full breakdown of the three settings files and their precedence, see [claude-permissions-guide.md § The layered file model](claude-permissions-guide.md#the-layered-file-model-and-what-wins-in-conflicts). [^perms-merge] The short version: global (`~/.claude/settings.json`) for MCP and Bash wildcards you trust everywhere; committed (`.claude/settings.json`) for team agreements and deny rules; local (`.claude/settings.local.json`) for per-project experimentation.
 
 ## What's cargo cult
 

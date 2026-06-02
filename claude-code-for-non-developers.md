@@ -32,14 +32,7 @@ Who this is for: someone running a non-technical business who wants to use Claud
 
 ## First, the 30-second basics
 
-If you've heard "Claude Code" and aren't entirely sure what it is, the bare facts before the essay:
-
-1. **It's the same Claude you already use, running on your laptop as a command-line tool.** Same model. Different surface.
-2. **It can read and write files on your computer and run commands.** The chat can't do either — it can only produce text for you to copy.
-3. **It remembers your project across sessions** through git history and a project config file. Walk away on Tuesday, come back Friday, Claude picks up where you left off.
-4. **So anything you'd want to keep, re-run, or iterate on belongs in Claude Code.** One-off questions stay in the chat.
-
-That's the entire product category. The rest of this guide is what I learned using it daily as a non-developer.
+New to Claude Code entirely? The quick-start version — one prompt, four facts, no install — is in [The 5-Minute Test](claude-code-5-minute-test.md). The rest of this guide assumes you've at least seen the tool once.
 
 ---
 
@@ -84,7 +77,7 @@ Claude will do all of that for you. (Yes — the install instructions for the co
 
 Once installed, Claude loads the skill on demand whenever those phrases come up — walking you through the question templates, the approval checklist, and the common stumbling blocks. You don't need to paste anything; just ask in plain English and the skill triggers.
 
-Read the article itself in this order: once up front for the mindset shift, then come back to specific sections as situations arise. If things have already gone sideways, jump straight to [Section 5](#section-5-the-failure-modes). The hands-on companion to this guide is [Your First Project Tutorial](claude-code-non-developers-first-tutorial.md) — install steps plus a 45-minute paste-along build — with its own skill at [`skills/claude-code-first-project/`](skills/claude-code-first-project/).
+Read the article itself in this order: once up front for the mindset shift, then come back to specific sections as situations arise. If things have already gone sideways, jump straight to [Section 5](#section-5-the-failure-modes). The hands-on tutorials are in [Section 7](#section-7-where-to-go-next).
 
 ---
 

@@ -30,7 +30,7 @@ Who this is for: a non-developer who has completed [Your First Project: A Paste-
 | 3 | Authenticate `gh` with your GitHub account | One slightly fiddly browser handoff, then you're in |
 | 4 | Ask Claude to create a private repo from your project | Your work is now backed up |
 | 5 | Visit the repo on github.com and see your code | "Oh — my work is on the internet now (privately)." |
-| 6 | Make a change locally, commit, push | The new loop: edit → commit → push |
+| 6 | Make a change locally, commit, push | One more step added to your loop |
 | 7 | **Pretend you lost your laptop. Delete the local folder. Clone it back.** | The backup working — this is the point of the exercise |
 | 8 | Name what you just unlocked | Confidence about backup, portability, collaboration |
 
@@ -205,13 +205,7 @@ That's the backup, working. You just felt it.
 
 ## What you just unlocked
 
-Out loud, in order:
-
-- **Backup.** Your project survives anything that happens to your laptop. You just proved it.
-- **Portability.** You can install Claude Code on any other machine (a borrowed laptop, a new one, a desktop at the coworking spot) and `gh repo clone` to be exactly where you left off.
-- **History on your phone.** Open github.com on your phone. Navigate to the repo. You can read every commit message and every line of every file. From the line at coffee.
-- **Fearless experimentation.** Anything you try locally that goes wrong, you can `rm -rf` the folder and `gh repo clone` your way back to safety. You just rehearsed the exact recovery.
-- **Collaboration-ready.** When you eventually want to bring on a freelancer, friend, or contractor, they're one invite click away. The repo is already there.
+You just proved every point in [that list](#why-a-private-repo-specifically-60-seconds).
 
 That's the entire unlock. You got it in 30 minutes without learning a single git command beyond `commit` and `push` — both of which Claude runs for you.
 

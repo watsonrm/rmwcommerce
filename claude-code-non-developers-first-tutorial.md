@@ -1,6 +1,6 @@
 ---
 title: "Your First Claude Code Project: A Paste-Along Tutorial for Non-Developers"
-description: Most "first project" advice tells non-developers to pick something. Choosing the project is the hardest part for someone who has never built anything. This guide hands you one specific project (a one-page personal site), gives you the exact prompts to paste, tells you what to look for at each step, and walks you through a deliberate break-and-recover exercise so you feel the safety net work. About 45 minutes start to finish. You will end with a working page, a commit history, and the muscle memory for the approval loop.
+description: A paste-along, 45-minute Claude Code tutorial for non-developers — exact prompts, step-by-step approvals, and a deliberate break-and-recover exercise so you feel the safety net work before you need it.
 date: 2026-05-27
 last_modified_at: 2026-05-27
 author: Rick Watson
@@ -117,7 +117,7 @@ You do not need to know what each line does. You need to recognize: "this looks 
 
 **Approve.** Press the approve key (Claude Code will show you which one).
 
-**If anything looks weird** — Claude wants to touch files outside this folder, the list is enormous, anything that doesn't match what it just described — type *"What is that for?"* and read the answer before approving. This is the meta-skill.
+**If anything looks weird** — Claude wants to touch files outside this folder, the list is enormous, anything that doesn't match what it just described — type *"What is that for?"* and read the answer before approving. This habit — pause, question, read — is the meta-skill of Claude Code for non-developers. Everything else is reps.
 
 After three approvals (git init, .gitignore, first commit), you have a safety net. Anything that happens next, you can roll back.
 
@@ -168,7 +168,7 @@ Type:
 
 Claude proposes a commit message like *"Add initial one-page personal site with name and headline."* Approve.
 
-You now have a save point. If anything breaks after this, you can come back to exactly this state with one prompt. That's the second meta-skill the rest of this tutorial is built around.
+You now have a save point. If anything breaks after this, you can come back to exactly this state with one prompt.
 
 ---
 
@@ -214,18 +214,7 @@ That recovery — that exact prompt — is the safety net the rest of this serie
 
 ---
 
-## What you just learned
-
-Out loud, in order. (Reading it silently doesn't lock it in. Say it.)
-
-- You installed Claude Code and ran your first project.
-- You set up the safety basics for a project — git, .gitignore, first commit — by asking Claude. You did not memorize any of the commands.
-- You approved Claude's proposed changes after reviewing them. That is the entire meta-skill of Claude Code for non-developers. Everything else is reps.
-- You built a webpage that renders in a browser.
-- You changed it and committed the working state.
-- You broke it on purpose and recovered with one English-language prompt.
-
-That is everything a non-developer needs to use Claude Code productively. The next thirty hours of your practice are reps of those same skills on bigger projects. There is no further mountain to climb before you start.
+That's everything in the TL;DR above — now done, not just described. The next thirty hours are reps of those same skills on bigger projects.
 
 ---
 

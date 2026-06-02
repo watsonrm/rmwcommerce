@@ -149,16 +149,10 @@ If you read nothing else, internalize these. They're the highest-leverage correc
 1. **The bundled MCP has 33 read tools, 13 sales-write tools, 2 identity-write tools, and zero AP-write tools.** The omission is deliberate, not a defect. Sales-out is what-the-human-already-decided; bill-in is what-the-human-must-still-decide. Don't ask the bundled MCP to file bills — it can't, and the right answer is the prep-pack, not a workaround.
 2. **`quickbooks-transaction-import` does NOT create bills.** The name is misleading. It wraps the bank-feed / reconciliation / company-admin surface — bank-statement transactions arriving via Intuit's separate FDP/OFX path. Calling it on a CSV of vendor invoices will not file bills. See [anti-pattern A-5](#anti-pattern-a-5--using-quickbooks-transaction-import-thinking-it-creates-bills).
 3. **Anthropic's own deployed-agent data is the design pattern for AP.** Across roughly one million tool calls audited in late 2025 through early 2026, only 0.8% of agent actions appeared irreversible, 73% had a human in the loop, and 80% had at least one safeguard (restricted permissions or human approval). The prep-don't-act pattern is what those numbers describe, applied to one specific domain.
-4. **Tool success is not state success — same rule as Google Docs.** Every QBO write needs a read-back to confirm the entity landed with the right values. The same verify-by-JSON discipline from the workspace article applies, just with `qbo_sales_get_invoices` instead of `readDocument`.
-5. **The single OAuth scope is `com.intuit.quickbooks.accounting`.** There is no separate "write" scope to grant. What changes between the bundled-MCP path and the Intuit-MCP / REST path is the connector and the credentials, not the scope. Granting "more permissions" to the bundled connector won't unlock bill-write tools — they aren't in that codepath.
+4. See [item 3 in "Where to spend your time"](#where-to-spend-your-time) — read-back-after-write on every QBO write.
+5. See [item 5 in "Where to spend your time"](#where-to-spend-your-time) — pin the OAuth scope and connector path.
 
-### The volume-threshold decision rule
-
-> **Under ~50 bills/month → Path A (prep-pack).** Claude prepares each bill as a one-screen review entry; you commit through the QBO UI in two clicks. Setup: one hour. Maintenance: zero.
->
-> **Over ~50 bills/month, OR a bookkeeper already in the loop → Path B (full Intuit MCP + production OAuth).** Walk Intuit's app-assessment process; install the official MCP server; let Claude post bills via the REST API after explicit human approval. Setup: weeks. Maintenance: ongoing token rotation and connector breakage.
->
-> The threshold is judgment, not a sourced statistic — but the asymmetry is real. Below the line, the prep-pack is faster end-to-end than the integration project. Above it, the manual step becomes the bottleneck. [Part 4 §4.7](#47--the-two-path-build-choice-honestly) is the full argument.
+See [Part 4 §4.7](#47--the-two-path-build-choice-honestly) for the volume-threshold decision rule (Path A vs. Path B).
 
 ---
 
@@ -532,7 +526,7 @@ Concrete skill shape for a "draft this month's invoices" agent, against the bund
 7. Update queue file with sent invoice ids
 ```
 
-The prep-pack pattern surfaces here too — even on the sales-out side where writes are allowed, the durable shape is prep-then-approve. The agent could in principle skip step 4 and post directly, but the failure modes (wrong customer, wrong amount, wrong period) are expensive enough to be worth the 30 seconds of human review per row. This is the same trade-off Anthropic's deployed-agent data points at: 73% of agent traffic has a human in the loop in some way, and the expensive failure modes are concentrated in the irreversible-action tail.
+The prep-pack pattern surfaces here too — even on the sales-out side where writes are allowed, the durable shape is prep-then-approve. The agent could in principle skip step 4 and post directly, but the failure modes (wrong customer, wrong amount, wrong period) are expensive enough to be worth the 30 seconds of human review per row. The same logic as [§4.5](#45--anthropics-deployed-agent-data-is-the-design-pattern): the expensive failure modes are concentrated in the irreversible-action tail.
 
 ---
 
@@ -575,12 +569,7 @@ The QuickBooks Online REST API fully supports POSTing a Bill entity. The endpoin
 
 There is also an official Intuit-published MCP server: [`intuit/quickbooks-online-mcp-server`](https://github.com/intuit/quickbooks-online-mcp-server). Apache-2.0. ~144 tools across 29 entity types with full CRUD plus 11 reports (Part 1 §1.3). Bill creation is one of them. Vendor creation is one of them. BillPayment is one of them. The path is fully available; the surface exists.
 
-**What is missing is the path from "click Add QuickBooks in claude.ai" to "create a bill in production."** That path stops at the bundled connector. To get from there to bill writes, walk the specific journey:
-
-1. **Register an Intuit Developer app** at [developer.intuit.com](https://developer.intuit.com/app/developer/qbo/docs/develop). Sandbox credentials are immediate.
-2. **Complete Intuit's App Assessment** before Intuit unblocks production keys. Per the [app assessment FAQ](https://help.developer.intuit.com/s/article/New-app-assessment-process-FAQ), the questionnaire covers token storage, data retention, use case, security posture. Stated timeline ~3 weeks; real-world commonly 6 weeks to 6+ months ([Satva Solutions practitioner walkthrough](https://satvasolutions.com/blog/intuit-app-store-approval-timeline-developer-guide)).
-3. **Host the OAuth bridge yourself.** Client ID, Client Secret, refresh token, realm ID — wired into either the Intuit MCP server or your own client. Refresh tokens rotate; you need persistent secret storage.
-4. **Maintain it.** Refresh-token rotation, OAuth scope migrations between minor API versions, connector breakage on Intuit API version bumps.
+**What is missing is the path from "click Add QuickBooks in claude.ai" to "create a bill in production."** That path stops at the bundled connector. Getting from there to bill writes requires walking the app-assessment gate covered in [§1.4](#14--the-app-assessment-gate) — register an Intuit Developer app, clear Intuit's production-credential review (weeks to months in practice), host the OAuth bridge, and maintain token rotation.
 
 That is not nothing. For a 5-contractor-a-month workflow it is a multi-week setup followed by ongoing maintenance for a process that takes fifteen minutes a month manually. Even at generous estimates of cognitive savings the math does not pencil out. For a 50-bill-a-month operation it absolutely does.
 
@@ -644,7 +633,7 @@ This is the same shape as why most solo consultants use a folder structure plus 
 
 The harder counter-argument isn't BILL or Ramp — it's the autonomous-AI-bookkeeper category that has been raising real money on the pitch that the AI does the whole loop. [Pilot.com launched its fully autonomous AI bookkeeper in February 2026](https://www.accountingtoday.com/news/pilot-launches-fully-autonomous-ai-bookkeeper); Botkeeper, Digits, and Booke AI have parallel offerings ([alternatives roundup](https://getuku.com/articles/botkeeper-alternatives)). The pitch: skip the human-in-loop, let the model code transactions, post bills, reconcile bank feeds, close the books. The implicit promise is that AI is finally good enough to remove the bookkeeper from the AP path entirely.
 
-The counter-counter-argument is the same data Part 4 §4.5 leans on. Across roughly one million tool calls Anthropic audited across deployed agents, 73% had a human in the loop and only 0.8% of actions appeared irreversible. The vendors selling autonomous bookkeeping are pitching the opposite distribution — closer to 0% human-in-loop on bill-side writes, with the irreversibility-rate-times-volume math left as an exercise for the buyer. For a category where every error is irreversible in the practical sense (a posted bill in the wrong GL code in March is a tax-return problem in October), the math does not pencil for a solo operator.
+The counter-counter-argument is the same data [§4.5](#45--anthropics-deployed-agent-data-is-the-design-pattern) leans on. The vendors selling autonomous bookkeeping are pitching the opposite distribution from what Anthropic's deployed-agent data shows — closer to 0% human-in-loop on bill-side writes, with the irreversibility-rate-times-volume math left as an exercise for the buyer. For a category where every error is irreversible in the practical sense (a posted bill in the wrong GL code in March is a tax-return problem in October), the math does not pencil for a solo operator.
 
 Three operational realities the category mostly papers over:
 
@@ -687,7 +676,7 @@ For most readers of this article, path A is correct. Not because path B is bad b
 
 The honest version of this section: **resist the urge to automate what is already fast.** Use Claude to prepare the decision and stop. Reach for the API integration only when the volume and the role mix actually justify it.
 
-This is a rare position to take in a category whose dominant marketing pitch is "AI bookkeeper" or "autonomous AP." It is the correct position for the median small-business operator. The numbers in Anthropic's deployed-agent report — 0.8% irreversibility, 73% human-in-loop, 80% safeguards — are the empirical version of the same argument. Operators using AI agents at scale already converge on this pattern; the marketing pitch is just slow to catch up.
+This is a rare position to take in a category whose dominant marketing pitch is "AI bookkeeper" or "autonomous AP." It is the correct position for the median small-business operator. The [§4.5](#45--anthropics-deployed-agent-data-is-the-design-pattern) data is the empirical version of the same argument. Operators using AI agents at scale already converge on this pattern; the marketing pitch is just slow to catch up.
 
 ---
 
