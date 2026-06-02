@@ -24,6 +24,8 @@ Who this is for: site owners and marketers who want their content to land in Cha
 
 The JSON-LD any agent-friendly hosting layer should serve for this article. Drop it into the `<head>` of an HTML render; it satisfies Tier 1 #2 of the [22-item priority checklist](#the-22-item-priority-checklist) below.
 
+What this block is *for*: it serves **indexers and knowledge graphs** — crawlers typing and disambiguating the entity (who wrote this, when, what it's about). That is what drives discovery and citation eligibility. It is **not** what a reasoning model reads to understand the article — that model reads the visible byline, dates, and prose below, and gets no comprehension boost from the JSON-LD over the clean text. Structured data is a discovery signal, not a comprehension one. In production, generate this block from the page's front-matter at build time rather than hand-maintaining a second copy — see [Schema.org and JSON-LD](#schemaorg-and-json-ld).
+
 ```json
 {
   "@context": "https://schema.org",
@@ -88,7 +90,7 @@ The top seven on-your-site moves, ordered by evidence weight. Each maps to an it
 | Rank | Practice | Why it matters | Effort | Checklist item |
 |---|---|---|---|---|
 | 1 | Serve content as server-rendered HTML — headline, body, dates visible in the raw response before JS runs | Most AI crawlers (GPTBot, ClaudeBot, CCBot, PerplexityBot) do not execute JavaScript. Content hidden behind hydration is invisible to ~80% of AI crawlers ([Google JS SEO docs](https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics)) | Medium | Tier 1 #1 |
-| 2 | Publish `Article` / `Organization` / `Person` JSON-LD with `datePublished`, `dateModified`, `author`, `publisher`, and `sameAs` arrays to Wikipedia / Wikidata / ORCID / official profiles | ~71% of ChatGPT-cited pages and ~65% of Google AI Mode-cited pages carry structured data ([SEranking dataset via PPC.land](https://ppc.land/23-factors-that-actually-get-your-content-cited-by-ai-search-engines/)). The cheapest signal that lifts citation rate across every surface | Low | Tier 1 #2 |
+| 2 | Publish `Article` / `Organization` / `Person` JSON-LD with `datePublished`, `dateModified`, `author`, `publisher`, and `sameAs` arrays to Wikipedia / Wikidata / ORCID / official profiles | ~71% of ChatGPT-cited pages and ~65% of Google AI Mode-cited pages carry structured data ([SEranking dataset via PPC.land](https://ppc.land/23-factors-that-actually-get-your-content-cited-by-ai-search-engines/)). The cheapest *discovery* signal — it helps crawlers and knowledge graphs type and disambiguate you (a correlation with citation, not a comprehension boost for the model reading the page) | Low | Tier 1 #2 |
 | 3 | Write a deliberate `robots.txt` that separates training crawlers from search/answer crawlers from user-triggered fetchers | Blanket `Disallow: /` blocks ChatGPT-User, Claude-User, and Perplexity-User — meaning a user who explicitly asks the LLM to read your page is refused. The single most common self-inflicted wound in 2026 ([OpenAI bot docs](https://developers.openai.com/api/docs/bots)) | Low | Tier 1 #4 |
 | 4 | Publish `sitemap.xml` with truthful `<lastmod>` and reference it from `robots.txt` | `<lastmod>` is the only freshness signal Google and Bing publicly use; `<changefreq>` and `<priority>` are ignored ([sitemaps.org](https://www.sitemaps.org/protocol.html)). Perplexity's Sonar resets freshness on minor edits | Low | Tier 1 #5 |
 | 5 | Front-load the answer in the first 30% of the page in a 40–75 word paragraph | 44% of citations come from the first third of a page; 75% from the first two-thirds ([ALM Corp content-placement study](https://almcorp.com/blog/chatgpt-citations-study-44-percent-first-third-content/)) | Low | Tier 2 #6 |
@@ -489,12 +491,12 @@ Documented heavy X-bias: Grok preferences X posts, arXiv preprints, and certain 
 
 Across primary docs and large-N studies, the signals correlating with citation in 2025–2026 cluster into seven groups, in descending order of evidence weight:
 
-1. **Domain authority and brand prominence.** Wikipedia, Reddit, YouTube, established institutional and editorial domains dominate every major dataset. Brands in the top 25% of web mentions earn 10x more AI citations than the next quartile.
+1. **Domain authority and brand prominence.** Wikipedia, Reddit, YouTube, established institutional and editorial domains dominate every major dataset. The top-25%-of-web-mentions / 10× citation gap (the foundational move flagged at the top of this guide) is the single largest signal here.
 2. **Conventional search ranking on the backing index.** Page-1 Google ranking is cited 3.5x more than rank-20+ on ChatGPT. Perplexity 28.6% Google-top-10 overlap, Copilot 16.6% Bing-top-10 overlap. Traditional SEO is the floor, not the ceiling.
 3. **Answer-first content placement.** 44% of citations from the first third; 75% from the first two-thirds. Front-load the answer.
 4. **Title-query semantic match.** Cosine similarity 0.602 (cited) versus 0.484 (non-cited). Plain, descriptive, question-aligned titles outperform brand-led or clever titles. Natural-language URLs outperform opaque slugs.
 5. **Recency and freshness.** ChatGPT-cited URLs average 458 days newer than the matching Google organic result. News content has dramatically tighter freshness windows than evergreen. Use IndexNow, visible dates, and accurate Last-Modified headers.
-6. **Structured data and schema markup.** ~71% of ChatGPT citations and ~65% of Google AI Mode citations include structured data. FAQ JSON-LD is the highest-leverage schema for citation rate. Microsoft officially confirms schema helps Copilot.
+6. **Structured data and schema markup.** ~71% of ChatGPT citations and ~65% of Google AI Mode citations include structured data — a correlation that reflects discovery and entity-disambiguation by crawlers and knowledge graphs, not comprehension lift for the model reading the page. FAQ JSON-LD correlates with higher Perplexity citation rates in independent testing; Microsoft officially confirms schema helps Copilot surface content.
 7. **Third-party validation and distribution.** Syndicated content earns up to 325% more AI citations than single-site content. Review-rich brands moved from 1% to 75% citation rates in one tracked cohort ([PR Newswire summary](https://www.prnewswire.com/news-releases/brands-that-build-trust-through-reviews-increase-ai-citations-from-1-to-75-earn-competitive-advantage-over-invisible-brands-302768554.html)). Branded mentions, YouTube presence, Reddit discussion, and Wikipedia coverage are all leading indicators.
 
 **Signals that diverge sharply by platform:**
@@ -688,6 +690,8 @@ Specialized variants: news sitemaps ([news-sitemap](https://developers.google.co
 
 [schema.org](https://schema.org/docs/full.html) is the canonical entity vocabulary, co-stewarded by Google, Microsoft, Yahoo, and Yandex since 2011. It's the foundation under every knowledge graph and every implicit graph an LLM builds.
 
+One framing to keep straight, because it's the most over-claimed point in this whole space: JSON-LD's job is **discovery and entity disambiguation by crawlers and knowledge graphs** — it makes a machine confident *who* and *what* an entity is, which drives indexing and citation eligibility. A reasoning model that has already fetched the page reads the visible prose and gains nothing from the JSON-LD it wouldn't get from a clean labeled block in the body. Mark up for the indexer; write clearly for the reader. The two are different jobs, and structured data only does the first.
+
 Most-relevant types for AI consumption:
 
 | Type | Use case |
@@ -708,19 +712,19 @@ Web Almanac 2024 ([almanac.httparchive.org/en/2024/structured-data](https://alma
 
 The `sameAs` property is the underrated entity-graph signal. Every `Organization` and `Person` should carry a `sameAs` array linking to authoritative external references: Wikipedia article, Wikidata Q-number URL (`wikidata.org/wiki/Q…`), official social profiles, Crunchbase, ORCID. This is how a knowledge graph confirms that the "Rick Watson" on rmwcommerce.com is the same Rick Watson cited elsewhere.
 
-Minimum JSON-LD for editorial content:
+Minimum JSON-LD for editorial content — a template; fill it with your own values, don't hand-copy another page's:
 
 ```json
 {
   "@context": "https://schema.org",
   "@type": "Article",
-  "headline": "Marketing to Agents",
-  "datePublished": "2026-05-24T09:00:00-04:00",
-  "dateModified": "2026-05-24T09:00:00-04:00",
+  "headline": "Your Article Title",
+  "datePublished": "2026-01-15T09:00:00-05:00",
+  "dateModified": "2026-01-15T09:00:00-05:00",
   "author": {
     "@type": "Person",
-    "name": "Rick Watson",
-    "url": "https://rmwcommerce.com/about",
+    "name": "Author Name",
+    "url": "https://example.com/about",
     "sameAs": [
       "https://www.wikidata.org/wiki/...",
       "https://en.wikipedia.org/wiki/..."
@@ -728,14 +732,16 @@ Minimum JSON-LD for editorial content:
   },
   "publisher": {
     "@type": "Organization",
-    "name": "RMW Commerce Consulting",
-    "url": "https://rmwcommerce.com"
+    "name": "Your Organization",
+    "url": "https://example.com"
   },
-  "mainEntityOfPage": "https://rmwcommerce.com/marketing-to-agents"
+  "mainEntityOfPage": "https://example.com/your-article"
 }
 ```
 
-The two non-negotiable fields for freshness: `datePublished` and `dateModified` in ISO 8601 (RFC 3339 profile, e.g., `2026-05-24T09:00:00-04:00`), not locale-prose ("May 24, 2026"). LLMs are unreliable at parsing locale dates; they're perfect at ISO 8601.
+**Generate this; don't hand-maintain it.** The author, publisher, and date fields here already live in your page's front-matter and visible byline — emit the JSON-LD from that single source at build time. Two hand-kept copies drift (early drafts of this very guide carried two blocks with mismatched `datePublished`), and a stale `dateModified` in the `<head>` is worse than none.
+
+The two non-negotiable fields for freshness: `datePublished` and `dateModified` in ISO 8601 (RFC 3339 profile, e.g., `2026-01-15T09:00:00-05:00`), not locale-prose ("January 15, 2026"). LLMs are unreliable at parsing locale dates; they're perfect at ISO 8601.
 
 ### Open Graph and Twitter Cards
 
