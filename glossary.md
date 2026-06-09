@@ -45,6 +45,7 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 8. [Adjacent products and surfaces](#adjacent-products-and-surfaces)
 9. [Cultural shorthand and framings](#cultural-shorthand-and-framings)
 10. [Measurement and benchmarks](#measurement-and-benchmarks)
+11. [Failure analysis](#failure-analysis)
 
 ---
 
@@ -772,6 +773,78 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 
 ---
 
+## Failure analysis
+
+*Full treatment: [Bringing Five Whys into the Agentic Era](guides/bringing-five-whys-into-the-agentic-era.md)*
+
+---
+
+### Five Whys
+
+- **What it is:** An iterative questioning technique — ask "why?" up to five times to trace from a symptom to a cause. Developed by Sakichi Toyoda and formalized by Taiichi Ohno in the Toyota Production System (1940s–1970s). Ohno's framing: "by repeating why five times, the nature of the problem as well as its solution becomes clear."
+- **What's in it for you:** Zero training cost, forces you past the presenting symptom, and works well on mechanical or single-component failures with clear causal chains.
+- **What's hype:** The implicit claim that following one causal chain to five levels of depth finds the root cause of complex system failures. John Allspaw's 2014 critique names the structural problem directly: "At best, it locks you into a causal chain, which is not how the world actually works." ([source](https://www.kitchensoap.com/2014/11/14/the-infinite-hows-or-the-dangers-of-the-five-whys/)) The "fifth why" has no special epistemic status — where you start and stop are choices made by the investigator, not properties of the failure. ([source](https://en.wikipedia.org/wiki/Five_whys))
+- **What to do:** Keep the question ("why did this happen?"), change the method around it: branch at every node instead of walking one chain, validate every link counterfactually, and ban "human error" as a terminal node. See the [understand-failure skill](../skills/understand-failure/) for the operational form.
+- **See also:** [Adversarial root-cause analysis](#adversarial-root-cause-analysis), [Counterfactual validation (cause analysis)](#counterfactual-validation-cause-analysis)
+- **Source:** [Wikipedia — Five whys](https://en.wikipedia.org/wiki/Five_whys); [John Allspaw — The Infinite Hows (2014)](https://www.kitchensoap.com/2014/11/14/the-infinite-hows-or-the-dangers-of-the-five-whys/); [Bringing Five Whys into the Agentic Era](guides/bringing-five-whys-into-the-agentic-era.md)
+
+---
+
+### Adversarial root-cause analysis
+
+- **What it is:** A failure-analysis method in which a second reviewer (human or AI agent) is given only the finished cause tree and tasked explicitly with breaking it — finding missing branches, identifying blame-smell leaves, challenging the two most-confident nodes counterfactually, and questioning every stopping point. The adversarial role is structural, not optional: it runs after the analyst finishes, on the artifact, with no access to the analyst's reasoning or relief at having reached a conclusion.
+- **What's in it for you:** Catches the systematic blind spot in self-review: you cannot see the branch you didn't think of. In the worked example in the guide, the analyst built a correct tree for one silent-death path and missed a second independent path entirely. The adversarial agent found it in the first pass.
+- **What's hype:** n/a — the adversarial-reviewer pattern is established practice in formal safety work; the new part in 2026 is that it's cheap to run with real independence using a dispatched AI agent.
+- **What to do:** After building your cause tree, dispatch a separate agent (or switch hats explicitly for small failures) and give it five specific challenges: the missing branch, the blame smell, the single-cause smell, the counterfactual challenge on your two most-confident nodes, and the stopping-rule challenge. A skeptic that returns "nothing wrong" on the first pass is suspect; make it name a candidate gap regardless.
+- **See also:** [Blameless postmortem](#blameless-postmortem), [Five Whys](#five-whys), [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) (the architecture for dispatching the skeptic reliably)
+- **Source:** [Bringing Five Whys into the Agentic Era — Section 4](guides/bringing-five-whys-into-the-agentic-era.md#4-bringing-it-into-the-agentic-era)
+
+---
+
+### Blameless postmortem
+
+- **What it is:** A failure review structured around the assumption that everyone involved acted reasonably given what they knew, saw, and were incentivized to do at the time. The term is most associated with Etsy's engineering culture and John Allspaw's writing; Google's SRE book made it an industry standard with the framing: "You can't 'fix' people, but you can fix systems and processes to better support people making the right choices." ([source](https://sre.google/sre-book/postmortem-culture/))
+- **What's in it for you:** The blameless frame is not a moral position — it is an epistemic one. The moment a branch terminates at a person, the analysis stops producing actionable findings. Blame ends the investigation at the worst possible place; the blameless frame turns "person P made a mistake" into the next question: what made P's action look correct in the moment?
+- **What's hype:** n/a — the value here is methodological, not marketing. The one legitimate caveat: "blameless" does not mean "no accountability." It means the review process focuses on system conditions, not individual fault. Accountability for outcomes is a separate conversation.
+- **What to do:** State the assumption explicitly at the top of every postmortem, before any cause analysis begins. Cook's Point 8 on hindsight bias is the reason: once you know the outcome, the path to failure looks obvious and the operators look careless. They weren't — state the assumption before your hindsight kicks in.
+- **See also:** [Adversarial root-cause analysis](#adversarial-root-cause-analysis), [Latent factor](#latent-factor)
+- **Source:** [Google SRE — Postmortem Culture](https://sre.google/sre-book/postmortem-culture/); [John Allspaw — The Infinite Hows (2014)](https://www.kitchensoap.com/2014/11/14/the-infinite-hows-or-the-dangers-of-the-five-whys/); [Richard Cook — How Complex Systems Fail, Point 8](https://how.complexsystems.fail/); [Bringing Five Whys into the Agentic Era](guides/bringing-five-whys-into-the-agentic-era.md)
+
+---
+
+### "Necessary but only jointly sufficient"
+
+- **What it is:** Richard Cook's and John Allspaw's framing for the causal structure of complex system failures: each contributing factor is necessary (the failure would not have happened without it), but no single factor is sufficient on its own (none of them alone would have caused the failure). The whole set together is sufficient. Allspaw's 2012 essay gives the canonical treatment; Cook's "How Complex Systems Fail" (1998), Point 3, states it as: "Each of these small failures is necessary to cause catastrophe but only the combination is sufficient." ([source](https://how.complexsystems.fail/))
+- **What's in it for you:** The mental model that makes branching mandatory. If you accept this framing, the single linear chain of the naive Five Whys is simply wrong — it throws away every necessary-but-not-sufficient co-contributor by construction. The branching cause tree is the method that keeps them.
+- **What's hype:** n/a — this is a direct description of how complex system failures actually work, not a claim about methodology.
+- **What to do:** Use it as the operational test at every link in your cause tree: "If I remove just this factor, everything else equal, does the failure still happen?" Yes → sufficient. No, but it was needed → necessary-but-not-sufficient, keep it. No, and it changes nothing → noise, prune it. See the [understand-failure skill](../skills/understand-failure/) for the output format.
+- **See also:** [Counterfactual validation (cause analysis)](#counterfactual-validation-cause-analysis), [Latent factor](#latent-factor)
+- **Source:** [Richard Cook — How Complex Systems Fail, Point 3 (1998)](https://how.complexsystems.fail/); [John Allspaw — Each necessary, but only jointly sufficient (2012)](https://www.kitchensoap.com/2012/02/10/each-necessary-but-only-jointly-sufficient/); [Bringing Five Whys into the Agentic Era](guides/bringing-five-whys-into-the-agentic-era.md)
+
+---
+
+### Latent factor
+
+- **What it is:** A condition that was present in the system for an extended period — weeks or months — before the failure, not introduced at the time of the failure event. Distinguished from proximate causes (what fired) and contributing causes (what had to co-exist for the trigger to do harm). Latent factors are the systemic/design-level conditions that made the system vulnerable. Cook names them repeatedly in "How Complex Systems Fail"; the SNAFUcatchers STELLA report (2017) found that real software anomalies "arose from multiple latent factors that combined to generate a vulnerability." ([source](https://snafucatchers.github.io/))
+- **What's in it for you:** Latent factors are the layer worth fixing. Proximate causes often can't be eliminated (near-normal events that activate latent conditions will always occur). The question is whether the system was in a state where the activator could cause harm. Latent factors answer that.
+- **What's hype:** The framing that fixing the proximate cause counts as a postmortem. The worked example in the guide: fixing the broken lock (proximate) left two latent factors untouched — no monitoring of the delivery process, and a credential that policy would quietly revoke. Fix the lock alone and the job would have died again in a week for a different reason.
+- **What to do:** In your cause tree, every branch must reach at least one systemic/latent node. A tree with no latent nodes is a tree that stopped too early. The [understand-failure skill](../skills/understand-failure/) flags this in its verification checklist.
+- **See also:** ["Necessary but only jointly sufficient"](#necessary-but-only-jointly-sufficient), [Adversarial root-cause analysis](#adversarial-root-cause-analysis)
+- **Source:** [Richard Cook — How Complex Systems Fail (1998)](https://how.complexsystems.fail/); [SNAFUcatchers — STELLA report (2017)](https://snafucatchers.github.io/); [Bringing Five Whys into the Agentic Era — Section 3](guides/bringing-five-whys-into-the-agentic-era.md#3-the-rigorous-version-keep-the-question-change-the-method)
+
+---
+
+### Counterfactual validation (cause analysis)
+
+- **What it is:** The per-link test applied to every edge in a cause tree: "If this single factor had not been present, everything else equal, would the failure have been prevented?" Three outcomes: sufficient (yes, removing it alone would have prevented the failure — a strong lever); necessary-but-not-sufficient (no, but it was needed — a genuine co-contributor worth keeping); or noise (no, removing it changes nothing — prune it). Every node that survives carries its verdict.
+- **What's in it for you:** The test that separates a plausible story from an actual cause. Without it, a cause tree is just a structured guess. The "necessary but only jointly sufficient" framing (Cook, Allspaw) is a description of reality; counterfactual validation is the operational procedure for applying that description to a specific failure.
+- **What's hype:** n/a — standard causal-inference methodology applied to incident analysis.
+- **What to do:** Apply the test to every edge in your tree before finalizing remediations. The most important outcome to preserve is the middle case (necessary-but-not-sufficient): these are the nodes a naive linear chain discards, and they are often the latent factors with the highest fixing leverage.
+- **See also:** ["Necessary but only jointly sufficient"](#necessary-but-only-jointly-sufficient), [Latent factor](#latent-factor), [Five Whys](#five-whys)
+- **Source:** [John Allspaw — The Infinite Hows (2014)](https://www.kitchensoap.com/2014/11/14/the-infinite-hows-or-the-dangers-of-the-five-whys/); [Richard Cook — How Complex Systems Fail (1998)](https://how.complexsystems.fail/); [Bringing Five Whys into the Agentic Era — Section 3](guides/bringing-five-whys-into-the-agentic-era.md#3-the-rigorous-version-keep-the-question-change-the-method)
+
+---
+
 ## Sources & Attribution
 
 **Tier 1 — Primary sources with measured results:**
@@ -789,6 +862,15 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 - IBM / Agent Communication Protocol — *ACP specification* (competing inter-agent protocol under Linux Foundation governance): https://agentcommunicationprotocol.dev/introduction/welcome
 - Cloudflare — *Declare your AIndependence: block AI bots, scrapers and crawlers with a single click* (Jul 2024): https://blog.cloudflare.com/declaring-your-aindependence-block-ai-bots-scrapers-and-crawlers-with-a-single-click/
 - Simon Willison — *Using LLMs as the first line of support in Open Source* (Apr 2025): https://simonwillison.net/2025/Apr/14/llms-as-the-first-line-of-support/
+
+**Tier 1 (continued) — Failure analysis primary sources:**
+
+- John Allspaw — *The Infinite Hows (or, the Dangers of the Five Whys)* (2014): https://www.kitchensoap.com/2014/11/14/the-infinite-hows-or-the-dangers-of-the-five-whys/
+- John Allspaw — *Each necessary, but only jointly sufficient* (2012): https://www.kitchensoap.com/2012/02/10/each-necessary-but-only-jointly-sufficient/
+- Richard Cook — *How Complex Systems Fail* (1998): https://how.complexsystems.fail/
+- SNAFUcatchers — *STELLA: Report from the SNAFUcatchers Workshop on Coping with Complexity* (2017): https://snafucatchers.github.io/
+- Google — *Site Reliability Engineering: Postmortem Culture*: https://sre.google/sre-book/postmortem-culture/
+- Wikipedia — *Five whys*: https://en.wikipedia.org/wiki/Five_whys
 
 **Tier 2 — Trusted primary documentation:**
 
@@ -817,7 +899,7 @@ Where a field genuinely doesn't apply, the entry says so rather than padding.
 - Lilian Weng — *LLM Powered Autonomous Agents* (Jun 2023): https://lilianweng.github.io/posts/2023-06-23-agent/
 - Walden Yan / Cognition — *Don't Build Multi-Agents* (Jun 2025): https://cognition.ai/blog/dont-build-multi-agents
 
-**Related work in this series:** [The 5-Minute Claude Code Test](claude-code-5-minute-test.md), [Your First Project Tutorial](claude-code-non-developers-first-tutorial.md), [Make Your Work Survive Your Laptop: First Private GitHub Repo](claude-code-non-developers-github-tutorial.md), [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md), [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md), [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md), [Claude Code Workflow Optimizer](claude-code-optimizer.md), [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md), [Why Is Claude Code So Noisy?](claude-code-noise.md), [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md)
+**Related work in this series:** [The 5-Minute Claude Code Test](claude-code-5-minute-test.md), [Your First Project Tutorial](claude-code-non-developers-first-tutorial.md), [Make Your Work Survive Your Laptop: First Private GitHub Repo](claude-code-non-developers-github-tutorial.md), [Claude Code for Non-Developers: A Field Guide](claude-code-for-non-developers.md), [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md), [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md), [Claude Code Workflow Optimizer](claude-code-optimizer.md), [Claude Permissions: Stop the Interruption Hell](claude-permissions-guide.md), [Why Is Claude Code So Noisy?](claude-code-noise.md), [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md), [Bringing Five Whys into the Agentic Era](guides/bringing-five-whys-into-the-agentic-era.md)
 
 ---
 

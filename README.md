@@ -36,6 +36,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 | **Already using Claude Code, want it cheaper or faster** | [Workflow Optimizer](claude-code-optimizer.md) → [Making Claude Faster](guides/making-claude-faster.md) |
 | **Drowning in noise or permission prompts** | [Why Claude Code Is So Noisy](claude-code-noise.md) → [Stop the Interruption Hell](claude-permissions-guide.md) |
 | **Building skills, agents, or multi-agent systems** | [Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) → [Multi-Agent Fan-Out](multi-agent-fan-out-and-verification.md) |
+| **Debugging a failure or running a postmortem** | [Bringing Five Whys into the Agentic Era](guides/bringing-five-whys-into-the-agentic-era.md) — branch instead of chain, validate every causal link, dispatch an AI skeptic |
 | **Shipping software with Claude, not just one-shot tasks** | [Building Excellent Software (with Claude)](guides/building-excellent-software-with-claude.md) |
 | **Writing to Google Docs, Sheets, Slides, Drive, Calendar, or Gmail from Claude / an agent** | [Operating Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude](guides/operating-google-workspace-from-claude.md) |
 | **Automating QuickBooks Online from Claude — reads, writes, AP gap, anti-patterns** | [QuickBooks Automation Using Claude Code](guides/quickbooks-automation-using-claude-code.md) |
@@ -65,6 +66,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 **Building agent systems:**
 - [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) — when to stay with a prompt, when to package a skill, when to build an agent, and when a multi-agent system is actually warranted. The on-ramp before the multi-agent guide.
 - [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) — how to structure Claude agent systems that scale without silently breaking. Typed return contracts, intermediate-state logging, thin-orchestrator architecture, phasing strategy.
+- [Bringing Five Whys into the Agentic Era](guides/bringing-five-whys-into-the-agentic-era.md) — branch instead of chain, validate every causal link counterfactually, and dispatch an independent AI skeptic. The method that survives the standard objections to linear root-cause analysis, with a real outage worked through end to end.
 - [Building Excellent Software (with Claude)](guides/building-excellent-software-with-claude.md) — the tokenmin v0.12.1 → v0.12.5 case study. Eight disciplines for taking a Claude-built artifact from working to production-grade, grounded in the public issue backlog and test suite.
 - [Operating Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude](guides/operating-google-workspace-from-claude.md) — the patterns, hard limits, and anti-patterns of writing to all six Workspace surfaces from an agent. Covers PAGE_NUMBER auto-text limits, `valueInputOption=USER_ENTERED` for Sheets, Slides object-ID instability, the `sendUpdates` silent-add failure in Calendar, base64url vs base64 in Gmail, threading headers, and the single-writer agent pattern for resume-from-interruption. 60-second map → what's possible → what's NOT possible → priority + TL;DR per surface; deep dives in Parts 1–10.
 - [QuickBooks Automation Using Claude Code](guides/quickbooks-automation-using-claude-code.md) — the bundled MCP's real tool inventory (50 tools, 0 AP writes), the bill-in API gap and why it is the right design, the prep-pack architecture for AP that survives every Intuit policy change, and six anti-patterns to recognize before they corrupt your books.
@@ -91,6 +93,7 @@ The on-demand companions to the guides above. Drop any folder into `~/.claude/sk
 - [building-excellent-software](skills/building-excellent-software/) — apply the excellent-software checklist to a Claude-built artifact and surface the highest-leverage gap before shipping
 - [operating-google-workspace-from-claude](skills/operating-google-workspace-from-claude/) — audit a Drive/Docs/Sheets/Slides/Calendar/Gmail automation; diagnose connector-parity bugs, the Sheets `USER_ENTERED` gotcha, Slides object-ID instability, Calendar `sendUpdates` silent-add failures, Gmail base64url encoding errors, and threading-header gaps
 - [ga4-with-claude](skills/ga4-with-claude/) — pick the right GA4 surface, wire read-only BigQuery access with cost guardrails, label every number observed or modeled, and produce conversion or paid-media funnel analysis without sampling errors or surprise query bills
+- [understand-failure](skills/understand-failure/) — run a rigorous adversarial Five Whys: branching cause tree, counterfactual validation per link, independent skeptic pass, system-level remediations
 
 ### For AI agents reading this repo
 

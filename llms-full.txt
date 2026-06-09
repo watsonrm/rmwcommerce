@@ -7850,3 +7850,98 @@ This repository is a maintainer-owned publication, not a community-contribution 
 
 
 <!-- END: AGENTS.md -->
+
+
+<!-- SOURCE: https://github.com/watsonrm/rmwcommerce/blob/main/guides/bringing-five-whys-into-the-agentic-era.md -->
+<!-- BEGIN: guides/bringing-five-whys-into-the-agentic-era.md -->
+
+---
+title: Bringing Five Whys into the Agentic Era
+description: The Five Whys has been the default failure-analysis tool in software for decades, and for decades practitioners have warned it produces a single linear story for failures that don't have one. This guide keeps the question and fixes the method — branch instead of chain, validate every link counterfactually, and dispatch an independent AI skeptic whose only job is to break your analysis. Worked through a real outage where the skeptic caught the cause the first pass missed.
+date: 2026-06-08
+last_modified_at: 2026-06-08
+author: Rick Watson
+agent_friendly: true
+keywords: five whys, 5 whys software, root cause analysis software, blameless postmortem, adversarial root cause analysis, incident analysis AI agent, why complex systems fail, John Allspaw infinite hows, cause tree vs five whys, AI skeptic agent, agentic postmortem
+---
+
+# Bringing Five Whys into the Agentic Era
+
+**The Five Whys has been the default failure-analysis tool in software for decades, and for decades the best practitioners have warned that it produces a single linear story for failures that don't have one. The fix is not to abandon the question — it's to change the method around it: branch instead of chain, validate every causal link counterfactually, then dispatch an independent AI skeptic whose only job is to break your analysis. This guide walks the upgrade through a real outage where the skeptic caught the contributing cause the first pass missed.**
+
+*By [Rick Watson](https://rmwcommerce.com) · 2026-06-08 · Roughly 18 min read*
+
+Who this is for: engineers, SREs, and operators who run postmortems — and anyone wiring an AI agent into their incident process and wondering whether it can do more than summarize the timeline.
+
+> © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. This guide synthesizes published work by John Allspaw, Richard Cook, the SNAFUcatchers (STELLA report), and Google's SRE organization — quoted material is the property of its respective owners and used under fair use with attribution. See Sources & Attribution. Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
+
+The AI skeptic in this guide is a dispatched subagent. If you're deciding whether a job like that should be a prompt, a skill, or a full agent, start with The Prompts-to-Agents Ladder (https://github.com/watsonrm/rmwcommerce/blob/main/the-prompts-to-agents-ladder.md); for the architecture that keeps dispatched subagents from silently returning garbage, see Multi-Agent Fan-Out and Verification (https://github.com/watsonrm/rmwcommerce/blob/main/multi-agent-fan-out-and-verification.md).
+
+## TL;DR — what's in it for you
+
+The Five Whys asks a good question ("why did this happen?") and then, run naively, answers it badly: it walks one cause backward through five steps and stops. Real software failures don't have one cause walking backward. They have several latent conditions that were each necessary and only jointly sufficient, and the naive method is structurally blind to all but one of them.
+
+You don't need a new question. You need four changes to the method, and one of them is newly cheap in 2026:
+
+1. Branch, don't chain. At every step ask "what were all the conditions for this?" — build a tree, not a line.
+2. Ask "how," not "why." "Why" slides toward "who" (blame). "How did this make sense at the time?" surfaces the conditions instead.
+3. Validate every link counterfactually. "If I remove just this one factor, does the failure still happen?" That test is what separates a real contributing cause from a story.
+4. Dispatch an adversarial skeptic. The newly cheap part: a second AI agent, given only your analysis and told to refute it — find the missing branch, call out the blame smell, attack your most confident link.
+
+### Where to spend your time, in priority order
+
+| # | Change | Why it matters | Effort |
+| :-- | :--- | :--- | :--- |
+| 1 | Branch instead of chain | The single highest-value fix. A linear chain throws away every co-cause; a tree keeps them. Most "we fixed it and it happened again" stories are a chain that pruned the cause that actually mattered. | Low — it's a question change |
+| 2 | Counterfactual-validate each link | Stops you from shipping a plausible story. Each link must earn its place: remove it, does the failure still occur? | Low |
+| 3 | Ban two stopping points | "Human error" and "we hit the fifth why" are where bad analyses end. Both are arbitrary. Outlaw them. | Low |
+| 4 | Dispatch an AI skeptic | Catches what you can't see in your own analysis. Adversarial-by-construction beats one model nodding along with itself. | Medium — one well-scoped agent |
+
+The first three are free and you can apply them in your next postmortem. The fourth is the part this guide is really about: it was impractical to staff a dedicated devil's advocate for every incident, and now it isn't.
+
+## How to use this
+
+Install the companion skill (https://github.com/watsonrm/rmwcommerce/tree/main/skills/understand-failure) from a clone of this repo: cp -r skills/understand-failure ~/.claude/skills/
+
+Then describe the failure to Claude and say one of: "understand why this failed" / "root-cause this" / "do a postmortem on this" / "5-whys this". The article below is the reasoning behind the method — the skill is the operational form.
+
+## 1. The method is as old as software's habits
+
+The Five Whys did not come from software. It came from Toyota. Sakichi Toyoda developed the practice of asking "why" iteratively; Taiichi Ohno formalized it into the Toyota Production System and called it "the basis of Toyota's scientific approach." (https://en.wikipedia.org/wiki/Five_whys)
+
+## 2. Why naive Five Whys quietly fails for software
+
+John Allspaw's 2014 essay "The Infinite Hows" (https://www.kitchensoap.com/2014/11/14/the-infinite-hows-or-the-dangers-of-the-five-whys/) lays out four structural problems: it forces a line onto something that isn't one ("At best, it locks you into a causal chain, which is not how the world actually works"); there is no single root cause (Cook Point 3: "Each of these small failures is necessary to cause catastrophe but only the combination is sufficient"; Point 7: "Post-accident attribution to a 'root cause' is fundamentally wrong"); "why" slides into "who" (blame); and stopping at "human error" is hindsight, not analysis (Cook Point 8, Point 17).
+
+Primary sources: Richard Cook, "How Complex Systems Fail" (1998) — https://how.complexsystems.fail/; SNAFUcatchers STELLA report (2017) — https://snafucatchers.github.io/; Google SRE postmortem culture — https://sre.google/sre-book/postmortem-culture/.
+
+## 3. The rigorous version: keep the question, change the method
+
+Six moves: (1) establish facts before causes; (2) frame blamelessly, out loud; (3) ask "how," not "why"; (4) branch, don't chain — build a tree tagged proximate / contributing / systemic/latent; (5) validate every link counterfactually — necessary-but-not-sufficient nodes survive, noise gets pruned; (6) remediate the system, not the people — every fix system/process-level, owner-assignable, linked to its node.
+
+## 4. Bringing it into the agentic era
+
+Split the work: analyst builds the tree; independent skeptic agent is given only the tree + facts and told to break it. The skeptic returns five things: the missing branch, the blame smell, the single-cause smell, the counterfactual challenge on the two most-confident nodes, and the stopping-rule challenge. Fold findings back in; if a real gap was found, recurse. A "nothing wrong" verdict on the first pass is suspect.
+
+## 5. What this caught in practice
+
+A background sync job silently did nothing for four days. The naive chain found one cause (broken lock on wrong OS). Branching found three: the lock failure, no monitoring of the delivery process itself, and a second independent silent-death path (credential auto-revocation). The skeptic found the third branch — the analyst's tree didn't mention it. Remediations split into prevention (working lock, pre-deploy OS smoke test, durable credential) and detection (heartbeat on delivery process, suppress false-stale storm, end-to-end data-arrival assertion).
+
+## 6. Steal this
+
+Write facts first. Say the blameless assumption out loud. Ask "how did this make sense at the time?" Branch at every node. Test every link counterfactually. Ban two endings: "human error" and "counted to five." Dispatch a skeptic. Fix systems, not people.
+
+Runnable skill: https://github.com/watsonrm/rmwcommerce/tree/main/skills/understand-failure
+
+The Five Whys was never wrong to ask why. It was wrong to expect one answer.
+
+## Sources & Attribution
+
+- John Allspaw, "The Infinite Hows" (2014): https://www.kitchensoap.com/2014/11/14/the-infinite-hows-or-the-dangers-of-the-five-whys/
+- John Allspaw, "Each necessary, but only jointly sufficient" (2012): https://www.kitchensoap.com/2012/02/10/each-necessary-but-only-jointly-sufficient/
+- Richard Cook, "How Complex Systems Fail" (1998): https://how.complexsystems.fail/
+- SNAFUcatchers STELLA report (2017): https://snafucatchers.github.io/
+- Google SRE — Postmortem Culture: https://sre.google/sre-book/postmortem-culture/
+- Five whys, Wikipedia: https://en.wikipedia.org/wiki/Five_whys
+
+<!-- END: guides/bringing-five-whys-into-the-agentic-era.md -->

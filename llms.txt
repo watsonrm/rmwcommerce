@@ -29,6 +29,7 @@
 - [GA4 with Claude — Data API, BigQuery, and the Multi-Source Warehouse](https://github.com/watsonrm/rmwcommerce/blob/main/guides/ga4-with-claude.md): Which of GA4's four surfaces to point an agent at, when the Data API is enough and when you need the BigQuery export, the observed-vs-modeled distinction that explains most agent errors, read-only wiring with cost guardrails, and an honest assessment of which connectors actually deliver the native export.
 - [YouTube Analytics with Claude — Two Analytics APIs, Not One](https://github.com/watsonrm/rmwcommerce/blob/main/guides/youtube-analytics-with-claude.md): Which of YouTube's three APIs answers your question — the Data API v3 for metadata and public counts, the Analytics API for ad-hoc queries and the audience-retention curve, and the Reporting API for recurring bulk work. Covers the no-service-account constraint that silently breaks unattended agents, how to solve it once with a persisted refresh token, and why BigQuery's Data Transfer Service is the cleanest setup for anything recurring.
 - [RMW Commerce Glossary](https://github.com/watsonrm/rmwcommerce/blob/main/glossary.md): Every named concept across all guides defined once, with hype vs. reality marked per entry. Organized by category; deep-linkable by anchor.
+- [Bringing Five Whys into the Agentic Era](https://github.com/watsonrm/rmwcommerce/blob/main/guides/bringing-five-whys-into-the-agentic-era.md): The upgrade to linear root-cause analysis that survives the standard objections: branch instead of chain, validate every causal link counterfactually, dispatch an independent AI skeptic whose only job is to break the analysis. Method assembled from Allspaw, Cook, the STELLA report, and Google SRE; worked through a real outage where the skeptic caught the second silent-death path the first pass missed.
 
 ## Skills
 
@@ -41,6 +42,7 @@
 - [Claude Token Optimization skill](https://github.com/watsonrm/rmwcommerce/tree/main/skills/claude-token-optimization): Audits Claude API or Claude Code token spend and recommends one concrete cost reduction.
 - [Building Excellent Software skill](https://github.com/watsonrm/rmwcommerce/tree/main/skills/building-excellent-software): Applies the excellent-software checklist to a Claude-built artifact and surfaces the highest-leverage gap before shipping.
 - [Operating Google Workspace from Claude skill](https://github.com/watsonrm/rmwcommerce/tree/main/skills/operating-google-workspace-from-claude): Audits a Drive/Docs/Sheets/Slides automation against the patterns checklist; diagnoses the "works in prompt, fails in skill" connector failure mode, the Sheets `USER_ENTERED` gotcha, the Slides object-ID-after-editor-edit gotcha, and non-native file mishandling.
+- [understand-failure skill](https://github.com/watsonrm/rmwcommerce/tree/main/skills/understand-failure): Runs a full adversarial Five Whys — branching cause tree tagged by layer (proximate / contributing / systemic), counterfactual verdict on every link, independent skeptic pass with five specific challenges, and system-level owner-assignable remediations. Companion to "Bringing Five Whys into the Agentic Era."
 
 ## Optional
 
