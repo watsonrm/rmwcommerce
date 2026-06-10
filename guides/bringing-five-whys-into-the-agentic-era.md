@@ -50,7 +50,7 @@ The operational form of this guide is the Claude Code skill at [`skills/understa
 
 ```bash
 # from a clone of this repo
-cp -r skills/understand-failure ~/.claude/skills/
+mkdir -p ~/.claude/skills && cp -r skills/understand-failure ~/.claude/skills/
 ```
 
 Then describe the failure to Claude — paste the error, incident timeline, or broken job output — and say one of these:

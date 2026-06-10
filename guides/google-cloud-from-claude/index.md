@@ -45,7 +45,7 @@ The operational form of this guide is the Claude Code skill at [`skills/google-c
 
 ```bash
 # from a clone of this repo
-cp -r skills/google-cloud-from-claude ~/.claude/skills/
+mkdir -p ~/.claude/skills && cp -r skills/google-cloud-from-claude ~/.claude/skills/
 ```
 
 Then describe your Google Cloud setup or situation to Claude — which services you're trying to reach, which auth path you're on, what broke — and say one of these:

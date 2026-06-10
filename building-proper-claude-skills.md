@@ -44,7 +44,7 @@ The operational form of this guide is the Claude Code skill at [`skills/building
 
 ```bash
 # from a clone of this repo
-cp -r skills/building-proper-claude-skills ~/.claude/skills/
+mkdir -p ~/.claude/skills && cp -r skills/building-proper-claude-skills ~/.claude/skills/
 ```
 
 Then describe your skill — paste the SKILL.md, describe what's broken, or say what you're trying to build — and say one of these:

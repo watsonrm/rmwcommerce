@@ -62,11 +62,11 @@ If yes, choose:
 
 ### 4. Deterministic work — is it in code?
 
-Look for loops, rankings, classifications, or aggregations inside the skill instructions that should always produce the same output for the same input. These belong in a script or in dynamic context injection (`` !`command` `` syntax), not in a prompt.
+Look for loops, rankings, classifications, or aggregations inside the skill instructions that should always produce the same output for the same input. These belong in a script or in dynamic context injection — a shell command prefixed with `!` inside backticks, run before the prompt is sent — not in a prompt.
 
 **Test:** If you ran the skill twice on identical input, would you get the identical result? If no, something deterministic is being asked of the model.
 
-**Fix:** Extract that work into a script; have the skill call the script and interpret the result. Or use `` !`<command>` `` to pre-compute and inject the result before the model sees the prompt.
+**Fix:** Extract that work into a script; have the skill call the script and interpret the result. Or use a `!`-prefixed backtick command to pre-compute and inject the result before the model sees the prompt. (Note: write that injection syntax only where you intend it to run — a literal `!`-and-backtick token placed in a skill body executes at load time.)
 
 ### 5. Self-verification — does it check its own work?
 

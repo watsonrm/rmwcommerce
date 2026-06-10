@@ -189,7 +189,7 @@ The operational form of this guide is the Claude Code skill at [`skills/prompts-
 
 ```bash
 # from a clone of this repo
-cp -r skills/prompts-to-agents-ladder ~/.claude/skills/
+mkdir -p ~/.claude/skills && cp -r skills/prompts-to-agents-ladder ~/.claude/skills/
 ```
 
 Then describe your current workflow to Claude — what you're building, how you're invoking it, what's breaking or feeling over-built — and say one of these (the skill's trigger phrases):

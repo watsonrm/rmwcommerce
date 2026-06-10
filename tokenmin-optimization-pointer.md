@@ -32,7 +32,7 @@ If you want Claude to audit your own setup and recommend one fix:
 
 ```bash
 # from a clone of this repo
-cp -r skills/claude-token-optimization ~/.claude/skills/
+mkdir -p ~/.claude/skills && cp -r skills/claude-token-optimization ~/.claude/skills/
 ```
 
 Then describe your Claude usage to Claude and say one of these:

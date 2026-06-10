@@ -53,7 +53,7 @@ The operational form of this guide is the Claude Code skill at [`skills/multi-ag
 
 ```bash
 # from a clone of this repo
-cp -r skills/multi-agent-fan-out ~/.claude/skills/
+mkdir -p ~/.claude/skills && cp -r skills/multi-agent-fan-out ~/.claude/skills/
 ```
 
 Then describe your current setup to Claude — what you're building, what's already an agent, what feels like it should split — and say one of these (the skill's trigger phrases):

@@ -51,7 +51,7 @@ The operational form of this guide is the Claude Code skill at [`skills/claude-c
 
 ```bash
 # from a clone of this repo
-cp -r skills/claude-code-optimizer ~/.claude/skills/
+mkdir -p ~/.claude/skills && cp -r skills/claude-code-optimizer ~/.claude/skills/
 ```
 
 Then describe your setup to Claude — project type, daily tasks, what feels slow or expensive — and say one of these (the skill's trigger phrases):

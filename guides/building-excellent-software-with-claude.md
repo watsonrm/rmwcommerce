@@ -47,7 +47,7 @@ The companion skill at [`skills/building-excellent-software/`](../skills/buildin
 
 ```bash
 # from a clone of this repo
-cp -r skills/building-excellent-software ~/.claude/skills/
+mkdir -p ~/.claude/skills && cp -r skills/building-excellent-software ~/.claude/skills/
 ```
 
 Then describe your build to Claude — what you're building, where you are in the process, what's going wrong — and say one of these:

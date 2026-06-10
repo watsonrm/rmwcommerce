@@ -123,7 +123,7 @@ The operational form of this guide is the Claude Code skill at [`skills/marketin
 
 ```bash
 # from a clone of this repo
-cp -r skills/marketing-to-agents ~/.claude/skills/
+mkdir -p ~/.claude/skills && cp -r skills/marketing-to-agents ~/.claude/skills/
 ```
 
 Then describe your site to Claude — tech stack, site URL, whether you publish editorial content or developer docs — and say one of these:

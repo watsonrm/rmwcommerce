@@ -39,7 +39,7 @@ The operational form of this guide is the Claude skill at [`skills/ga4-with-clau
 
 ```bash
 # from a clone of this repo
-cp -r skills/ga4-with-claude ~/.claude/skills/
+mkdir -p ~/.claude/skills && cp -r skills/ga4-with-claude ~/.claude/skills/
 ```
 
 Then describe your setup to Claude (property type, whether the BigQuery export is on, and what you want to learn) and say one of these:

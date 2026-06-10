@@ -32,7 +32,7 @@ The operational form of this guide is the Claude Code skill at [`skills/mcp-dual
 
 ```bash
 # from a clone of this repo
-cp -r skills/mcp-dual-compat ~/.claude/skills/
+mkdir -p ~/.claude/skills && cp -r skills/mcp-dual-compat ~/.claude/skills/
 ```
 
 Then describe your MCP server — what it does, what transport it uses, what auth it requires — and say one of these:
