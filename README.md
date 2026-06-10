@@ -35,7 +35,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 | **New to Claude Code, not a developer** | [Your First Project Tutorial](claude-code-non-developers-first-tutorial.md) (install + 45-min build) → [Back It Up to GitHub](claude-code-non-developers-github-tutorial.md) → [Field Guide](claude-code-for-non-developers.md) |
 | **Already using Claude Code, want it cheaper or faster** | [Workflow Optimizer](claude-code-optimizer.md) → [Making Claude Faster](guides/making-claude-faster.md) |
 | **Drowning in noise or permission prompts** | [Why Claude Code Is So Noisy](claude-code-noise.md) → [Stop the Interruption Hell](claude-permissions-guide.md) |
-| **Building skills, agents, or multi-agent systems** | [Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) → [Multi-Agent Fan-Out](multi-agent-fan-out-and-verification.md) |
+| **Building skills, agents, or multi-agent systems** | [Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) → [Building Proper Claude Skills](building-proper-claude-skills.md) → [Multi-Agent Fan-Out](multi-agent-fan-out-and-verification.md) |
 | **Debugging a failure or running a postmortem** | [Bringing Five Whys into the Agentic Era](guides/bringing-five-whys-into-the-agentic-era.md) — branch instead of chain, validate every causal link, dispatch an AI skeptic |
 | **Shipping software with Claude, not just one-shot tasks** | [Building Excellent Software (with Claude)](guides/building-excellent-software-with-claude.md) |
 | **Writing to Google Docs, Sheets, Slides, Drive, Calendar, or Gmail from Claude / an agent** | [Operating Google Drive, Docs, Sheets, Slides, Calendar, and Gmail from Claude](guides/operating-google-workspace-from-claude.md) |
@@ -66,6 +66,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 
 **Building agent systems:**
 - [The Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) — when to stay with a prompt, when to package a skill, when to build an agent, and when a multi-agent system is actually warranted. The on-ramp before the multi-agent guide.
+- [Building Proper Claude Skills](building-proper-claude-skills.md) — five disciplines for building a Rung-2 skill that actually works: register it so the runtime finds it, write description and when_to_use so it fires correctly, keep one source of truth, push deterministic work into code, and end with a verification step. The how-to companion to the ladder.
 - [Multi-Agent Fan-Out and Verification](multi-agent-fan-out-and-verification.md) — how to structure Claude agent systems that scale without silently breaking. Typed return contracts, intermediate-state logging, thin-orchestrator architecture, phasing strategy.
 - [Bringing Five Whys into the Agentic Era](guides/bringing-five-whys-into-the-agentic-era.md) — branch instead of chain, validate every causal link counterfactually, and dispatch an independent AI skeptic. The method that survives the standard objections to linear root-cause analysis, with a real outage worked through end to end.
 - [Building Excellent Software (with Claude)](guides/building-excellent-software-with-claude.md) — the tokenmin v0.12.1 → v0.12.5 case study. Eight disciplines for taking a Claude-built artifact from working to production-grade, grounded in the public issue backlog and test suite.
@@ -97,6 +98,7 @@ The on-demand companions to the guides above. Drop any folder into `~/.claude/sk
 - [ga4-with-claude](skills/ga4-with-claude/) — pick the right GA4 surface, wire read-only BigQuery access with cost guardrails, label every number observed or modeled, and produce conversion or paid-media funnel analysis without sampling errors or surprise query bills
 - [understand-failure](skills/understand-failure/) — run a rigorous adversarial Five Whys: branching cause tree, counterfactual validation per link, independent skeptic pass, system-level remediations
 - [google-cloud-from-claude](skills/google-cloud-from-claude/) — pick the right door (MCP / Gemini API / Maps Platform), walk through Vertex or AI Studio setup, audit credential hygiene, and diagnose auth and billing failures before they waste hours
+- [building-proper-claude-skills](skills/building-proper-claude-skills/) — audit any SKILL.md against the five disciplines: registration, description/trigger accuracy, single source of truth, deterministic work in code, self-verification
 
 ### For AI agents reading this repo
 

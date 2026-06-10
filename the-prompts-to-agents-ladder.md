@@ -82,6 +82,8 @@ OpenAI's parallel pattern is Custom GPTs: a tailored configuration with custom i
 
 Simon Willison, who covered the Anthropic skills launch the day it shipped, noted the core architectural simplicity: Skills are Markdown files with optional scripts that compose without requiring a new protocol or agent runtime. ([source](https://simonwillison.net/2025/Oct/16/claude-skills/))
 
+For the how-to side of this rung — registration, description writing, single source of truth, pushing deterministic work into code, self-verification — see [Building Proper Claude Skills](building-proper-claude-skills.md).
+
 **What a skill is NOT:** Autonomous. A skill runs in a user's session, not in a loop. The user invokes it, it runs, it returns. There is no decision-making between steps. If the skill needs to call a tool, it calls one tool and returns the result — it doesn't decide what to do next based on what the tool returned.
 
 **Where to stay:** A skill handles most useful AI workflows. The test is: does a human review each output before anything consequential happens? If yes, a skill's verification model is human review, which is the cheapest and most reliable option available. The cost of a skill is low; the verification cost of an agent is not.
