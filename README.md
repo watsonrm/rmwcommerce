@@ -43,6 +43,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 | **Making your own site readable by AI agents** | [Marketing to Agents](guides/marketing-to-agents.md) |
 | **Reading GA4 data with Claude — picking the right surface, BigQuery guardrails, observed vs modeled** | [GA4 with Claude — Data API, BigQuery, and the Multi-Source Warehouse](guides/ga4-with-claude.md) |
 | **Reading YouTube Analytics with Claude — which of three APIs to use, the auth trap, BigQuery DTS** | [YouTube Analytics with Claude — Two Analytics APIs, Not One](guides/youtube-analytics-with-claude.md) |
+| **Calling Gemini, Imagen 4, or Google Maps Platform from Claude Code — right auth path, real gotchas, code that runs** | [Calling Google Cloud Services from Claude Code](guides/google-cloud-from-claude/index.md) |
 | **Just need a definition** | [Glossary](glossary.md) |
 
 ### The full library by topic
@@ -72,6 +73,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 - [QuickBooks Automation Using Claude Code](guides/quickbooks-automation-using-claude-code.md) — the bundled MCP's real tool inventory (50 tools, 0 AP writes), the bill-in API gap and why it is the right design, the prep-pack architecture for AP that survives every Intuit policy change, and six anti-patterns to recognize before they corrupt your books.
 - [GA4 with Claude — Data API, BigQuery, and the Multi-Source Warehouse](guides/ga4-with-claude.md) — which of GA4's four surfaces to point an agent at, when the Data API is enough and when you need the BigQuery export, the observed-vs-modeled distinction that explains most agent errors, read-only wiring with cost guardrails, and an honest assessment of which "GA4 to BigQuery" connectors actually deliver the native export.
 - [YouTube Analytics with Claude — Two Analytics APIs, Not One](guides/youtube-analytics-with-claude.md) — which of YouTube's three APIs answers your question (Data API v3 for metadata, Analytics API for ad-hoc and the audience-retention curve, Reporting API for recurring bulk work), why service accounts don't work on YouTube and how to solve it once, and why BigQuery's Data Transfer Service is the cleanest unattended-agent setup.
+- [Calling Google Cloud Services from Claude Code](guides/google-cloud-from-claude/index.md) — the three-doors framework for reaching Gemini (text + vision), Imagen 4, and Google Maps Platform from a coding agent. Why your Workspace Gemini plan gives you zero API access, the 429 gotcha with Developer API keys on billing-enabled GCP projects, Keychain credential discipline, and the local-vs.-cloud architecture decision that determines whether a system works unattended.
 
 **Publishing for AI agents:**
 - [Marketing to Agents](guides/marketing-to-agents.md) — the authoritative playbook for making any website readable, citable, and operable across every class of AI agent: indexer bots, AI search surfaces, chat assistants, and agentic browsers. Every claim sourced; 22-item checklist impact-ordered by evidence weight.
@@ -94,6 +96,7 @@ The on-demand companions to the guides above. Drop any folder into `~/.claude/sk
 - [operating-google-workspace-from-claude](skills/operating-google-workspace-from-claude/) — audit a Drive/Docs/Sheets/Slides/Calendar/Gmail automation; diagnose connector-parity bugs, the Sheets `USER_ENTERED` gotcha, Slides object-ID instability, Calendar `sendUpdates` silent-add failures, Gmail base64url encoding errors, and threading-header gaps
 - [ga4-with-claude](skills/ga4-with-claude/) — pick the right GA4 surface, wire read-only BigQuery access with cost guardrails, label every number observed or modeled, and produce conversion or paid-media funnel analysis without sampling errors or surprise query bills
 - [understand-failure](skills/understand-failure/) — run a rigorous adversarial Five Whys: branching cause tree, counterfactual validation per link, independent skeptic pass, system-level remediations
+- [google-cloud-from-claude](skills/google-cloud-from-claude/) — pick the right door (MCP / Gemini API / Maps Platform), walk through Vertex or AI Studio setup, audit credential hygiene, and diagnose auth and billing failures before they waste hours
 
 ### For AI agents reading this repo
 
