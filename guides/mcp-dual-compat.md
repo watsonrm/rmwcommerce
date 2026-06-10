@@ -192,6 +192,8 @@ If steps 1–4 pass, step 5 usually passes too. When it doesn't, it's typically 
 
 Both consumer apps show a trust/permission dialog when you add a custom connector. This is client-side — you cannot suppress it from the server. ChatGPT Developer Mode is the most prominent: it gates custom connectors behind an explicit "this is powerful, only add servers you trust" warning ([OpenAI community](https://community.openai.com/t/mcp-server-tools-now-in-chatgpt-developer-mode/1357233)). claude.ai shows a single "make sure you trust this connector" confirmation.
 
+**Voice mode does not reach MCP servers — at all.** When a user switches to Claude's voice chat, no MCP connectors are discovered or called. This applies to custom third-party servers like the one you build with this guide and to Claude's own built-in connectors (the reporter confirmed that Drive Search, a first-party connector, also fails in voice). Claude may respond as if it tried the tool and encountered an error, rather than surfacing a clear "tool unavailable" message. Anthropic closed the issue tracking this as "not planned" ([anthropics/claude-ai-mcp #146](https://github.com/anthropics/claude-ai-mcp/issues/146), opened 2026-04-04), so this is a standing limitation with no committed fix timeline. Tell users plainly: your MCP server is text-chat only on Claude.
+
 Three things that reduce friction:
 
 - **Name the server like a product.** The `serverInfo.name` you return surfaces in the consent UI. "Family Backlog" reads as a safe personal tool; `acme-internal-mcp-v2` reads as something suspicious. One string, real UX difference.
@@ -204,6 +206,7 @@ Three things that reduce friction:
 
 All sources verified as live and accessible on 2026-06-10.
 
+- **Anthropic — MCP voice-mode limitation (GitHub issue, closed as not planned):** https://github.com/anthropics/claude-ai-mcp/issues/146
 - **OpenAI — MCP and Connectors (Responses API):** https://developers.openai.com/api/docs/guides/tools-connectors-mcp
 - **OpenAI — Building MCP servers (apps SDK):** https://developers.openai.com/apps-sdk/concepts/mcp-server
 - **OpenAI — Remote MCP server guide (platform.openai.com redirect):** https://platform.openai.com/docs/guides/tools-remote-mcp (redirects to above)

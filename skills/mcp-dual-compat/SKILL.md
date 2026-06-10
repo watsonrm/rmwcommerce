@@ -58,6 +58,7 @@ Ask or infer:
 - **421 errors from cloud host?** → DNS-rebinding protection is on. Fix: `TransportSecuritySettings(enable_dns_rebinding_protection=False)` (safe if behind TLS + own auth)
 - **First cold-start call fails/times out?** → Background init is being throttled. Fix: move init inside first request path with a bounded wait, or use CPU-always-allocated
 - **Redirect at mount path?** → Check for 307 `/mcp` → `/mcp/` redirect leaking auth path. Fix: mount so path resolves directly
+- **User says it works in text chat but not in voice?** → This is expected: Claude voice mode does not discover or call any MCP connectors — custom servers and built-in connectors alike. Anthropic closed the tracking issue as "not planned" (anthropics/claude-ai-mcp #146). The fix is to tell users the server is text-chat only; there is no server-side workaround.
 
 ### Step 3 — Prescribe one fix
 
