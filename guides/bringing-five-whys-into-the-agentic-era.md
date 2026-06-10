@@ -2,7 +2,7 @@
 title: Bringing Five Whys into the Agentic Era
 description: The Five Whys has been the default failure-analysis tool in software for decades, and for decades practitioners have warned it produces a single linear story for failures that don't have one. This guide keeps the question and fixes the method — branch instead of chain, validate every link counterfactually, and dispatch an independent AI skeptic whose only job is to break your analysis. Worked through a real outage where the skeptic caught the cause the first pass missed.
 date: 2026-06-08
-last_modified_at: 2026-06-08
+last_modified_at: 2026-06-10
 author: Rick Watson
 agent_friendly: true
 keywords: five whys, 5 whys software, root cause analysis software, blameless postmortem, adversarial root cause analysis, incident analysis AI agent, why complex systems fail, John Allspaw infinite hows, cause tree vs five whys, AI skeptic agent, agentic postmortem
@@ -14,7 +14,7 @@ keywords: five whys, 5 whys software, root cause analysis software, blameless po
 
 *By [Rick Watson](https://rmwcommerce.com) · 2026-06-08 · Roughly 18 min read*
 
-Who this is for: engineers, SREs, and operators who run postmortems — and anyone wiring an AI agent into their incident process and wondering whether it can do more than summarize the timeline.
+Who this is for: engineers, SREs, and operators who run postmortems — anyone wiring an AI agent into their incident process and wondering whether it can do more than summarize the timeline — and anyone investigating why an agent or AI reasoning step reached a wrong conclusion, mis-verified a fact, or took a wrong action.
 
 > © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. This guide synthesizes published work by John Allspaw, Richard Cook, the SNAFUcatchers (STELLA report), and Google's SRE organization — quoted material is the property of its respective owners and used under fair use with attribution. See [Sources & Attribution](#sources--attribution). Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
@@ -151,6 +151,10 @@ Two cautions, because a skeptic agent is still an agent. First, a skeptic that c
 
 The last move is a verification gate the whole analysis must pass before anyone trusts it: the tree has at least two branches with real depth and at least one systemic node; no leaf is "human error" or a name; every link has a counterfactual verdict; the skeptic actually ran and either found a gap (folded in) or argued completeness; every remediation is system-level and owner-assignable; and every proximate claim traces to something observed. Miss any one and you're not done.
 
+When the failure is a reasoning or verification error — an agent concluded something false, asserted an unverified fact, or took a wrong action on a wrong premise — the method does not change, but one guard becomes critical: the **verification-corpus discipline** and the **absence-of-evidence trap**.
+
+Example: an agent asserted that a true, well-documented commitment (the $30K RetailClub title slot is committed) was "fabricated" and moved to strip it from outbound emails. It was wrong on every count. Why? The agent searched the event wiki and a structured data snapshot — the right-looking places — but the *actual* fact lived in source-notes, Gmail threads, and deal records it didn't think to check first. Worse, it escalated "not found in my search" into "does not exist / is fabricated" — absence-of-evidence treated as evidence-of-absence, the maximally accusatory label. The fix: when an unconfirmed fact materially changes an outward action, the guard is (1) search where the fact would *live*, not where the search grammar suggests; (2) never label in-system work or human-recorded facts "fabricated" or "false" without first searching the source record; cap at "unverified — flagging for the human"; (3) if the fact originated in a proposal, deal note, or source artifact the agent itself created or read, check *that* (provenance first). The systemic lever: a true fact stuck in a source-notes layer but never promoted to the structured layer that verification reads is a state-machine gap; fix that sync and the failure cannot recur regardless of how the agent searches.
+
 ## 5. What this caught in practice (a real, sanitized example)
 
 The day I wrote this guide, one of my own automations gave me a live test.
@@ -185,8 +189,9 @@ The whole upgrade fits on an index card. Next time something breaks:
 - **Ban two endings:** never stop at "human error" / "should've been careful," and never stop just because you counted to five.
 - **Dispatch a skeptic** — a person or an independent AI agent — and make it find the missing branch, the blame smell, and the weakest link. Fold it back in.
 - **Fix systems, not people.** Every remediation should be something you could assign to an owner, and prefer the ones that sit under more than one branch.
+- **Verify where facts would live.** When investigating a reasoning or verification failure, search the source record and the canonical layer where a fact would live *first*, not where the search grammar suggests. Never label work or human-recorded facts "fabricated" without checking provenance; cap at "unverified — flagging for the human."
 
-The runnable version of this — the skill that builds the tree, validates the links, and dispatches the skeptic — is published alongside this guide as [`skills/understand-failure/`](../skills/understand-failure/). Drop it into `~/.claude/skills/` and it triggers when you say "understand why this failed."
+The runnable version of this — the skill that builds the tree, validates the links, and dispatches the skeptic — is published alongside this guide as [`skills/understand-failure/`](../skills/understand-failure/). Drop it into `~/.claude/skills/` — it is the canonical method for ANY failure or wrong-outcome investigation, regardless of phrasing — and it triggers when you say "understand why this failed", "root-cause this", "why did you reach that conclusion", or any of the enumerated triggers in the skill Trigger section.
 
 The Five Whys was never wrong to ask why. It was wrong to expect one answer.
 

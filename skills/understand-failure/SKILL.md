@@ -1,6 +1,6 @@
 ---
 name: understand-failure
-description: Run a rigorous, adversarial Five Whys on a software or systems failure — build a branching cause tree (not a linear chain), validate every link counterfactually, then dispatch an independent skeptic to break the analysis before trusting it. Trigger when the user says "understand why this failed", "why did this break", "root-cause this", "5-whys this", "do a postmortem on this", or hands over an incident, outage, or broken job and asks for the cause.
+description: Run a rigorous, adversarial Five Whys on any failure or wrong-outcome — software, systems, or AI reasoning/verification errors. Build a branching cause tree (not a linear chain), validate every link counterfactually, then dispatch an independent skeptic to break the analysis before trusting it. Trigger when the user says "understand why this failed", "why did this break", "root-cause this", "5-whys this", "do a postmortem on this", "why did you reach that conclusion", "why did the agent assert that", or hands over an incident, outage, broken job, wrong conclusion, or mis-verified fact and asks for the cause.
 ---
 
 # understand-failure
@@ -15,9 +15,11 @@ Trigger on phrases like:
 - "understand why X failed" / "why did this break / stop working"
 - "root-cause this" / "5-whys this" / "do a postmortem"
 - "what actually caused this outage"
-- a handed-over incident, stack trace, broken pipeline, or "this used to work and now it doesn't"
+- "why did you reach that conclusion" / "why did the agent assert that" / "why did you say X was false"
+- "understand why I got the wrong answer" / "self-RCA" / "why did the verification step fail"
+- a handed-over incident, stack trace, broken pipeline, wrong conclusion, or mis-verified fact
 
-Scale to the failure: a one-file bug gets a small tree and an inline skeptic pass; a real outage gets the full treatment with a *dispatched* skeptic agent and a grounded timeline.
+Scale to the failure: a one-file bug gets a small tree and an inline skeptic pass; a real outage or reasoning error gets the full treatment with a *dispatched* skeptic agent and a grounded timeline.
 
 ## The method (six moves)
 
@@ -100,11 +102,12 @@ CONFIDENCE & GAPS
 
 The analysis must pass all of these; fix any failure before presenting:
 1. **No single-chain** — 2+ branches with real depth and 1+ systemic node.
-2. **No banned terminal** — no leaf is "human error," "should have been more careful," or a name.
+2. **No banned terminal** — no leaf is "human error," "should have been more careful," a name, or "couldn't find it / not found therefore false/fabricated." Absence of evidence in a search is not evidence of absence; cap at "unverified — flagging for the human" and search where the fact would *live* before escalating.
 3. **Every link validated** — each surviving node has a counterfactual verdict.
 4. **Skeptic actually ran** — and found a gap (folded in) or affirmatively argued completeness.
 5. **Remediations are system-level + owner-assignable** and each cites the node it removes.
 6. **Evidence-grounded** — every proximate/timeline claim traces to something observed; ungrounded inferences are marked `[UNVERIFIED]`.
+7. **Provenance checked for reasoning/verification failures** — if the failure was a wrong conclusion or mis-verified fact, confirm the source record (proposal, deal note, source artifact) was checked before any label was applied.
 
 State in one line which checks passed.
 
