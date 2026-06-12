@@ -96,7 +96,15 @@ REMEDIATIONS (system/process-level, owner-assignable)
 
 CONFIDENCE & GAPS
   <per branch; what's [UNVERIFIED] and what evidence would close it>
+
+TL;DR  (plain language — no tags, no jargon; the part the reader reads first)
+  What happened: <one sentence>
+  Why: <the 1–3 real causes, in plain words>
+  Fix: <the single highest-leverage remediation, named so it can be acted on>
+  <confidence caveat — only if something material is unverified>
 ```
+
+The tree carries the rigor; the TL;DR carries the takeaway. It goes **last**, and a reader who skips straight to it should still understand the failure and the recommended action — no `[PROXIMATE]`/`[SYSTEMIC]` tags, no "counterfactual," no file/function names.
 
 ## Verification (run before delivering)
 
@@ -108,6 +116,7 @@ The analysis must pass all of these; fix any failure before presenting:
 5. **Remediations are system-level + owner-assignable** and each cites the node it removes.
 6. **Evidence-grounded** — every proximate/timeline claim traces to something observed; ungrounded inferences are marked `[UNVERIFIED]`.
 7. **Provenance checked for reasoning/verification failures** — if the failure was a wrong conclusion or mis-verified fact, confirm the source record (proposal, deal note, source artifact) was checked before any label was applied.
+8. **TL;DR present and standalone** — the analysis ends with a plain-language TL;DR (no tags, no jargon) that names what happened, the real cause(s), and the recommended fix, and is understandable by a reader who skipped the tree.
 
 State in one line which checks passed.
 
