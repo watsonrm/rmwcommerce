@@ -33,7 +33,8 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 |---|---|
 | **Already use Claude, wondering if Claude Code is worth your time** | [The 5-Minute Test](claude-code-5-minute-test.md) — one prompt, paste a real conversation, get a personalized YES/NO before you install anything |
 | **New to Claude Code, not a developer** | [Your First Project Tutorial](claude-code-non-developers-first-tutorial.md) (install + 45-min build) → [Back It Up to GitHub](claude-code-non-developers-github-tutorial.md) → [Field Guide](claude-code-for-non-developers.md) |
-| **Already using Claude Code, want it cheaper or faster** | [Workflow Optimizer](claude-code-optimizer.md) → [Making Claude Faster](guides/making-claude-faster.md) |
+| **Already using Claude Code, want it cheaper or faster** | [Workflow Optimizer](claude-code-optimizer.md) → [Making Claude Faster](guides/making-claude-faster.md) → [Shallow Research](guides/shallow-research.md) |
+| **Running AI research workflows and watching the bill climb** | [Shallow Research](guides/shallow-research.md) — bounded one-context research that answers most questions for a fraction of deep-research cost, with a hard escalation guardrail |
 | **Drowning in noise or permission prompts** | [Why Claude Code Is So Noisy](claude-code-noise.md) → [Stop the Interruption Hell](claude-permissions-guide.md) |
 | **Building skills, agents, or multi-agent systems** | [Prompts-to-Agents Ladder](the-prompts-to-agents-ladder.md) → [Building Proper Claude Skills](building-proper-claude-skills.md) → [Multi-Agent Fan-Out](multi-agent-fan-out-and-verification.md) |
 | **Debugging a failure or running a postmortem** | [Bringing Five Whys into the Agentic Era](guides/bringing-five-whys-into-the-agentic-era.md) — branch instead of chain, validate every causal link, dispatch an AI skeptic |
@@ -59,6 +60,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 **Cost + speed optimization:**
 - [Claude Code Workflow Optimizer](claude-code-optimizer.md) — patterns for reducing token waste and rework, ranked by ROI. Context-window discipline, CLAUDE.md hygiene, model routing, worktree fleets. Grounded in Anthropic's official documentation.
 - [Making Claude Respond Faster](guides/making-claude-faster.md) — prompt caching, model selection, parallel tool calls, and the patterns that slow you down. 17 sources across primary docs, Anthropic engineering, and independent practitioners.
+- [Shallow Research: Grounded AI Web Research Without Breaking the Bank](guides/shallow-research.md) — the two-tier research model: a bounded one-context cheap tier (≤3 searches, ≤5 fetches, zero subagents) and the escalation guardrail that stops cost from silently scaling up under the "cheap" label.
 - [Token Optimization Pointer](tokenmin-optimization-pointer.md) — 3-bullet TL;DR plus a link to the full Claude-token guide at tokenmin.ai.
 
 **Permissions:**
@@ -102,6 +104,7 @@ The on-demand companions to the guides above. Drop any folder into `~/.claude/sk
 - [google-cloud-from-claude](skills/google-cloud-from-claude/) — pick the right door (MCP / Gemini API / Maps Platform), walk through Vertex or AI Studio setup, audit credential hygiene, and diagnose auth and billing failures before they waste hours
 - [building-proper-claude-skills](skills/building-proper-claude-skills/) — audit any SKILL.md against the five disciplines: registration, description/trigger accuracy, single source of truth, deterministic work in code, self-verification
 - [mcp-dual-compat](skills/mcp-dual-compat/) — audit a remote MCP server against the four dual-compat decisions (transport, statelessness, auth shape, tool schema) and prescribe the minimal fix for any cross-platform failure
+- [shallow-research](skills/shallow-research/) — run a bounded one-context research pass (≤3 searches, ≤5 fetches, zero subagents) with a hard escalation guardrail; stops and asks before crossing any cap
 
 ### For AI agents reading this repo
 
