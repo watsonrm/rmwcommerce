@@ -63,8 +63,9 @@ Do not trust your own first tree. Run an **independent skeptic** whose only job 
 3. **The single-cause smell** — has the tree collapsed into one dominant chain with the rest as garnish? If only one branch has depth, branching failed.
 4. **The counterfactual challenge** — take the two nodes the analyst is most confident about and argue the *opposite* (that removing them wouldn't have prevented the failure). If it holds, the node is mis-rated.
 5. **The stopping-rule challenge** — where did each branch stop, and is the stop principled (hit an actionable system lever) or arbitrary (ran out of ideas / hit five)?
+6. **The premise audit (the one that catches a wrong RCA)** — take each branch's load-bearing *factual* claim, especially any claim about **how a deterministic system behaved** ("it routed to X", "no rule matched", "the field was empty"). Verify the analyst actually read the *mechanism that produces that behavior* (the function, the config it reads, the state file) — not just the downstream symptom. Any node whose cause is asserted from absence-of-evidence ("no rule found", "not mapped") without reading the thing that would contain it is presumed **wrong** until the decider is read.
 
-Fold the findings back in. If the skeptic found a real missing branch, the analysis isn't done — recurse. A skeptic that returns "nothing wrong" on the first try is suspect; make it name a candidate missing branch regardless.
+When the RCA's conclusion will drive an action, a build, or a spend, run the skeptic as a *dispatched independent agent*, not a switch-hat pass — a switch-hat skeptic shares your false premises and will challenge the tree's shape while accepting its facts. Fold the findings back in. If the skeptic found a real missing branch *or a wrong premise*, the analysis isn't done — recurse. A skeptic that returns "nothing wrong" on the first try is suspect; make it name a candidate missing branch regardless.
 
 ## Output format
 
@@ -114,7 +115,7 @@ The analysis must pass all of these; fix any failure before presenting:
 3. **Every link validated** — each surviving node has a counterfactual verdict.
 4. **Skeptic actually ran** — and found a gap (folded in) or affirmatively argued completeness.
 5. **Remediations are system-level + owner-assignable** and each cites the node it removes.
-6. **Evidence-grounded** — every proximate/timeline claim traces to something observed; ungrounded inferences are marked `[UNVERIFIED]`.
+6. **Evidence-grounded — to the decider, not the symptom** — every proximate/timeline claim traces to something observed; ungrounded inferences are marked `[UNVERIFIED]`. For any node asserting how a deterministic system behaved (routed / matched / skipped / fired / was empty), the cite must be the mechanism that *produces* that behavior (the function, the config it reads, the state file) — not the outcome it explains. A system-behavior cause asserted from its own symptom, or from absence ("no rule found") without reading the decider, is the single most common way an RCA is itself wrong.
 7. **Provenance checked for reasoning/verification failures** — if the failure was a wrong conclusion or mis-verified fact, confirm the source record (proposal, deal note, source artifact) was checked before any label was applied.
 8. **TL;DR present and standalone** — the analysis ends with a plain-language TL;DR (no tags, no jargon) that names what happened, the real cause(s), and the recommended fix, and is understandable by a reader who skipped the tree.
 
