@@ -46,6 +46,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 | **Reading YouTube Analytics with Claude — which of three APIs to use, the auth trap, BigQuery DTS** | [YouTube Analytics with Claude — Two Analytics APIs, Not One](guides/youtube-analytics-with-claude.md) |
 | **Calling Gemini, Imagen 4, or Google Maps Platform from Claude Code — right auth path, real gotchas, code that runs** | [Calling Google Cloud Services from Claude Code](guides/google-cloud-from-claude/index.md) |
 | **Building a remote MCP server that connects from Claude AND ChatGPT/OpenAI — transport, session, auth, and tool-shape decisions** | [MCP Dual-Compat: One Server for Both Platforms](guides/mcp-dual-compat.md) |
+| **Deciding where to run a Claude automation — local launchd vs. claude.ai Routines vs. Cloud Run Jobs** | [Where to Run Your Claude Automation](guides/where-to-run-claude-automation.md) |
 | **Just need a definition** | [Glossary](glossary.md) |
 
 ### The full library by topic
@@ -79,6 +80,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 - [YouTube Analytics with Claude — Two Analytics APIs, Not One](guides/youtube-analytics-with-claude.md) — which of YouTube's three APIs answers your question (Data API v3 for metadata, Analytics API for ad-hoc and the audience-retention curve, Reporting API for recurring bulk work), why service accounts don't work on YouTube and how to solve it once, and why BigQuery's Data Transfer Service is the cleanest unattended-agent setup.
 - [Calling Google Cloud Services from Claude Code](guides/google-cloud-from-claude/index.md) — the three-doors framework for reaching Gemini (text + vision), Imagen 4, and Google Maps Platform from a coding agent. Why your Workspace Gemini plan gives you zero API access, the 429 gotcha with Developer API keys on billing-enabled GCP projects, Keychain credential discipline, and the local-vs.-cloud architecture decision that determines whether a system works unattended.
 - [MCP Dual-Compat: One Server for Both Platforms](guides/mcp-dual-compat.md) — the four decisions that determine whether a remote MCP server connects from Claude (claude.ai, Claude Code, mobile) and OpenAI (ChatGPT apps, Responses API): transport choice, statelessness, auth shape, and tool schema. Includes a verified test ladder from curl probe through the Responses API to consumer UI, and honest framing of what was live-tested vs. protocol-verified.
+- [Where to Run Your Claude Automation](guides/where-to-run-claude-automation.md) — the runtime-surface decision framework: local launchd vs. claude.ai Routines vs. GCP Cloud Run Jobs. Covers the 1-hour cron floor, launchd sleep behavior, the `claude/` branch-permission default, gcloud Workspace session-control expiry, and a three-question decision tree for picking the right surface before you build.
 
 **Publishing for AI agents:**
 - [Marketing to Agents](guides/marketing-to-agents.md) — the authoritative playbook for making any website readable, citable, and operable across every class of AI agent: indexer bots, AI search surfaces, chat assistants, and agentic browsers. Every claim sourced; 22-item checklist impact-ordered by evidence weight.
@@ -105,6 +107,7 @@ The on-demand companions to the guides above. Drop any folder into `~/.claude/sk
 - [building-proper-claude-skills](skills/building-proper-claude-skills/) — audit any SKILL.md against the five disciplines: registration, description/trigger accuracy, single source of truth, deterministic work in code, self-verification
 - [mcp-dual-compat](skills/mcp-dual-compat/) — audit a remote MCP server against the four dual-compat decisions (transport, statelessness, auth shape, tool schema) and prescribe the minimal fix for any cross-platform failure
 - [shallow-research](skills/shallow-research/) — run a bounded one-context research pass (≤3 searches, ≤5 fetches, zero subagents) with a hard escalation guardrail; stops and asks before crossing any cap
+- [where-to-run-claude-automation](skills/where-to-run-claude-automation/) — apply the three-surface decision framework (local launchd / claude.ai Routines / Cloud Run Jobs) to a described automation and recommend a surface with specific reasoning and a gotcha checklist
 
 ### For AI agents reading this repo
 
