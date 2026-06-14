@@ -2,6 +2,7 @@
 title: Multi-Agent Fan-Out and Verification
 description: Your multi-agent system reports "all subagents completed successfully" and the final output is wrong. Somewhere in the fan-out, a subagent returned garbage and the orchestrator propagated it across every downstream step without flagging anything. Tool success isn't task success — and at multi-agent scale, that gap compounds until partial failures become invisible. This guide names the architecture patterns that catch silent failures before they ship, with the strongest counterargument against fan-out included.
 date: 2026-05-22
+last_modified_at: 2026-06-14
 author: Rick Watson
 agent_friendly: true
 keywords: multi-agent silent failure, orchestrator context overflow, subagent returned bad output, agent reports success but wrong, Claude multi-agent debugging, fan-out propagates errors, multi-agent scale, typed return contracts, tool success not task success
@@ -11,7 +12,7 @@ keywords: multi-agent silent failure, orchestrator context overflow, subagent re
 
 **Your multi-agent system reports "all subagents completed successfully" and the final output is wrong. Somewhere in the fan-out, a subagent returned garbage and the orchestrator propagated it across every downstream step without flagging anything. Tool success isn't task success — and at multi-agent scale, that gap compounds until partial failures become invisible. This guide names the architecture patterns that catch silent failures before they ship, with the strongest counterargument against fan-out included.**
 
-*By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · Roughly 25 min read*
+*By [Rick Watson](https://rmwcommerce.com) · 2026-05-22 · Updated 2026-06-14 · Roughly 25 min read*
 
 Who this is for: engineers building or refactoring multi-agent Claude systems who want to avoid silent failures and orchestrator context overflow.
 
@@ -298,6 +299,16 @@ Anthropic built explicit scaling thresholds into their system based on query com
 The practical version for most systems is simpler: identify the workflows where you're doing sequential work that could run in parallel. A meeting-prep workflow that looks up eight attendees sequentially is doing eight network round-trips one at a time. Eight parallel subagents, each returning a typed CRM lookup result, finish in roughly the time of one.
 
 The fan-out pattern only makes sense after Pillars 1 and 2 are in place. Parallelism with loose contracts amplifies noise; parallelism with typed schemas amplifies precision. And per the Cognition critique: fan-out only for reads with typed returns, not for decisions that compose.
+
+### One writer per shared resource
+
+Three production rules that don't follow from idempotency alone:
+
+**1. Dispatch exactly one writer per shared file or resource.** When fanned-out agents all write to the same file — a wiki, a queue file, a shared log — dispatch one agent for that resource, not one agent per inbound item. A wiki synthesis pass that fans out one agent per inbox envelope but sends all of them to write the same wiki file has a concurrent-write problem: two agents can both read the current state, both decide to append, and one overwrites the other's changes. Idempotency protects a serial retry; it does not prevent two concurrent writers from clobbering each other. The fix is structural: fan out by resource, not by item. One agent per wiki, looping over its items internally, is the correct shape. This is also why the source synthesizer in the catalog below dispatches one invocation per wiki (not per envelope) — sole-writer is the contract, not a performance choice.
+
+**2. Prefilter junk before the planner.** Fan-out architectures that route every inbound item through an expensive planning or classification step before deciding whether it's worth processing waste tokens on items that a cheap rule could have rejected immediately. Apply a lightweight prefilter — keyword match, sender pattern, schema check — before dispatching to the orchestrator. Items that fail the prefilter never reach the planner. This is especially important in steady-state inbox or queue workflows where a meaningful fraction of items are noise.
+
+**3. Pipeline independent items; don't erect a cross-resource barrier.** Fan-out across independent resources should proceed in parallel. A barrier that waits for the slowest wiki to finish before writing any of them serializes what could be parallel work and amplifies any single slow operation into a wall-clock bottleneck for the entire run. The constraint is sole-writer per resource — not sole-writer across all resources at once.
 
 ### Subagent specialization
 

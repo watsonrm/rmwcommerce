@@ -2,7 +2,7 @@
 title: QuickBooks Automation Using Claude Code
 description: The patterns, hard limits, and anti-patterns of operating QuickBooks Online from Claude or any AI agent. The bundled-MCP tool surface, the bill-in API gap and why it is the right design, the prep-pack architecture for AP that survives every Intuit policy change, and the surface-by-surface deep dive across reads, sales-out writes, identity writes, reports, and payroll. Every claim grounded in a specific failure mode or a published number.
 date: 2026-05-26
-last_modified_at: 2026-05-26
+last_modified_at: 2026-06-14
 author: Rick Watson
 agent_friendly: true
 keywords: QuickBooks Online API, Claude Code QuickBooks, Intuit MCP server, QBO bundled MCP, com.intuit.quickbooks.accounting scope, Bill entity API, Vendor entity API, OAuth app assessment Intuit, prep-pack pattern, AP automation, bill-in API gap, claude.ai connector, QuickBooks Online API limitations, reversible vs irreversible actions, human in the loop AI agent, qbo_sales_create_invoice, qbo_accounting_get_ap_aging, quickbooks-online-mcp-server, AI bookkeeper, contractor invoices Claude, Bill.com alternative solo operator, Ramp Bill Pay small business
@@ -12,7 +12,7 @@ keywords: QuickBooks Online API, Claude Code QuickBooks, Intuit MCP server, QBO 
 
 **The QuickBooks Online REST API lets an authorized app create a Bill. The MCP server bundled inside claude.ai does not. The asymmetry is not a bug — it is the right scope once you name the underlying principle: AI should prepare high-stakes money decisions for human approval, not execute them. This guide names every surface the bundled MCP exposes, every hard limit it imposes, the prep-pack architecture that fills the gap durably, and the anti-patterns that look like progress but ship books in worse shape than they started.**
 
-**Published:** <time datetime="2026-05-26">2026-05-26</time>  ·  **Last updated:** <time datetime="2026-05-26">2026-05-26</time>  ·  **Author:** [Rick Watson](https://www.rmwcommerce.com/), Principal, RMW Commerce Consulting  ·  **Canonical URL:** [`github.com/watsonrm/rmwcommerce/blob/main/guides/quickbooks-automation-using-claude-code.md`](https://github.com/watsonrm/rmwcommerce/blob/main/guides/quickbooks-automation-using-claude-code.md)  ·  **Reading time:** 12-min skim · 55-min deep read
+**Published:** <time datetime="2026-05-26">2026-05-26</time>  ·  **Last updated:** <time datetime="2026-06-14">2026-06-14</time>  ·  **Author:** [Rick Watson](https://www.rmwcommerce.com/), Principal, RMW Commerce Consulting  ·  **Canonical URL:** [`github.com/watsonrm/rmwcommerce/blob/main/guides/quickbooks-automation-using-claude-code.md`](https://github.com/watsonrm/rmwcommerce/blob/main/guides/quickbooks-automation-using-claude-code.md)  ·  **Reading time:** 12-min skim · 55-min deep read
 
 Who this is for: small-business operators and solo principals using Claude Code or claude.ai who want to read or write QuickBooks Online from an AI agent. Anyone who has clicked "Add QuickBooks" inside claude.ai and noticed there is no `create_bill` tool. Builders deciding whether to author against the bundled connector, register an Intuit Developer app, or stand up the official Intuit MCP server. Anyone trying to figure out where the human checkpoint belongs in an otherwise-autonomous bookkeeping workflow.
 
@@ -335,6 +335,8 @@ For any QBO automation, five reads are load-bearing. They answer "where do I sta
 
 Pinning a stable as-of date and a stable period grain is the discipline. Reports are sensitive to (a) whether the company uses accrual or cash basis (set in QBO settings; readable via `qbo_sales_get_settings` and `company-info`), (b) what fiscal year the company runs, and (c) what custom date ranges are passed. Two reads at "last month" against the same data can differ by hundreds of dollars if one uses cash and one uses accrual; always confirm the basis before reporting numbers.
 
+One non-obvious trap within a single QBO file: **the P&L honors the company's cash/accrual setting, but the sales-by-customer report is inherently accrual** — so both reports can legitimately disagree on any period where invoices were issued but not yet paid. If you run a cash-basis P&L and the sales-by-customer summary for the same period and see different revenue numbers, that is expected behavior, not a data error or a missing transaction. Before raising an alarm about "missing revenue," check the invoice's open balance and the bank-deposit delta for the period. Cash-basis books simply haven't recognized an invoiced-but-unpaid amount yet; it will appear in the P&L in the period the payment clears.
+
 ### 2.2 — The sales-by reads and the catalog dump
 
 For any business with a catalog (products, services, SKUs), three reads close the loop on "what's selling":
@@ -376,6 +378,8 @@ The bundled MCP exposes nine payroll reads: employees, pay types, last payroll r
 - **Compliance reads:** `qbo_payroll_get_company_deductions_contributions` for the deduction/contribution mix; `qbo_payroll_get_company_timeoff_details` for PTO balances.
 
 No payroll write tools in the bundled MCP. Same pattern as bill-in: read everything, change nothing. Payroll writes are a separate Intuit Payroll API and a separate set of permissions; an agent that wants to run payroll programmatically is in even deeper territory than one filing bills.
+
+**Third-party payroll caveat:** when payroll runs through a provider like Gusto, Rippling, or ADP and syncs into QBO, the QBO payroll reads typically carry only the gross compensation journal entry — often booked as "Officer Compensation" or a similarly named account. The full withholding, 401(k), and net-pay breakdown lives in the payroll provider, not in QBO. Treating the QBO payroll reads as authoritative for the deduction or net-pay split will produce wrong numbers. For owner-paycheck review where the deduction mix matters, go to the payroll provider directly. Don't reconcile net pay off QBO alone.
 
 ### 2.6 — Benchmarking and industry
 
