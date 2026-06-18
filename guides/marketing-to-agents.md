@@ -664,6 +664,8 @@ Servers expose tools (callable functions), resources (readable data), and prompt
 
 MCP is the next layer above `llms.txt`. `llms.txt` is "here is everything in markdown, paste it in." MCP is "here is a function the agent can call when it needs one thing." For high-traffic APIs and complex products, the MCP path is dramatically more token-efficient and is the path production coding agents will prefer. Recommending an MCP server is higher-leverage than recommending `llms.txt` for any site with a real API.
 
+The value of an MCP surface depends on what's inside it. [Doc-Teaming: Write Documents an Agent Can Check](doc-teaming.md) is the content-integrity discipline that pairs with this playbook — it covers how to grade every claim by source tier, quarantine marketing from evidence, and red-team contested lines so that an agent querying your MCP gets a graded record rather than a flat pile of equally-weighted assertions.
+
 ---
 
 ## Part 5 — The technical infrastructure stack

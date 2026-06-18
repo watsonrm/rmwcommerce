@@ -86,6 +86,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 
 **Publishing for AI agents:**
 - [Marketing to Agents](guides/marketing-to-agents.md) — the authoritative playbook for making any website readable, citable, and operable across every class of AI agent: indexer bots, AI search surfaces, chat assistants, and agentic browsers. Every claim sourced; 22-item checklist impact-ordered by evidence weight.
+- [Doc-Teaming: Write Documents an Agent Can Check](guides/doc-teaming.md) — the content-integrity discipline that pairs with the marketing-to-agents playbook: grade every claim by source tier, quarantine marketing from evidence, and red-team contested lines so agents cite accurately rather than flatten everything into equal-weight assertions.
 - [AI Agent Discoverability and Protocols](ai-discoverability-and-protocols.md) — concept by concept on the AI-agent protocol stack: what's deployable, what's wait-and-see, what's already dead. Includes audience-specific recommendations and direct attribution of hype.
 
 **Reference:**

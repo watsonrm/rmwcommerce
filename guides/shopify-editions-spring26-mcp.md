@@ -129,6 +129,8 @@ Every claim is graded by the best source backing it:
 
 **The result: 104 confirmed** (backed by Tier-1 operational sources), **129 inferred** (Shopify marketing, flagged), **4 unverified** (contradicted or no source found). That split is visible per-item in the dataset.
 
+Grading every claim by source tier, corroborating across independent sources, and quarantining marketing from evidence is a discipline I call **doc-teaming** — turning a launch blob into evidence an agent can check. See [Doc-Teaming: Write Documents an Agent Can Check](doc-teaming.md) for the method and how to apply it to your own docs.
+
 ---
 
 ## What the data shows — empirical observations
