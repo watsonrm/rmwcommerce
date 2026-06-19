@@ -105,6 +105,8 @@ Applied to commerce:
 
 Each facet is a separate field. Each can evolve independently. A company's role doesn't change when your relationship to it changes.
 
+For the theoretical underpinning of why this works: the W3C's Organization Ontology (`org:Role`) was designed as exactly this kind of extensibility hook — it's a subclass of `skos:Concept` with no predefined values, and the spec explicitly states it "does not provide category structures for organization type, organization purpose or roles," expecting domain-specific vocabularies to fill the gap. ([W3C Organization Ontology](https://www.w3.org/TR/vocab-org/)) That gap is precisely what a commerce-specific role axis fills.
+
 ---
 
 ## 3. Design for agents — the failure mode is classification drift
@@ -194,23 +196,47 @@ The synthesis of the two — entity graph from CRM, salience from observed signa
 
 ---
 
+## Prior art and the white space
+
+Before designing your own vocabulary, it's worth knowing what already exists — and why none of it is what you need.
+
+Efforts to classify the commerce ecosystem fall into four corners:
+
+**Machine-readable role ontologies — but sparse or wrong axis.**
+GoodRelations (Martin Hepp, OWL v1.0) defines `gr:BusinessEntityType` to model a company's "position in the value chain," which is exactly the right axis — but it predefines only four values: Business, Enduser, PublicInstitution, and Reseller. ([GoodRelations v1](http://www.heppnetz.de/ontologies/goodrelations/v1.html) · [schema.org/BusinessEntityType](https://schema.org/BusinessEntityType)) The GS1 Web Vocabulary `OrganizationRoleType` is the most developed precedent: a real machine-readable OWL vocabulary enumerating 137 org roles — RETAILER, E_TAILER, MARKETPLACE_OPERATOR, BRAND_OWNER, DISTRIBUTOR, MANUFACTURER, CARRIER, and more. ([GS1 OrganizationRoleType](https://ref.gs1.org/voc/OrganizationRoleType)) That proves the role-by-position axis is viable as a controlled vocabulary. The catch: GS1's roles are primarily transactional/GDSN party roles (also BILL_TO, SHIP_TO, INVOICEE) — logistics-chain participants, not a populated map of the commerce technology ecosystem. And they're human-governed under GS1's Global Standards Management Process, updated on a standards-body timeline, not agent-maintainable.
+
+**Machine-readable vocabularies — but on a different axis.**
+Schema.org `Organization` covers institutional types: Corporation, NGO, NewsMediaOrganization, and the like. ([schema.org/Organization](https://schema.org/Organization)) Wikidata classifies companies by industry via P452. Neither is a commerce-stack role vocabulary — they answer "what kind of entity is this" rather than "where does it sit in the commerce stack."
+
+**Machine-readable protocols — but for data flow, not company classification.**
+UCP, ACP, and ONX (covered in Section 8) define how participants connect and transact. They enumerate a small set of protocol actors (merchant, agent, payment provider, consumer). Useful for understanding what flows between participants; not designed to classify the full range of companies in your CRM.
+
+**Richly-populated role maps — but static.**
+LUMAscapes and the chiefmartec Marketing Technology Landscape do have rich commerce-role taxonomies, updated annually. They're human-editorial visuals, not machine-readable controlled vocabularies. An agent can't read one to classify a company.
+
+The white space is the combination: a role-by-position vocabulary that is richly populated (more than 4 or even 137 roles), covers the commerce technology ecosystem (not just GDSN logistics parties), and is agent-maintainable at the instance level. The closest existing model architecturally is GS1's — the design is right, the domain is different.
+
+---
+
 ## 8. Design for the agentic-commerce era
 
 Every role taxonomy reflects the participants its authors expected to exist. Legacy taxonomies — built around brands, retailers, platforms, and agencies — have no slot for a category that is now driving measurable purchase volume: the AI assistant acting as a commerce surface.
 
 When a consumer asks Gemini to "find and buy the cheapest version of this," Gemini is not a search engine, a marketplace, or a retailer in any traditional sense. It is a discovery and checkout surface — an intermediary that surfaces products, surfaces offers, and (via standards like Google's UCP) converts intent into a transaction without the consumer visiting a storefront. Your Ecosystem Role axis should have a value for this. Something like **AI commerce surface** captures what it actually does: it occupies a position in the commerce stack that is part channel, part agent, and part distribution point, and it behaves differently from every role that existed before it.
 
-Two emerging standards are worth tracking against your taxonomy — not because they replace a role taxonomy, but because they define what *flows* between participants, not who the participants *are*. A well-designed role taxonomy composes with them rather than competing:
+Three emerging standards are worth tracking against your taxonomy — not because they replace a role taxonomy, but because they define what *flows* between participants, not who the participants *are*. The UCP spec is explicit about this: participant "roles are defined by direction of capability flow, not by industry vertical." ([ucp.dev — Core Concepts](https://ucp.dev/documentation/core-concepts/)) A well-designed role taxonomy composes with these protocols rather than competing:
 
-- **Google's Universal Commerce Protocol (UCP)** — an open standard for turning AI-surface interactions into purchases. Its actors include a merchant (who retains merchant-of-record status and customer data ownership), a consumer, credential providers, and payment services. Currently operating across AI Mode in Google Search and Gemini. Interoperates with three adjacent protocols: AP2 (Agent Payments Protocol), A2A (Agent-to-Agent), and MCP (Model Context Protocol). ([developers.google.com/merchant/ucp](https://developers.google.com/merchant/ucp))
+- **Google's Universal Commerce Protocol (UCP)** — an open standard for turning AI-surface interactions into purchases. Its actors include a merchant (who retains merchant-of-record status and customer data ownership), a consumer, credential providers, and payment services. Currently operating across AI Mode in Google Search and Gemini. Interoperates with three adjacent protocols: AP2 (Agent Payments Protocol), A2A (Agent-to-Agent), and MCP (Model Context Protocol). ([developers.google.com/merchant/ucp](https://developers.google.com/merchant/ucp) · [UCP Core Concepts](https://ucp.dev/documentation/core-concepts/))
 
-- **The Commerce Operations Foundation's ONX (Order Network eXchange)** — an open standard for post-purchase operational data exchange: orders, products, inventory, shipments, and returns. Built as a vocabulary layer on top of MCP, with 14 initial MCP tools and 9 shared resources. Launched with 52 member companies representing over $1 trillion in annual GMV. Where UCP standardizes the purchase moment, ONX standardizes what happens after it — across AI agents, platforms, and fulfillment networks. ([commerceopsfoundation.org](https://commerceopsfoundation.org/the-universal-language-for-modern-commerce-introducing-the-order-network-exchange-onx/))
+- **OpenAI + Stripe's Agentic Commerce Protocol (ACP)** — a protocol and API spec, not a role taxonomy. ACP defines 3–4 transactional actors (businesses, AI agents, payment providers) and standardizes how they authenticate and transact. The scope is the transaction flow; company classification is out of scope. ([github.com/agentic-commerce-protocol](https://github.com/agentic-commerce-protocol/agentic-commerce-protocol))
+
+- **The Commerce Operations Foundation's ONX (Order Network eXchange)** — an open standard for post-purchase operational data exchange: orders, products, inventory, shipments, and returns. Built as a vocabulary layer on top of MCP, with 14 initial MCP tools and 9 shared resources. Launched with 52 member companies representing over $1 trillion in annual GMV. Where UCP and ACP standardize the transaction moment, ONX standardizes what happens after it — and the spec is clear that it is "not a company classification system." ([commerceopsfoundation.org](https://commerceopsfoundation.org/the-universal-language-for-modern-commerce-introducing-the-order-network-exchange-onx/))
 
 Three practical moves for a taxonomy designer watching this space:
 
 1. **Add an AI commerce surface role** to your Ecosystem Role axis. The entities that belong here — AI assistants with shopping integrations, agentic buying tools — are already parties to real transactions and will increasingly appear in your partner, competitor, and channel data.
-2. **Consider a typed "implements" relationship** for standards adoption: which entities in your database have committed to UCP, ONX, MCP, or AP2. This is forward-looking signal, not noise. A standards adopter list (ONX's founding 52 is a ready-made seed) is a natural starting point.
-3. **Treat protocol support as a facet attribute, not a role.** UCP and ONX tell you how a participant connects — not what role it plays. Keep them as attributes on an entity record, separate from its Ecosystem Role classification.
+2. **Consider a typed "implements" relationship** for standards adoption: which entities in your database have committed to UCP, ACP, ONX, MCP, or AP2. This is forward-looking signal, not noise. A standards adopter list (ONX's founding 52 is a ready-made seed) is a natural starting point.
+3. **Treat protocol support as a facet attribute, not a role.** UCP, ACP, and ONX tell you how a participant connects — not what role it plays. Keep them as attributes on an entity record, separate from its Ecosystem Role classification.
 
 ---
 
@@ -234,12 +260,29 @@ Before spending time on a taxonomy refactor, check whether these patterns are al
 
 ## Sources & Attribution
 
-- [W3C SKOS Simple Knowledge Organization System Reference](https://www.w3.org/TR/skos-reference/) — the formal specification for `skos:broader`, `skos:narrower`, `skos:scopeNote`, stable URI-based concept identification, and the note on provenance lying outside SKOS's native scope
-- [W3C SKOS Primer](https://www.w3.org/TR/skos-primer/) — `skos:scopeNote` definition and usage guidance; `skos:prefLabel` and `skos:altLabel` properties; SKOS as a framework for thesauri, classification schemes, and controlled vocabularies
-- [Faceted Classification — Wikipedia](https://en.wikipedia.org/wiki/Faceted_classification) — faceted classification overview, orthogonality requirement for facets, navigation across multiple hierarchical paths
-- [Ranganathan and the Faceted Classification Theory](https://www.researchgate.net/publication/321840994_Ranganathan_and_the_faceted_classification_theory) — Ranganathan's Colon Classification (1933), the PMEST facet framework, and the foundational principle that facets be independent of one another
-- [Google Universal Commerce Protocol (UCP)](https://developers.google.com/merchant/ucp) — open standard for turning AI-surface interactions into purchases; actor model (merchant, consumer, credential provider, payment service); interoperability with AP2 / A2A / MCP; currently live on AI Mode in Google Search and Gemini
-- [Commerce Operations Foundation — Introducing the Order Network eXchange (ONX)](https://commerceopsfoundation.org/the-universal-language-for-modern-commerce-introducing-the-order-network-exchange-onx/) — open standard for post-purchase operational data exchange (orders, products, inventory, shipments, returns) built as a vocabulary layer on MCP; launched with 52 members / >$1T GMV
+**Standards specifications (primary sources)**
+
+- [W3C SKOS Simple Knowledge Organization System Reference](https://www.w3.org/TR/skos-reference/) — formal specification for `skos:broader`, `skos:narrower`, `skos:scopeNote`, stable URI-based concept identification, and the note on provenance lying outside SKOS's native scope
+- [W3C SKOS Primer](https://www.w3.org/TR/skos-primer/) — `skos:scopeNote` definition and usage guidance; `skos:prefLabel` and `skos:altLabel`; SKOS as a framework for thesauri, classification schemes, and controlled vocabularies
+- [W3C Organization Ontology (ORG)](https://www.w3.org/TR/vocab-org/) — `org:Role` as a subclass of `skos:Concept` with no predefined values; the spec's explicit statement that it "does not provide category structures for organization type, organization purpose or roles"
+
+**Existing role ontologies and vocabularies (prior art)**
+
+- [GoodRelations v1.0 (Martin Hepp)](http://www.heppnetz.de/ontologies/goodrelations/v1.html) — `gr:BusinessEntityType` models a company's position in the value chain; defines four roles (Business, Enduser, PublicInstitution, Reseller); also at [schema.org/BusinessEntityType](https://schema.org/BusinessEntityType)
+- [GS1 Web Vocabulary — OrganizationRoleType](https://ref.gs1.org/voc/OrganizationRoleType) — machine-readable OWL vocabulary enumerating 137 org roles (RETAILER, E_TAILER, MARKETPLACE_OPERATOR, BRAND_OWNER, DISTRIBUTOR, MANUFACTURER, CARRIER, BILL_TO, SHIP_TO, and more); primary proof that the role-by-position axis is viable as a controlled vocabulary; human-governed under GS1's Global Standards Management Process
+- [schema.org/Organization](https://schema.org/Organization) — institutional types (Corporation, NGO, NewsMediaOrganization, etc.); a different classification axis than commerce-stack role
+
+**Faceted classification**
+
+- [Faceted Classification — Wikipedia](https://en.wikipedia.org/wiki/Faceted_classification) — overview, orthogonality requirement, navigation across multiple hierarchical paths
+- [Ranganathan and the Faceted Classification Theory](https://www.researchgate.net/publication/321840994_Ranganathan_and_the_faceted_classification_theory) — Colon Classification (1933), the PMEST facet framework, and the foundational principle that facets be independent of one another (ResearchGate; human-accessible, crawler-blocked)
+
+**Agentic commerce protocols**
+
+- [Google Universal Commerce Protocol (UCP)](https://developers.google.com/merchant/ucp) — open standard for turning AI-surface interactions into purchases; actor model (merchant, consumer, credential provider, payment service); live on AI Mode in Google Search and Gemini; interoperability with AP2 / A2A / MCP
+- [UCP Core Concepts](https://ucp.dev/documentation/core-concepts/) — canonical specification; roles defined by "direction of capability flow, not by industry vertical"
+- [Agentic Commerce Protocol (ACP) — OpenAI + Stripe](https://github.com/agentic-commerce-protocol/agentic-commerce-protocol) — protocol and API spec for transactions between businesses, AI agents, and payment providers; 3–4 transactional actors; not a role taxonomy
+- [Commerce Operations Foundation — Introducing the Order Network eXchange (ONX)](https://commerceopsfoundation.org/the-universal-language-for-modern-commerce-introducing-the-order-network-exchange-onx/) — open standard for post-purchase operational data exchange (orders, products, inventory, shipments, returns); vocabulary layer on MCP; 52 founding members / >$1T GMV; explicitly not a company classification system
 
 ---
 
