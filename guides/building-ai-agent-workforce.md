@@ -55,6 +55,16 @@ The human-factors literature settled the core principle two decades ago: Lee and
 
 Single-axis accuracy lies. The benchmark literature evaluates agents across realistic, multi-step environments: AgentBench[^15] across eight environments, GAIA[^16] for general assistants, SWE-bench[^17] on real GitHub issues, and tau-bench[^18] for tool-agent-user interaction with state-correctness checks. But benchmark scores do not equal production reliability — Sinha et al.[^8] show short-task benchmarks can mask both progress and fragility. For operations, measure multiple dimensions (cost, latency, efficacy, policy-adherence, reliability) and set internal SLA targets, since the field publishes evaluation structure but not universal target values.
 
+## 7. Closing the loop: feedback and self-calibration
+
+An agent that never hears how it is doing cannot improve, and one that grades itself in a vacuum drifts. The conversational-AI field has converged on a low-friction answer: a one-click thumbs or emoji grade attached to the agent's output, now standard across major platforms and surveyed in the agent-feedback literature.[^22] Anthropic uses exactly this in Claude Code — 👍/👎 on each review comment, collected after the work merges to tune the reviewer over time, but never re-running or gating the current output.[^23]
+
+Two findings from the HCI literature shape *how* to ask.[^24] First, a feedback button alone is insufficient — the interaction must scaffold the person to articulate what was wrong, so pair the grade with an easy invitation to say why. Second, explicit feedback is volume-biased: people tend to rate only when an interaction is exceptionally good or bad, so prompting on every message both fatigues users and skews the signal. The remedy is selective solicitation — after a hard or consequential interaction, or at random intervals — not constant prompting.
+
+The complement to soliciting feedback is self-calibration: have the agent score its own performance and compare it against the human grade. This is the trust-calibration principle (§5) turned inward — an agent that persistently over-rates itself relative to its users is miscalibrated in a way that is measurable and correctable.
+
+**Worked example.** The internal agent that authored this guide self-scores every substantive interaction and records the teammate's 🟢/🟡/🔴 grade when offered; a scorecard surfaces the running self-minus-team gap. On its first graded interaction it had scored itself 🟡 while the teammate gave 🟢 — a gap flagging that it was *under*-rating itself, a signal that is invisible without the loop. The feedback tunes the agent over time and never blocks the work — the Claude Code model, applied in-house.
+
 ## A note on rigor
 
 This guide deliberately excludes two widely-repeated claims that did not survive scrutiny: that monolithic single agents always degrade and you must decentralize (false — single-agent-first holds, and MAST[^7] shows decentralization adds failure modes), and a specific "37% lab-to-production drop" figure (unsupported). Where evidence is small-sample lab work, it is labeled as such. Empirical claims trace to the references below.
@@ -82,6 +92,9 @@ This guide deliberately excludes two widely-repeated claims that did not survive
 [^19]: Anthropic (2025). How We Built Our Multi-Agent Research System. https://www.anthropic.com/engineering/multi-agent-research-system
 [^20]: OpenAI (2025). A Practical Guide to Building Agents. https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf
 [^21]: Google (2025). A Developer's Guide to Multi-Agent Patterns in ADK. https://developers.googleblog.com/developers-guide-to-multi-agent-patterns-in-adk/
+[^22]: A Survey on the Feedback Mechanism of LLM-based AI Agents. IJCAI 2025. https://www.ijcai.org/proceedings/2025/1175.pdf  (See also thumbs/emoji feedback as standard practice across conversational-AI platforms, e.g. Microsoft Copilot Studio and Sendbird.)
+[^23]: Anthropic. Claude Code — Code Review: 👍/👎 per review comment, collected after merge to tune the reviewer; reactions do not re-run or change the PR. https://code.claude.com/docs/en/code-review
+[^24]: Feedback by Design: Understanding and Overcoming User Feedback Barriers in Conversational Agents. arXiv:2602.01405. https://arxiv.org/abs/2602.01405
 
 **Corrections from prior circulating versions:** The source draft described MAST as "analyzing seven popular frameworks across 200+ tasks." The correct figures from the paper are 1,600+ annotated traces across seven frameworks, with 150 traces used for expert-annotated taxonomy development. The venue designation has also been updated to reflect the confirmed NeurIPS 2025 Datasets & Benchmarks Track Spotlight recognition.
 
