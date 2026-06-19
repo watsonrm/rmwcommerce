@@ -50,6 +50,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 | **Deciding where to run a Claude automation — local launchd vs. claude.ai Routines vs. Cloud Run Jobs** | [Where to Run Your Claude Automation](guides/where-to-run-claude-automation.md) |
 | **Querying what Shopify actually shipped in Spring '26 — 237 changes graded by source tier, from any AI agent over MCP** | [Shopify Editions Spring '26, as an MCP](guides/shopify-editions-spring26-mcp.md) |
 | **Designing a company/entity taxonomy that AI agents classify consistently — faceted roles, scope notes, stable IDs, governance split** | [E-Commerce Taxonomy for AI Agents](guides/ecommerce-taxonomy-for-ai-agents.md) |
+| **Ingesting any external source (Slack, email, file drive, API feed) into a content pipeline with a shared runtime and canonical envelopes** | [The Canonical Cloud Fetcher Pattern](guides/canonical-cloud-fetcher.md) |
 | **Just need a definition** | [Glossary](glossary.md) |
 
 ### The full library by topic
@@ -87,6 +88,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 - [Where to Run Your Claude Automation](guides/where-to-run-claude-automation.md) — the runtime-surface decision framework: local launchd vs. claude.ai Routines vs. GCP Cloud Run Jobs. Covers the 1-hour cron floor, launchd sleep behavior, the `claude/` branch-permission default, gcloud Workspace session-control expiry, and a three-question decision tree for picking the right surface before you build.
 - [Shopify Editions Spring '26, as an MCP](guides/shopify-editions-spring26-mcp.md) — 237 changes catalogued (Shopify announced "150+"), graded by source tier: 104 confirmed against operational docs, 129 inferred from Shopify marketing, 4 unverified. Queryable from Claude, ChatGPT, Cursor, Cline, Windsurf, or raw HTTP. Includes a public corrections log and the empirical findings on the agentic/UCP headline.
 - [Designing an E-Commerce Taxonomy Your AI Agents Can Maintain](guides/ecommerce-taxonomy-for-ai-agents.md) — why inherited industry-code lists rot the moment AI agents start writing them, and the seven design decisions (Ecosystem Role axis, orthogonal facets, scope notes, stable IDs, provenance, graph layer, one-seam tagging) that prevent classification drift.
+- [The Canonical Cloud Fetcher Pattern](guides/canonical-cloud-fetcher.md) — the reusable architecture for ingesting any external source (Slack workspace, email mailbox, file drive, API feed) into a content pipeline. Covers the 7-part anatomy, shared runtime substrate, dedup key selection, rate-limit watermark hold, and the three production failure modes that cause most real incidents. A new source costs ~350–450 lines of source-specific code; everything else is shared.
 
 **Publishing for AI agents:**
 - [Marketing to Agents](guides/marketing-to-agents.md) — the authoritative playbook for making any website readable, citable, and operable across every class of AI agent: indexer bots, AI search surfaces, chat assistants, and agentic browsers. Every claim sourced; 22-item checklist impact-ordered by evidence weight.
@@ -116,6 +118,7 @@ The on-demand companions to the guides above. Drop any folder into `~/.claude/sk
 - [shallow-research](skills/shallow-research/) — run a bounded one-context research pass (≤3 searches, ≤5 fetches, zero subagents) with a hard escalation guardrail; stops and asks before crossing any cap
 - [where-to-run-claude-automation](skills/where-to-run-claude-automation/) — apply the three-surface decision framework (local launchd / claude.ai Routines / Cloud Run Jobs) to a described automation and recommend a surface with specific reasoning and a gotcha checklist
 - [ecommerce-taxonomy](skills/ecommerce-taxonomy/) — audit or design a faceted e-commerce entity taxonomy: diagnose classification drift, draft vocabulary values with scope notes, write deterministic conflict-resolution rules for multi-agent setups
+- [canonical-cloud-fetcher](skills/canonical-cloud-fetcher/) — scaffold or audit a cloud fetcher for any new source: dedup key recommendation, 7-part anatomy check, rate-limit watermark hold verification, and a filled-in scaffold checklist
 
 ### For AI agents reading this repo
 
