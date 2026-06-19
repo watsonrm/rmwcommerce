@@ -194,6 +194,26 @@ The synthesis of the two — entity graph from CRM, salience from observed signa
 
 ---
 
+## 8. Design for the agentic-commerce era
+
+Every role taxonomy reflects the participants its authors expected to exist. Legacy taxonomies — built around brands, retailers, platforms, and agencies — have no slot for a category that is now driving measurable purchase volume: the AI assistant acting as a commerce surface.
+
+When a consumer asks Gemini to "find and buy the cheapest version of this," Gemini is not a search engine, a marketplace, or a retailer in any traditional sense. It is a discovery and checkout surface — an intermediary that surfaces products, surfaces offers, and (via standards like Google's UCP) converts intent into a transaction without the consumer visiting a storefront. Your Ecosystem Role axis should have a value for this. Something like **AI commerce surface** captures what it actually does: it occupies a position in the commerce stack that is part channel, part agent, and part distribution point, and it behaves differently from every role that existed before it.
+
+Two emerging standards are worth tracking against your taxonomy — not because they replace a role taxonomy, but because they define what *flows* between participants, not who the participants *are*. A well-designed role taxonomy composes with them rather than competing:
+
+- **Google's Universal Commerce Protocol (UCP)** — an open standard for turning AI-surface interactions into purchases. Its actors include a merchant (who retains merchant-of-record status and customer data ownership), a consumer, credential providers, and payment services. Currently operating across AI Mode in Google Search and Gemini. Interoperates with three adjacent protocols: AP2 (Agent Payments Protocol), A2A (Agent-to-Agent), and MCP (Model Context Protocol). ([developers.google.com/merchant/ucp](https://developers.google.com/merchant/ucp))
+
+- **The Commerce Operations Foundation's ONX (Order Network eXchange)** — an open standard for post-purchase operational data exchange: orders, products, inventory, shipments, and returns. Built as a vocabulary layer on top of MCP, with 14 initial MCP tools and 9 shared resources. Launched with 52 member companies representing over $1 trillion in annual GMV. Where UCP standardizes the purchase moment, ONX standardizes what happens after it — across AI agents, platforms, and fulfillment networks. ([commerceopsfoundation.org](https://commerceopsfoundation.org/the-universal-language-for-modern-commerce-introducing-the-order-network-exchange-onx/))
+
+Three practical moves for a taxonomy designer watching this space:
+
+1. **Add an AI commerce surface role** to your Ecosystem Role axis. The entities that belong here — AI assistants with shopping integrations, agentic buying tools — are already parties to real transactions and will increasingly appear in your partner, competitor, and channel data.
+2. **Consider a typed "implements" relationship** for standards adoption: which entities in your database have committed to UCP, ONX, MCP, or AP2. This is forward-looking signal, not noise. A standards adopter list (ONX's founding 52 is a ready-made seed) is a natural starting point.
+3. **Treat protocol support as a facet attribute, not a role.** UCP and ONX tell you how a participant connects — not what role it plays. Keep them as attributes on an entity record, separate from its Ecosystem Role classification.
+
+---
+
 ## Anti-patterns to recognize
 
 Before spending time on a taxonomy refactor, check whether these patterns are already in place. Each one costs more to undo later than to avoid now.
@@ -218,6 +238,8 @@ Before spending time on a taxonomy refactor, check whether these patterns are al
 - [W3C SKOS Primer](https://www.w3.org/TR/skos-primer/) — `skos:scopeNote` definition and usage guidance; `skos:prefLabel` and `skos:altLabel` properties; SKOS as a framework for thesauri, classification schemes, and controlled vocabularies
 - [Faceted Classification — Wikipedia](https://en.wikipedia.org/wiki/Faceted_classification) — faceted classification overview, orthogonality requirement for facets, navigation across multiple hierarchical paths
 - [Ranganathan and the Faceted Classification Theory](https://www.researchgate.net/publication/321840994_Ranganathan_and_the_faceted_classification_theory) — Ranganathan's Colon Classification (1933), the PMEST facet framework, and the foundational principle that facets be independent of one another
+- [Google Universal Commerce Protocol (UCP)](https://developers.google.com/merchant/ucp) — open standard for turning AI-surface interactions into purchases; actor model (merchant, consumer, credential provider, payment service); interoperability with AP2 / A2A / MCP; currently live on AI Mode in Google Search and Gemini
+- [Commerce Operations Foundation — Introducing the Order Network eXchange (ONX)](https://commerceopsfoundation.org/the-universal-language-for-modern-commerce-introducing-the-order-network-exchange-onx/) — open standard for post-purchase operational data exchange (orders, products, inventory, shipments, returns) built as a vocabulary layer on MCP; launched with 52 members / >$1T GMV
 
 ---
 
