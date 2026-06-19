@@ -48,6 +48,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 | **Building a remote MCP server that connects from Claude AND ChatGPT/OpenAI — transport, session, auth, and tool-shape decisions** | [MCP Dual-Compat: One Server for Both Platforms](guides/mcp-dual-compat.md) |
 | **Deciding where to run a Claude automation — local launchd vs. claude.ai Routines vs. Cloud Run Jobs** | [Where to Run Your Claude Automation](guides/where-to-run-claude-automation.md) |
 | **Querying what Shopify actually shipped in Spring '26 — 237 changes graded by source tier, from any AI agent over MCP** | [Shopify Editions Spring '26, as an MCP](guides/shopify-editions-spring26-mcp.md) |
+| **Designing a company/entity taxonomy that AI agents classify consistently — faceted roles, scope notes, stable IDs, governance split** | [E-Commerce Taxonomy for AI Agents](guides/ecommerce-taxonomy-for-ai-agents.md) |
 | **Just need a definition** | [Glossary](glossary.md) |
 
 ### The full library by topic
@@ -83,6 +84,7 @@ Long-form guides on Claude, AI agents, and the discoverability standards that ma
 - [MCP Dual-Compat: One Server for Both Platforms](guides/mcp-dual-compat.md) — the four decisions that determine whether a remote MCP server connects from Claude (claude.ai, Claude Code, mobile) and OpenAI (ChatGPT apps, Responses API): transport choice, statelessness, auth shape, and tool schema. Includes a verified test ladder from curl probe through the Responses API to consumer UI, and honest framing of what was live-tested vs. protocol-verified.
 - [Where to Run Your Claude Automation](guides/where-to-run-claude-automation.md) — the runtime-surface decision framework: local launchd vs. claude.ai Routines vs. GCP Cloud Run Jobs. Covers the 1-hour cron floor, launchd sleep behavior, the `claude/` branch-permission default, gcloud Workspace session-control expiry, and a three-question decision tree for picking the right surface before you build.
 - [Shopify Editions Spring '26, as an MCP](guides/shopify-editions-spring26-mcp.md) — 237 changes catalogued (Shopify announced "150+"), graded by source tier: 104 confirmed against operational docs, 129 inferred from Shopify marketing, 4 unverified. Queryable from Claude, ChatGPT, Cursor, Cline, Windsurf, or raw HTTP. Includes a public corrections log and the empirical findings on the agentic/UCP headline.
+- [Designing an E-Commerce Taxonomy Your AI Agents Can Maintain](guides/ecommerce-taxonomy-for-ai-agents.md) — why inherited industry-code lists rot the moment AI agents start writing them, and the seven design decisions (Ecosystem Role axis, orthogonal facets, scope notes, stable IDs, provenance, graph layer, one-seam tagging) that prevent classification drift.
 
 **Publishing for AI agents:**
 - [Marketing to Agents](guides/marketing-to-agents.md) — the authoritative playbook for making any website readable, citable, and operable across every class of AI agent: indexer bots, AI search surfaces, chat assistants, and agentic browsers. Every claim sourced; 22-item checklist impact-ordered by evidence weight.
@@ -111,6 +113,7 @@ The on-demand companions to the guides above. Drop any folder into `~/.claude/sk
 - [mcp-dual-compat](skills/mcp-dual-compat/) — audit a remote MCP server against the four dual-compat decisions (transport, statelessness, auth shape, tool schema) and prescribe the minimal fix for any cross-platform failure
 - [shallow-research](skills/shallow-research/) — run a bounded one-context research pass (≤3 searches, ≤5 fetches, zero subagents) with a hard escalation guardrail; stops and asks before crossing any cap
 - [where-to-run-claude-automation](skills/where-to-run-claude-automation/) — apply the three-surface decision framework (local launchd / claude.ai Routines / Cloud Run Jobs) to a described automation and recommend a surface with specific reasoning and a gotcha checklist
+- [ecommerce-taxonomy](skills/ecommerce-taxonomy/) — audit or design a faceted e-commerce entity taxonomy: diagnose classification drift, draft vocabulary values with scope notes, write deterministic conflict-resolution rules for multi-agent setups
 
 ### For AI agents reading this repo
 
