@@ -1,6 +1,6 @@
 # The Canonical Cloud Fetcher Pattern
 
-**How to ingest any external source — a Slack workspace, an email mailbox, a file drive, an API feed — into a content pipeline as a first-class input, without writing a new system each time.**
+**How to ingest any external source — a folder of work-product documents, an email mailbox, an API feed — into a content pipeline as a first-class input, without writing a new system each time.**
 
 > © 2026 Rick Watson / RMW Commerce Consulting. This compilation, its ranking, and the original commentary are copyrighted. The underlying techniques are derived from the author's own operational infrastructure and are presented here as a vendor-neutral architecture pattern. Quoting brief excerpts with attribution is fine. Republishing the compilation in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
@@ -49,7 +49,7 @@ Claude will load the skill and walk you through the seven-part anatomy, check yo
 
 ## Background: the problem this solves
 
-Content pipelines accumulate sources. You start with one — say, a community Slack — and write a poller for it. Then you add a second source: a file drive. Then a third: an email account. Then a fourth.
+Content pipelines accumulate sources. You start with one — say, a shared folder of work-product files (decks, PDFs, exports, notes) — and write a poller for it. Then you add a second source: an email account. Then a third: an API feed. Then a fourth.
 
 By the fourth source, you have four pollers, each with its own:
 - credential-resolution logic
@@ -74,7 +74,7 @@ A scheduled **cloud poller** reads a source, writes **canonical envelopes** to a
 
 ```
   ┌─ 1. SOURCE POLL ──────────────────────────────────────────────┐
-  │  source API (Slack / email / file drive / feed / …)           │
+  │  source API (file drive / email / feed / …)                   │
   │  polled since a persisted watermark                            │
   └───────────────────────────────────────────────────────────────┘
                  │   reuse an existing auth/client if one exists
@@ -236,11 +236,11 @@ The router reads each envelope's `source` field, matches it against a set of rou
 Example rule shape (in a YAML routing config):
 
 ```yaml
-- name: community-slack-ai-channel
-  source_in: [community-slack]
-  labels_include: [ai-and-tech]
-  destination: knowledge_base/sources/community-slack/
-  subfolder: ai-and-tech
+- name: work-product-files-strategy
+  source_in: [work-product-files]
+  labels_include: [strategy]
+  destination: knowledge_base/sources/work-product-files/
+  subfolder: strategy
 ```
 
 **Two things to get right:**
@@ -417,14 +417,14 @@ This is the single most important error-handling decision in a fetcher. Getting 
 
 When building a new fetcher, the most productive starting point is a sibling fetcher that shares the most characteristics with your source. Here's what each reference type teaches:
 
-**Community Slack (many channels, link-heavy content):**
-- Per-window dedup (not per-message) because threads are the natural unit of signal
-- Channel-level sub-source isolation so a rate limit on one channel doesn't drop content from others
+**Work-product file folder (many file types, high volume):**
+- Per-file-change-ID dedup (not per-modification-timestamp) because timestamps aren't globally consistent across a change feed
+- Folder-level sub-source isolation so a rate limit on one folder doesn't drop files from others
 - Synthesis quarantine pattern for high-volume sources that should feed search but not the digest
 
-**Internal Slack (threaded, lower volume):**
-- Per-conversation-day dedup
-- Side-sync pattern for updating a CRM or contact database from conversation metadata without writing to the knowledge base directly
+**Document repository or email account (threaded, lower volume):**
+- Per-conversation-day dedup for email threads; per-document-version dedup for versioned docs
+- Side-sync pattern for updating a CRM or project tracker from document metadata without writing to the knowledge base directly
 
 **File drive (change-feed based):**
 - Delta-token pagination rather than timestamp-cursor pagination
