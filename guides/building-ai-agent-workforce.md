@@ -4,12 +4,30 @@
 
 > © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. The underlying research and empirical findings originate from the cited academic papers and practitioner documentation. See [Sources & Attribution](#sources--attribution). Quoting brief excerpts with attribution is fine. Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
 
+## How to use this
+
+The operational form of this guide is the Claude Code skill at [`skills/building-ai-agent-workforce/`](../skills/building-ai-agent-workforce/). Install it once:
+
+```bash
+# from a clone of this repo
+mkdir -p ~/.claude/skills && cp -r skills/building-ai-agent-workforce ~/.claude/skills/
+```
+
+Then describe your agent or system to Claude — what it does, what its tool surface looks like, what stage of deployment you're at — and say one of these:
+
+> audit this agent workforce
+> production-transition checklist for this agent
+> six-dimension agent audit
+
+Claude will load the skill on demand and walk your system through the six-dimension audit and the prototype-to-production checklist. The article below is the reasoning behind this framework — read it for the *why*; the skill is the *how*.
+
 ## TL;DR — what's in it for you
 
 - Avoid the failure mode that sank the first wave of LLM agents: unbounded autonomy without systems-engineering discipline.
 - Understand which organizational, containment, escalation, and measurement decisions actually have research backing — and which don't.
 - Apply calibrated trust to human-agent teams without triggering complacency or aversion.
 - Know which benchmarks to use and what they miss before declaring an agent "production-ready."
+- Get the eight operational lessons that only surface after an agent has been on a team for a while — not in the literature, just in the work.
 
 ### Where to spend your time, in priority order
 
@@ -17,11 +35,12 @@
 |---|---|---|---|
 | 1 | Default to a single capable agent | Multi-agent adds ~15x token cost and introduces coordination failures a single agent cannot have[^7][^19] | Low |
 | 2 | Contain at the environment layer first | Least-privilege access limits blast radius regardless of model behavior[^10] | Medium |
-| 3 | Define two escalation triggers (retry threshold; irreversible action) | Silent error propagation is a documented failure mode; approval fatigue degrades human review over time[^7][^20] | Low |
-| 4 | Calibrate trust, don't maximize it | Miscalibrated trust causes complacency or aversion — both are measured failure modes[^12][^13] | Medium |
-| 5 | Use multi-axis evaluation | Single-axis accuracy scores mask both progress and fragility in long-horizon tasks[^8][^15][^16][^17][^18] | Medium |
+| 3 | Ship dormant; fail closed | The dangerous window is a half-configured deploy — an agent that can't act until all credentials are verified can't go wrong in that window | Low |
+| 4 | Define two escalation triggers (retry threshold; irreversible action) | Silent error propagation is a documented failure mode; approval fatigue degrades human review over time[^7][^20] | Low |
+| 5 | Calibrate trust, don't maximize it | Miscalibrated trust causes complacency or aversion — both are measured failure modes[^12][^13] | Medium |
+| 6 | Use multi-axis evaluation | Single-axis accuracy scores mask both progress and fragility in long-horizon tasks[^8][^15][^16][^17][^18] | Medium |
 
-Most readers should fix the first two and stop. The rest are diminishing returns until those foundations hold.
+Most readers should fix the first three and stop. The rest are diminishing returns until those foundations hold.
 
 ## 1. A short history, so you don't repeat it
 
@@ -39,13 +58,21 @@ Default to one capable agent. Maximize its tools and instructions before reachin
 
 An agent's "job description" should name: a single clear scope, the exact tools it may use and their risk level, its reporting and escalation line, its escalation triggers, its quality gates, and its autonomy level.
 
+**Pair the job description with a Working Conventions document.** A job description names what the agent does; conventions govern how. Write them as numbered, citable rules using RFC-2119 keywords (MUST / SHOULD / MAY),[^25] grouped by area, each with a stable id — for example: `COMMS-01: The agent MUST reply in-thread, not in the channel root`; `RISK-01: The agent MUST escalate any irreversible or external action rather than execute it`; `DEPLOY-01: Going live is a human decision`. When a behavior is a numbered rule, the agent can cite the rule it followed in its audit trail, a reviewer can point at the exact id that was violated, and a fix is a rule edit, not a vague nudge. Pair the conventions with machine-readable config: risk tiers (which action class needs which gate) and an autonomy ladder (the reliability bar to earn more independence) live as a config file the agent reads, so the policy has one source of truth rather than being scattered through prompts.
+
 ## 3. Guardrails and containment
 
 Risk-rate every tool low/medium/high by read-vs-write, reversibility, permissions, and financial impact.[^20] Layer guardrails — relevance, safety, PII, moderation, output validation — because no single one suffices. Most important: contain at the environment layer first, then steer the model. Least-privilege access limits the blast radius of any mistake, and it is the most reliable control because it does not depend on the model behaving. The governance literature adds an accountability layer: Chan et al.[^10] argue for visibility into agents via three concrete measures — agent identifiers, real-time monitoring, and activity logging — and Shavit et al.[^9] lay out baseline responsibilities across the agent life-cycle.
 
+**The strongest guardrail is the tool the agent literally does not have.** Prompt instructions ("do not send email") are defense-in-depth — useful, but the weakest link. The concrete corollary: curate the tool and credential surface so high-risk capabilities are absent at the environment layer. An agent that runs without an email-send credential cannot send email regardless of what the model decides. An agent whose runtime does not include a shell cannot run arbitrary code. Build the dangerous capabilities out of the environment first; treat prompt-level restrictions as the backup, not the primary defense. Enabling reversible writes is still a real authorization change — surface the blast radius explicitly (including who else the new permission exposes, such as an external partner connector) before flipping it on.
+
 ## 4. Escalation and failure handling
 
 Escalate to a human on two triggers: exceeding a retry/failure threshold, and any sensitive, irreversible, or high-stakes action.[^20] On failure, halt and hand control back — never silently continue (silent error propagation is one of MAST's documented failure modes[^7]). Human approval is the default for consequential actions, but approval-gating alone degrades: humans rubber-stamp as volume rises. Pair approval with environment containment, and grant autonomy progressively as the agent demonstrates reliability. Because errors compound in long tasks,[^8] shorter supervised loops with checkpoints beat one long unsupervised run. Tune thresholds against both over-compliance and over-refusal — over-caution is also a failure mode.
+
+**Honest degradation beats confident fiction.** When a tool genuinely fails, the agent should say so plainly and hand off — it should never fake success. Two rules: (1) never claim a follow-up the agent has no mechanism to make; (2) when a tool fails, report it, deliver what can be delivered in the current turn, and flag a human. The worst version of this failure is a fabricated commitment — an agent that says "let me look that up and get back to you" with no mechanism to send a later message. The fix is twofold: give the agent real read access so it answers now, and rewrite the contract to "deliver now or say you can't and offer a human."
+
+**Failed actions retry from a durable claim — they don't disappear.** A teammate's message is not a packet you can drop. Design every action so its failure path is "retry from a persisted claim" rather than silent loss. A reply whose send fails stays queued under a short-lived claim; once the cause is fixed, the next pass composes and posts it — the question was answered late, but never lost. Make the claim's lifetime your recovery bound.
 
 ## 5. Culture and trust
 
@@ -55,15 +82,73 @@ The human-factors literature settled the core principle two decades ago: Lee and
 
 Single-axis accuracy lies. The benchmark literature evaluates agents across realistic, multi-step environments: AgentBench[^15] across eight environments, GAIA[^16] for general assistants, SWE-bench[^17] on real GitHub issues, and tau-bench[^18] for tool-agent-user interaction with state-correctness checks. But benchmark scores do not equal production reliability — Sinha et al.[^8] show short-task benchmarks can mask both progress and fragility. For operations, measure multiple dimensions (cost, latency, efficacy, policy-adherence, reliability) and set internal SLA targets, since the field publishes evaluation structure but not universal target values.
 
+**Maintain a living battery of user-voiced test scenarios.** Integration bugs and natural-phrasing gaps don't show up in single-component metrics. Write a battery of messages the way an actual teammate would send them, assert the agent does the right thing, and run it before every change. One real example of what this catches: a high-risk-action detector missed natural phrasing — it was tuned on contiguous strings, so a direct command tripped it but the same command with an intervening phrase did not. It was rebuilt to key on the commanded verb aimed at an outbound target, robust to intervening words, while leaving status questions alone. None of the four bugs this battery caught had a failing unit test. Tests written in the API's voice miss what tests in the user's voice catch.
+
 ## 7. Closing the loop: feedback and self-calibration
 
-An agent that never hears how it is doing cannot improve, and one that grades itself in a vacuum drifts. The conversational-AI field has converged on a low-friction answer: a one-click thumbs or emoji grade attached to the agent's output, now standard across major platforms and surveyed in the agent-feedback literature.[^22] Anthropic uses exactly this in Claude Code — 👍/👎 on each review comment, collected after the work merges to tune the reviewer over time, but never re-running or gating the current output.[^23]
+An agent that never hears how it is doing cannot improve, and one that grades itself in a vacuum drifts. The conversational-AI field has converged on a low-friction answer: a one-click thumbs or emoji grade attached to the agent's output, now standard across major platforms and surveyed in the agent-feedback literature.[^22] Anthropic uses exactly this in Claude Code — thumbs up/down on each review comment, collected after the work merges to tune the reviewer over time, but never re-running or gating the current output.[^23]
 
 Two findings from the HCI literature shape *how* to ask.[^24] First, a feedback button alone is insufficient — the interaction must scaffold the person to articulate what was wrong, so pair the grade with an easy invitation to say why. Second, explicit feedback is volume-biased: people tend to rate only when an interaction is exceptionally good or bad, so prompting on every message both fatigues users and skews the signal. The remedy is selective solicitation — after a hard or consequential interaction, or at random intervals — not constant prompting.
 
 The complement to soliciting feedback is self-calibration: have the agent score its own performance and compare it against the human grade. This is the trust-calibration principle (§5) turned inward — an agent that persistently over-rates itself relative to its users is miscalibrated in a way that is measurable and correctable.
 
-**Worked example.** The internal agent that authored this guide self-scores every substantive interaction and records the teammate's 🟢/🟡/🔴 grade when offered; a scorecard surfaces the running self-minus-team gap. On its first graded interaction it had scored itself 🟡 while the teammate gave 🟢 — a gap flagging that it was *under*-rating itself, a signal that is invisible without the loop. The feedback tunes the agent over time and never blocks the work — the Claude Code model, applied in-house.
+**Worked example.** An internal agent self-scores every substantive interaction and records the teammate's green/yellow/red grade when offered; a scorecard surfaces the running self-minus-team gap. On its first graded interaction it had scored itself yellow while the teammate gave green — a gap flagging that it was *under*-rating itself, a signal that is invisible without the loop. The feedback tunes the agent over time and never blocks the work — the Claude Code model, applied in-house.
+
+## 8. From prototype to production
+
+The eight sections above cover design principles grounded in research. This section covers what you learn after the agent is actually on a team — the operational lessons that don't show up in any paper.
+
+### 8.1 Ship dormant; fail closed
+
+An agent that can act should ship *inert* and refuse to do anything until every credential and config it needs is verifiably present — not "best effort if configured." Build the gate so the **absence** of a secret is a hard stop, not a silent fallback.
+
+**Worked example.** An inbound listener verified a request signature on every event and returned `503 — disabled` (processing nothing) until its signing secret existed in the vault. A half-wired deploy therefore could not act on anything; going live was a deliberate, separate human step — mint the secret, register the events, prove the sandbox — each leaving an audit trail. The dangerous window in agent rollouts is the half-configured one. Fail-closed collapses it.
+
+### 8.2 The capability boundary is "deny high-risk," not "deny everything"
+
+A read-only agent is half a teammate. The useful posture: the agent reads freely and makes reversible internal changes on its own; only irreversible, external, or financial actions escalate to a human. Scope it to at most what a human teammate in that seat could do — and make the dangerous tools structurally absent, not merely discouraged by the prompt.
+
+**Worked example.** The agent reads the knowledge base and appends status notes to a running-notes page autonomously (reversible, version-controlled). "Send the client the invoice" is detected and turned into a drafted item routed to a human for approval — it is never executed. The engine runs with a curated tool set that simply does not include email-send, finance-write, or a shell; prompt instructions are the weakest link, so containment lives in the tool surface.
+
+### 8.3 Honesty over capability theater
+
+The fastest way to lose a team's trust is an agent that fabricates a commitment, not just a fact. Two rules: never claim a follow-up the agent has no mechanism to make; when a tool genuinely fails, say so plainly and hand off — never fake success.
+
+**Worked example (the bug).** Asked for a status it couldn't yet look up, an early version replied "let me pull that up and follow up shortly." It had no tools and no way to send a later message — a fabricated promise. The fix was twofold: give it real read access so it answers now, and rewrite the contract to "deliver now or say you can't and offer a human."
+
+**Worked example (the right behavior).** When its write tool was misconfigured, the agent replied "my write tool is down — the credential is unset, so nothing was saved; here's the drafted note, and I'll flag a human." Honest degradation beats confident fiction.
+
+### 8.4 Test it in the user's voice — adversarial, goal-driven testing finds what unit tests miss
+
+The bugs that matter in a deployed agent are integration bugs at the seams between components and real phrasing the developer didn't anticipate. Write a battery of messages the way an actual teammate would send them, assert the agent does the right thing, and run it before every change.
+
+**Worked example.** A "test it like a teammate would" battery caught four bugs with green unit tests: (a) the high-risk-action detector missed natural phrasing — it was tuned on contiguous strings, so a direct command tripped it but the same command with an intervening phrase did not; rebuilt to key on a commanded verb aimed at an outbound target, robust to intervening words, while leaving status questions alone; (b) a reply failed to post because a direct-message channel id was not on the outbound allowlist (fixed by addressing the teammate's user id, which is); (c) writes were silently disabled by a deploy quirk; (d) the agent over-promised a follow-up (§8.3). None had a failing unit test. Tests written in the API's voice miss what tests in the user's voice catch.
+
+### 8.5 Cost-aware engine and model routing
+
+Capability and cost are separable. Run the most capable engine when it's free, fall back to a metered one otherwise, tier models by task difficulty, and cache the stable context.
+
+**Pattern.** A free local engine handles requests whenever the operator's machine is awake; a metered cloud API covers the rest. A lightweight heartbeat tells the router which is live; a claim-with-timeout guarantees exactly one responder answers and nothing is dropped if the local one goes away mid-task. Within the metered path, route trivial acknowledgements to the cheapest model, substantive replies to a mid-tier, genuine-judgment asks to the top tier, and cache the large stable system context so repeat calls are near-free.
+
+**Result.** Most real traffic costs nothing (handled locally); the metered fallback stays in pennies.
+
+### 8.6 Infrastructure realities bite — know your platform's execution model
+
+Serverless platforms commonly throttle CPU to near-zero outside an active request. "Fire-and-forget" background work scheduled after you return the response can silently freeze and never complete — no error, no log, just a task that never runs. ([Cloud Run billing model](https://cloud.google.com/run/docs/configuring/billing-settings))[^26]
+
+**Worked example.** The agent acknowledged within the platform's request deadline, then composed the reply in a background task — which never executed, because CPU was throttled to near-zero the instant the response returned. The eventual idle-shutdown fires with no clean error, just work that disappeared. The fix was to do the work inline within the request and rely on an idempotency claim to dedup the platform's automatic retries. Read your runtime's execution and billing model before you design around "async."
+
+### 8.7 Monitor daemons by heartbeat, not exit code
+
+Health instrumentation that records on process exit is wrong for a long-running agent that never exits. After a transient startup crash, an always-on daemon will run healthily forever yet never record a recovery — latching a permanent false alarm.
+
+**Worked example.** The agent's resident loop crashed three times at boot (a missing file), got fixed, and ran clean for an hour — but the monitor still flagged it, because the only records it had were the three failures. The fix: the daemon self-reports a success beat on its own clock; a healthy loop continuously clears the state, and the absence of a beat becomes the real failure signal (the loop hung or died). Monitor liveness by presence-of-heartbeat, not by a terminal exit code that a daemon never produces.
+
+### 8.8 Fault-tolerance: never drop a person's request
+
+A teammate's message is not a packet you can drop. A failed action should leave the work claimed and queued and retry, not vanish.
+
+**Worked example.** A reply whose send failed (a misconfigured allowlist) stayed queued under a short-lived claim; once the cause was fixed, the very next pass composed and posted it — the teammate's question was answered late, but never lost. Design every action so its failure path is "retry," and make the claim's lifetime your recovery bound.
 
 ## A note on rigor
 
@@ -93,9 +178,11 @@ This guide deliberately excludes two widely-repeated claims that did not survive
 [^20]: OpenAI (2025). A Practical Guide to Building Agents. https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf
 [^21]: Google (2025). A Developer's Guide to Multi-Agent Patterns in ADK. https://developers.googleblog.com/developers-guide-to-multi-agent-patterns-in-adk/
 [^22]: A Survey on the Feedback Mechanism of LLM-based AI Agents. IJCAI 2025. https://www.ijcai.org/proceedings/2025/1175.pdf  (See also thumbs/emoji feedback as standard practice across conversational-AI platforms, e.g. Microsoft Copilot Studio and Sendbird.)
-[^23]: Anthropic. Claude Code — Code Review: 👍/👎 per review comment, collected after merge to tune the reviewer; reactions do not re-run or change the PR. https://code.claude.com/docs/en/code-review
+[^23]: Anthropic. Claude Code — Code Review: thumbs up/down per review comment, collected after merge to tune the reviewer; reactions do not re-run or change the PR. https://code.claude.com/docs/en/code-review
 [^24]: Feedback by Design: Understanding and Overcoming User Feedback Barriers in Conversational Agents. arXiv:2602.01405. https://arxiv.org/abs/2602.01405
+[^25]: Bradner, S. (1997). RFC 2119 — Key words for use in RFCs to Indicate Requirement Levels. IETF. https://www.ietf.org/rfc/rfc2119.txt
+[^26]: Google Cloud. Configuring CPU allocation and billing — Cloud Run. https://cloud.google.com/run/docs/configuring/billing-settings (CPU is throttled to near-zero when a container instance is not processing a request; background tasks scheduled after the response returns may freeze and never complete.)
 
-**Corrections from prior circulating versions:** The source draft described MAST as "analyzing seven popular frameworks across 200+ tasks." The correct figures from the paper are 1,600+ annotated traces across seven frameworks, with 150 traces used for expert-annotated taxonomy development. The venue designation has also been updated to reflect the confirmed NeurIPS 2025 Datasets & Benchmarks Track Spotlight recognition.
+**Corrections from prior circulating versions:** The source draft described MAST as "analyzing seven popular frameworks across 200+ tasks." The correct figures from the paper are 1,600+ annotated traces across seven frameworks, with 150 traces used for expert-annotated taxonomy development. The venue designation has also been updated to reflect the confirmed NeurIPS 2025 Datasets & Benchmarks Track Spotlight recognition. The Cloud Run CPU behavior has been corrected: CPU is not "deallocated" — it is throttled to near-zero, which causes background tasks to silently freeze and eventually drop when idle-shutdown fires, with no clean error.
 
 > © 2026 Rick Watson / RMW Commerce Consulting. All rights reserved on original commentary. The underlying research and empirical findings originate from the cited academic papers and practitioner documentation. Republishing in whole or in substantial part requires written permission: rick@rmwcommerce.com.
